@@ -3,3 +3,7 @@
 /qemudebug.log
 /build
 /ubuntu
+*.qcow2
+*.deb
+*.changes
+*.buildinfo

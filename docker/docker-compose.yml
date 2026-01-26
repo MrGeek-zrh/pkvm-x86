@@ -1,0 +1,94 @@
+# pKVM-x86 Docker Compose 配置
+# 用法:
+#   docker-compose build          # 构建镜像
+#   docker-compose run --rm build # 进入编译环境
+#   docker-compose run --rm build pkvm-build all  # 执行完整编译
+#
+# 注意: 构建 hostimage/guestimage 前，需要在宿主机上加载 nbd 模块:
+#   sudo modprobe nbd max_part=8
+
+services:
+  build:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: pkvm-x86-builder:latest
+    container_name: pkvm-builder
+    
+    # 挂载卷配置
+    volumes:
+      # 源代码目录 (读写) - 父目录 pkvm-x86
+      # images 文件夹直接使用项目目录下的位置，不再软链接到其他位置
+      - ..:/workspace/pkvm-x86:rw
+      # 挂载宿主机内核模块 (用于 modprobe/rmmod nbd)
+      - /lib/modules:/lib/modules:ro
+      # 注意: images 目录不再挂载到外部位置，qcow2 文件将直接保存在项目目录的 images/ 文件夹中
+      # 如果需要挂载到外部位置，可以取消下面的注释并修改路径
+      # - /mnt/nvme/pkvm-images:/workspace/pkvm-x86/images:rw
+      # 可选: 单独挂载编译产物目录，便于提取
+      # - ./output:/workspace/output:rw
+      # 可选: 挂载 ccache 缓存加速重复编译
+      # - pkvm-ccache:/root/.ccache:rw
+    
+    # 环境变量
+    environment:
+      - PKVM_DIR=/workspace/pkvm-x86
+      - NJOBS=${NJOBS:-}  # 不设置则使用 nproc
+      - CC=gcc
+      - PLATFORM=q35
+      - BUILD_TYPE=DEBUG
+    
+    # 使用宿主机网络（方便下载依赖）
+    network_mode: host
+    
+    # 需要特权模式来创建磁盘镜像等操作 (nbd 模块需要)
+    privileged: true
+
+    # nbd 设备（guestimage/hostimage 会用到 /dev/nbd0）
+    # 注意：宿主机需先加载模块：sudo modprobe nbd max_part=8
+    devices:
+      - /dev/nbd0:/dev/nbd0
+      - /dev/nbd1:/dev/nbd1
+    
+    # 启用 TTY 交互
+    stdin_open: true
+    tty: true
+    
+    # 工作目录
+    working_dir: /workspace/pkvm-x86
+
+  # 可选: 专用于运行 QEMU 测试的服务
+  qemu-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: pkvm-x86-builder:latest
+    container_name: pkvm-qemu-test
+    
+    volumes:
+      - ..:/workspace/pkvm-x86:rw
+      # 注意: images 目录不再挂载到外部位置，qcow2 文件将直接保存在项目目录的 images/ 文件夹中
+      # 如果需要挂载到外部位置，可以取消下面的注释并修改路径
+      # - /mnt/nvme/pkvm-images:/workspace/pkvm-x86/images:rw
+    
+    environment:
+      - PKVM_DIR=/workspace/pkvm-x86
+      - DISPLAY=${DISPLAY:-}
+    
+    network_mode: host
+    privileged: true
+    
+    # KVM 设备（如果宿主机支持）
+    devices:
+      - /dev/kvm:/dev/kvm
+      # nbd 设备（如需生成镜像/挂载 qcow2）
+      - /dev/nbd0:/dev/nbd0
+      - /dev/nbd1:/dev/nbd1
+    
+    stdin_open: true
+    tty: true
+    working_dir: /workspace/pkvm-x86
+
+# 可选: 定义命名卷
+# volumes:
+#   pkvm-ccache:

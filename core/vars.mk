@@ -1,4 +1,6 @@
-ifeq ($(shell echo -e "12.3.0\n$$($${CC} --version 2> /dev/null |grep gcc |awk '{print $$3}')" | awk NF | sort -VC; echo $$?), 1)
+ifeq ($(shell cc=$${CC:-gcc}; \
+	v=$$($$cc -dumpfullversion 2>/dev/null || $$cc -dumpversion 2>/dev/null); \
+	printf '%s\n%s\n' "12.3.1" "$$v" | awk NF | sort -V -C; echo $$?), 1)
 $(error "Use gcc 12.3.1 or newer, see GCC bug: 103979.")
 endif
 

@@ -60,7 +60,8 @@ endif
 
 DRIVE := -device nvme,serial=a1b2c3d4-e5f6-a7b8-c9d0-e1f2a3b4c5d6,drive=disk0 -drive file=$(IMAGE),if=none,id=disk0,format=qcow2
 MACHINE := -machine q35,mem-merge=off,$(MACHINEOPTS) -device intel-iommu,aw-bits=48,device-iotlb=on
-CPUFLAGS := +kvm-pv-enforce-cpuid,+vmx,+waitpkg,+ssse3,+tsc,+nx,+x2apic,+hypervisor,$\
+# 移除了 +kvm-pv-enforce-cpuid (需要新版KVM) 和 +waitpkg (CPU不支持)
+CPUFLAGS := +vmx,+ssse3,+tsc,+nx,+x2apic,+hypervisor,$\
 	-kvm-pv-ipi,-kvm-pv-tlb-flush,-kvm-pv-unhalt,-kvm-pv-sched-yield,-kvm-asyncpf-int,-kvm-pv-eoi
 CPU := --accel kvm,kernel-irqchip=on -cpu host,$(CPUFLAGS) -smp 4 -overcommit cpu-pm=off
 USB := -device ich9-usb-ehci1,id=ehci -device usb-kbd $(USBSTICK)

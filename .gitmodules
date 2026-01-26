@@ -1,18 +1,24 @@
 [submodule "linux"]
 	path = linux
 	url = https://github.com/tiiuae/pKVM-x86.git
+	ignore = all
 [submodule "qemu"]
 	path = qemu
 	url = https://github.com/qemu/qemu.git
+	ignore = all
 [submodule "crosvm"]
 	path = crosvm
 	url = https://chromium.googlesource.com/crosvm/crosvm
+	ignore = all
 [submodule "coreboot"]
 	path = coreboot
 	url = https://review.coreboot.org/coreboot.git
+	ignore = all
 [submodule "uefi/shim"]
 	path = uefi/shim
 	url = https://github.com/rhboot/shim.git
+	ignore = all
 [submodule "uefi/firmware-open"]
 	path = uefi/firmware-open
 	url = https://github.com/system76/firmware-open.git
+	ignore = all

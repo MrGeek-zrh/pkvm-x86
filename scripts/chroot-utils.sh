@@ -269,13 +269,52 @@ sysroot_create_image_file() {
 	sync
 	sleep 2
 
+	# 辅助函数: 让内核重新读取分区表 + 确保 /dev 节点存在
+	# Docker 容器里通常没有 udev，因此 /dev/nbd0p1 可能不会自动创建。
+	rescan_partitions() {
+		sync
+		sleep 1
+
+		# 1) 尽量让内核重新读取分区表
+		partprobe /dev/nbd0 2>/dev/null || true
+		blockdev --rereadpt /dev/nbd0 2>/dev/null || true
+		partx -u /dev/nbd0 2>/dev/null || true
+		partx -a /dev/nbd0 2>/dev/null || true
+
+		# 2) 没有 udev 的情况下，手工创建分区设备节点（只创建节点，不改变内核分区信息）
+		# 这里用 /dev/nbd0 的 major/minor 推导分区 minor: p1=minor+1, p2=minor+2
+		if [ ! -e /dev/nbd0p1 ]; then
+			maj_hex=\$(stat -c '%t' /dev/nbd0)
+			min_hex=\$(stat -c '%T' /dev/nbd0)
+			maj=\$((16#\${maj_hex}))
+			min=\$((16#\${min_hex}))
+			mknod /dev/nbd0p1 b \${maj} \$((\${min}+1)) 2>/dev/null || true
+		fi
+		if [ "x$EFI" = "x1" ] && [ ! -e /dev/nbd0p2 ]; then
+			maj_hex=\$(stat -c '%t' /dev/nbd0)
+			min_hex=\$(stat -c '%T' /dev/nbd0)
+			maj=\$((16#\${maj_hex}))
+			min=\$((16#\${min_hex}))
+			mknod /dev/nbd0p2 b \${maj} \$((\${min}+2)) 2>/dev/null || true
+		fi
+
+		# 3) 等待节点出现
+		for i in 1 2 3 4 5 6 7 8 9 10; do
+			if [ "x$EFI" = "x1" ]; then
+				[ -e /dev/nbd0p1 ] && [ -e /dev/nbd0p2 ] && break
+			else
+				[ -e /dev/nbd0p1 ] && break
+			fi
+			sleep 1
+		done
+	}
+
 	if [ "x$EFI" = "x1" ]; then
 		parted -s /dev/nbd0 mklabel gpt \
 			mkpart ESP fat32 1MiB 2GiB \
 			set 1 esp on \
 			mkpart ROOT ext4 2GiB 100%
-		sync
-		sleep 2
+		rescan_partitions
 		mformat_partition /dev/nbd0 1
 		mkfs.ext4 /dev/nbd0p2
 		sync
@@ -283,8 +322,13 @@ sysroot_create_image_file() {
 		sleep 2
 	else
 		parted -a optimal /dev/nbd0 mklabel gpt mkpart primary ext4 0% 100%
-		sync
-		sleep 2
+		rescan_partitions
+		if [ ! -e /dev/nbd0p1 ]; then
+			echo 'ERROR: /dev/nbd0p1 not found after partitioning'
+			echo 'Trying to list nbd devices:'
+			ls -la /dev/nbd0* || true
+			exit 1
+		fi
 		mkfs.ext4 /dev/nbd0p1
 		mount /dev/nbd0p1 '$tmp_image_dir'
 		sync

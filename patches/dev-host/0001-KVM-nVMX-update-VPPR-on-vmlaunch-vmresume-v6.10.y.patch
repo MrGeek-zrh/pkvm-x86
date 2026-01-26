@@ -59,7 +59,7 @@ index 5bb481aefcbc..7747c7d672ea 100644
  	return apic_has_interrupt_for_ppr(apic, ppr);
  }
  EXPORT_SYMBOL_GPL(kvm_apic_has_interrupt);
-@@ -2954,7 +2955,7 @@ int kvm_get_apic_interrupt(struct kvm_vcpu *vcpu)
+@@ -2954,7 +2955,7 @@ void kvm_apic_ack_interrupt(struct kvm_vcpu *vcpu, int vector)
  		 * triggered KVM_REQ_EVENT already.
  		 */
  		apic_set_isr(vector, apic);
@@ -67,7 +67,7 @@ index 5bb481aefcbc..7747c7d672ea 100644
 +		__kvm_apic_update_ppr(apic, &ppr);
  	}
  
- 	return vector;
+ }
 diff --git a/arch/x86/kvm/lapic.h b/arch/x86/kvm/lapic.h
 index 7ef8ae73e82d..1d0bc13a6794 100644
 --- a/arch/x86/kvm/lapic.h

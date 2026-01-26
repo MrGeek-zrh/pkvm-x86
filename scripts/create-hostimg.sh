@@ -25,6 +25,12 @@ fi
 OUTDIR=$BASE_DIR/images/host
 SIZE=20G
 
+# 缓存目录 - 避免每次都重新下载和安装软件包
+SYSROOT_CACHE_DIR="$BASE_DIR/build/sysroot-cache-host"
+SYSROOT_CACHE_MARKER="$SYSROOT_CACHE_DIR/.cache-ready"
+# 设置 USE_CACHE=0 可以强制重建缓存
+USE_CACHE=${USE_CACHE:-1}
+
 do_cleanup()
 {
 	echo "${FUNCNAME[0]}: enter"
@@ -40,6 +46,9 @@ do_cleanup()
 
 usage() {
 	echo "$0 -o <output directory> -s <image size> -u <ubuntu_base> -p <pkglist>"
+	echo ""
+	echo "环境变量:"
+	echo "  USE_CACHE=0  强制重建 sysroot 缓存"
 }
 
 while getopts "h?u:o:s:p:e:" opt; do
@@ -67,20 +76,32 @@ export TEMP_SYSROOT_DIR
 
 trap do_cleanup SIGHUP SIGINT SIGTERM EXIT
 
-echo "Creating sysroot"
 PACKAGES="$PKGLIST $EXTRA_PKGLIST"
-sysroot_create "$BASE_DIR" "$TEMP_SYSROOT_DIR" "$UBUNTU_BASE" "$PACKAGES"
 
-echo "Configuring sysroot"
-sysroot_run_commands "$TEMP_SYSROOT_DIR" "
-	set -ex
-	update-alternatives --set iptables /usr/sbin/iptables-legacy
-	adduser --disabled-password --gecos \"\" ubuntu
-	passwd -d ubuntu
-	usermod -aG sudo ubuntu
+# 检查是否可以使用缓存
+if [ "$USE_CACHE" = "1" ] && [ -f "$SYSROOT_CACHE_MARKER" ]; then
+	echo "=========================================="
+	echo "使用缓存的 sysroot: $SYSROOT_CACHE_DIR"
+	echo "（设置 USE_CACHE=0 可强制重建）"
+	echo "=========================================="
+	echo "Copying cached sysroot..."
+	sudo rsync -aWPHq --numeric-ids "$SYSROOT_CACHE_DIR/" "$TEMP_SYSROOT_DIR/"
+else
+	echo "=========================================="
+	echo "Creating sysroot (首次构建或缓存不存在)"
+	echo "=========================================="
+	sysroot_create "$BASE_DIR" "$TEMP_SYSROOT_DIR" "$UBUNTU_BASE" "$PACKAGES"
 
-	mkdir -p /etc/systemd/network
-	cat << EOF >> /etc/systemd/network/99-wildcard.network
+	echo "Configuring sysroot"
+	sysroot_run_commands "$TEMP_SYSROOT_DIR" "
+		set -ex
+		update-alternatives --set iptables /usr/sbin/iptables-legacy
+		adduser --disabled-password --gecos \"\" ubuntu
+		passwd -d ubuntu
+		usermod -aG sudo ubuntu
+
+		mkdir -p /etc/systemd/network
+		cat << EOF >> /etc/systemd/network/99-wildcard.network
 [Match]
 Name=enp0*
 
@@ -89,10 +110,26 @@ DHCP=no
 Gateway=192.168.7.1
 Address=192.168.7.2/24
 EOF
-	systemctl enable systemd-networkd
-	sed 's/#DNS=/DNS=8.8.8.8/' -i /etc/systemd/resolved.conf
-	sed 's/#PermitEmptyPasswords no/PermitEmptyPasswords yes/' -i /etc/ssh/sshd_config
-	"
+		systemctl enable systemd-networkd
+		sed 's/#DNS=/DNS=8.8.8.8/' -i /etc/systemd/resolved.conf
+		sed 's/#PermitEmptyPasswords no/PermitEmptyPasswords yes/' -i /etc/ssh/sshd_config
+		"
+
+	# 保存到缓存（不包含内核模块，因为内核可能会变）
+	echo "=========================================="
+	echo "保存 sysroot 缓存到: $SYSROOT_CACHE_DIR"
+	echo "=========================================="
+	sysroot_unmount_all "$TEMP_SYSROOT_DIR"
+	sudo rm -rf "$SYSROOT_CACHE_DIR"
+	sudo mkdir -p "$SYSROOT_CACHE_DIR"
+	sudo rsync -aWPHq --numeric-ids "$TEMP_SYSROOT_DIR/" "$SYSROOT_CACHE_DIR/"
+	sudo touch "$SYSROOT_CACHE_MARKER"
+
+	echo "Sysroot 缓存已创建，下次运行将直接使用缓存"
+fi
+
+# 挂载必要的目录用于安装内核模块
+sysroot_mount_all "$BASE_DIR" "$TEMP_SYSROOT_DIR"
 
 echo "Installing kernel modules"
 sudo make -C"$BASE_DIR/linux" INSTALL_MOD_STRIP=1 INSTALL_MOD_PATH="$TEMP_SYSROOT_DIR" -j"$(nproc)" modules_install
