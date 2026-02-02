@@ -223,12 +223,20 @@ if command -v virt-customize >/dev/null 2>&1; then
 	        --run-command "echo 'vmx' > /sys/module/kvm_intel/parameters/nested || echo 'nested=1' >> /etc/modprobe.d/kvm.conf || true" \
 	        --run-command "echo 'options kvm_intel nested=1' >> /etc/modprobe.d/kvm.conf || true" \
 	        --run-command "echo 'options kvm_amd nested=1' >> /etc/modprobe.d/kvm.conf || true" \
-	        --run-command "mkdir -p /etc/default/grub.d && printf '%s\n' \
-	            '# Added by pkvm-x86 ubuntu-24.04/download-and-setup.sh' \
-	            '# Enable pKVM + IOMMU by default (avoid hard-coding root= here).' \
-	            'GRUB_CMDLINE_LINUX_DEFAULT=\"quiet splash console=ttyS0,115200n8 kvm-intel.pkvm=1 intel_iommu=sm_on\"' \
-	            'GRUB_CMDLINE_LINUX=\"console=ttyS0,115200n8 kvm-intel.pkvm=1 intel_iommu=sm_on\"' \
-	            > /etc/default/grub.d/99-pkvm.cfg" \
+		        --run-command "mkdir -p /etc/default/grub.d && printf '%s\n' \
+		            '# Added by pkvm-x86 ubuntu-24.04/download-and-setup.sh' \
+		            '# Enable pKVM + IOMMU by default (avoid hard-coding root= here).' \
+		            'GRUB_CMDLINE_LINUX_DEFAULT="quiet splash console=ttyS0,115200n8 kvm-intel.pkvm=1 intel_iommu=sm_on"' \
+		            'GRUB_CMDLINE_LINUX="console=ttyS0,115200n8 kvm-intel.pkvm=1 intel_iommu=sm_on"' \
+		            > /etc/default/grub.d/99-pkvm.cfg" \
+		        --run-command "mkdir -p /etc/default/grub.d && printf '%s\n' \
+		            '# Added by pkvm-x86 ubuntu-24.04/download-and-setup.sh' \
+		            '# Always show GRUB menu on serial (start-vm.sh uses -nographic).' \
+		            'GRUB_TIMEOUT_STYLE=menu' \
+		            'GRUB_TIMEOUT=5' \
+		            'GRUB_TERMINAL="serial console"' \
+		            'GRUB_SERIAL_COMMAND="serial --speed=115200 --unit=0 --word=8 --parity=no --stop=1"' \
+		            > /etc/default/grub.d/98-pkvm-grub-menu.cfg" \
 	        --run-command "sed -i 's|^\\([^#].*\\s/boot/efi\\s.*\\)$|# \\1|' /etc/fstab || true" \
 	        --run-command "(command -v update-grub >/dev/null 2>&1 && update-grub) || (command -v grub-mkconfig >/dev/null 2>&1 && grub-mkconfig -o /boot/grub/grub.cfg) || true" \
 	        --run-command "(command -v systemctl >/dev/null 2>&1 && systemctl disable multipathd.service multipathd.socket) || true" \

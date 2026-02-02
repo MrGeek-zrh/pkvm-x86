@@ -318,16 +318,18 @@ if qemu-img info "$IMAGE_NAME" 2>&1 | grep -q "Failed to get.*lock"; then
                         echo 'GRUB_TIMEOUT_STYLE=menu' | sudo tee -a /etc/default/grub > /dev/null
                     fi
                     if [ $SSH_ENABLE_SERIAL -eq 1 ]; then
-                        sudo sed -i 's/^GRUB_TERMINAL=.*/GRUB_TERMINAL=\"serial console\"/' /etc/default/grub || true
-                        sudo sed -i 's/^GRUB_SERIAL_COMMAND=.*/GRUB_SERIAL_COMMAND=\"serial --speed=115200 --unit=0 --word=8 --parity=no --stop=1\"/' /etc/default/grub || true
+                        sudo sed -i 's/^GRUB_TERMINAL=.*/GRUB_TERMINAL="serial console"/' /etc/default/grub || true
+                        sudo sed -i 's/^GRUB_SERIAL_COMMAND=.*/GRUB_SERIAL_COMMAND="serial --speed=115200 --unit=0 --word=8 --parity=no --stop=1"/' /etc/default/grub || true
                         if ! grep -q '^GRUB_TERMINAL=' /etc/default/grub; then
-                            echo 'GRUB_TERMINAL=\"serial console\"' | sudo tee -a /etc/default/grub > /dev/null
+                            echo 'GRUB_TERMINAL="serial console"' | sudo tee -a /etc/default/grub > /dev/null
                         fi
                         if ! grep -q '^GRUB_SERIAL_COMMAND=' /etc/default/grub; then
-                            echo 'GRUB_SERIAL_COMMAND=\"serial --speed=115200 --unit=0 --word=8 --parity=no --stop=1\"' | sudo tee -a /etc/default/grub > /dev/null
+                            echo 'GRUB_SERIAL_COMMAND="serial --speed=115200 --unit=0 --word=8 --parity=no --stop=1"' | sudo tee -a /etc/default/grub > /dev/null
                         fi
                         if grep -q '^GRUB_CMDLINE_LINUX_DEFAULT=' /etc/default/grub && ! grep -q 'console=ttyS0,115200n8' /etc/default/grub; then
-                            sudo sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT=\"\\(.*\\)\"/GRUB_CMDLINE_LINUX_DEFAULT=\"\\1 console=ttyS0,115200n8\"/' /etc/default/grub || true
+                            # If a previous buggy sed wrote a literal "\1" into the file, clean it up first.
+                            sudo sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT="\\1[[:space:]]*/GRUB_CMDLINE_LINUX_DEFAULT="/' /etc/default/grub 2>/dev/null || true
+                            sudo sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT="\(.*\)"/GRUB_CMDLINE_LINUX_DEFAULT="\1 console=ttyS0,115200n8"/' /etc/default/grub || true
                         fi
                     fi
                     sudo update-grub
@@ -346,16 +348,17 @@ if qemu-img info "$IMAGE_NAME" 2>&1 | grep -q "Failed to get.*lock"; then
                         echo 'GRUB_TIMEOUT_STYLE=menu' | sudo tee -a /etc/default/grub > /dev/null
                     fi
                     if [ $SSH_ENABLE_SERIAL -eq 1 ]; then
-                        sudo sed -i 's/^GRUB_TERMINAL=.*/GRUB_TERMINAL=\"serial console\"/' /etc/default/grub || true
-                        sudo sed -i 's/^GRUB_SERIAL_COMMAND=.*/GRUB_SERIAL_COMMAND=\"serial --speed=115200 --unit=0 --word=8 --parity=no --stop=1\"/' /etc/default/grub || true
+                        sudo sed -i 's/^GRUB_TERMINAL=.*/GRUB_TERMINAL="serial console"/' /etc/default/grub || true
+                        sudo sed -i 's/^GRUB_SERIAL_COMMAND=.*/GRUB_SERIAL_COMMAND="serial --speed=115200 --unit=0 --word=8 --parity=no --stop=1"/' /etc/default/grub || true
                         if ! grep -q '^GRUB_TERMINAL=' /etc/default/grub; then
-                            echo 'GRUB_TERMINAL=\"serial console\"' | sudo tee -a /etc/default/grub > /dev/null
+                            echo 'GRUB_TERMINAL="serial console"' | sudo tee -a /etc/default/grub > /dev/null
                         fi
                         if ! grep -q '^GRUB_SERIAL_COMMAND=' /etc/default/grub; then
-                            echo 'GRUB_SERIAL_COMMAND=\"serial --speed=115200 --unit=0 --word=8 --parity=no --stop=1\"' | sudo tee -a /etc/default/grub > /dev/null
+                            echo 'GRUB_SERIAL_COMMAND="serial --speed=115200 --unit=0 --word=8 --parity=no --stop=1"' | sudo tee -a /etc/default/grub > /dev/null
                         fi
                         if grep -q '^GRUB_CMDLINE_LINUX_DEFAULT=' /etc/default/grub && ! grep -q 'console=ttyS0,115200n8' /etc/default/grub; then
-                            sudo sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT=\"\\(.*\\)\"/GRUB_CMDLINE_LINUX_DEFAULT=\"\\1 console=ttyS0,115200n8\"/' /etc/default/grub || true
+                            sudo sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT="\\1[[:space:]]*/GRUB_CMDLINE_LINUX_DEFAULT="/' /etc/default/grub 2>/dev/null || true
+                            sudo sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT="\(.*\)"/GRUB_CMDLINE_LINUX_DEFAULT="\1 console=ttyS0,115200n8"/' /etc/default/grub || true
                         fi
                     fi
                     sudo update-grub
@@ -377,19 +380,20 @@ if qemu-img info "$IMAGE_NAME" 2>&1 | grep -q "Failed to get.*lock"; then
                 sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "
                     sudo sed -i 's/^GRUB_DEFAULT=.*/GRUB_DEFAULT=\"$menu_num\"/' /etc/default/grub
                     if ! grep -q '^GRUB_DEFAULT=' /etc/default/grub; then
-                        echo 'GRUB_DEFAULT=\"$menu_num\"' | sudo tee -a /etc/default/grub > /dev/null
+                        printf 'GRUB_DEFAULT="%s"\n' "$menu_num" | sudo tee -a /etc/default/grub > /dev/null
                     fi
                     if [ $SSH_ENABLE_SERIAL -eq 1 ]; then
-                        sudo sed -i 's/^GRUB_TERMINAL=.*/GRUB_TERMINAL=\"serial console\"/' /etc/default/grub || true
-                        sudo sed -i 's/^GRUB_SERIAL_COMMAND=.*/GRUB_SERIAL_COMMAND=\"serial --speed=115200 --unit=0 --word=8 --parity=no --stop=1\"/' /etc/default/grub || true
+                        sudo sed -i 's/^GRUB_TERMINAL=.*/GRUB_TERMINAL="serial console"/' /etc/default/grub || true
+                        sudo sed -i 's/^GRUB_SERIAL_COMMAND=.*/GRUB_SERIAL_COMMAND="serial --speed=115200 --unit=0 --word=8 --parity=no --stop=1"/' /etc/default/grub || true
                         if ! grep -q '^GRUB_TERMINAL=' /etc/default/grub; then
-                            echo 'GRUB_TERMINAL=\"serial console\"' | sudo tee -a /etc/default/grub > /dev/null
+                            echo 'GRUB_TERMINAL="serial console"' | sudo tee -a /etc/default/grub > /dev/null
                         fi
                         if ! grep -q '^GRUB_SERIAL_COMMAND=' /etc/default/grub; then
-                            echo 'GRUB_SERIAL_COMMAND=\"serial --speed=115200 --unit=0 --word=8 --parity=no --stop=1\"' | sudo tee -a /etc/default/grub > /dev/null
+                            echo 'GRUB_SERIAL_COMMAND="serial --speed=115200 --unit=0 --word=8 --parity=no --stop=1"' | sudo tee -a /etc/default/grub > /dev/null
                         fi
                         if grep -q '^GRUB_CMDLINE_LINUX_DEFAULT=' /etc/default/grub && ! grep -q 'console=ttyS0,115200n8' /etc/default/grub; then
-                            sudo sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT=\"\\(.*\\)\"/GRUB_CMDLINE_LINUX_DEFAULT=\"\\1 console=ttyS0,115200n8\"/' /etc/default/grub || true
+                            sudo sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT="\\1[[:space:]]*/GRUB_CMDLINE_LINUX_DEFAULT="/' /etc/default/grub 2>/dev/null || true
+                            sudo sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT="\(.*\)"/GRUB_CMDLINE_LINUX_DEFAULT="\1 console=ttyS0,115200n8"/' /etc/default/grub || true
                         fi
                     fi
                     sudo update-grub
