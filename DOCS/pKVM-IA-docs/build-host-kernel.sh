@@ -48,8 +48,12 @@ cd "$KERNEL_DIR"
 echo ">>> make olddefconfig (用默认值处理新选项，不交互)"
 make olddefconfig
 
-echo ">>> make -j"$(nproc)" bindeb-pkg LOCALVERSION=-pkvm-ia"
-make -j"$(nproc)" bindeb-pkg LOCALVERSION=-pkvm-ia
+# 输出目录与下方 bindeb-pkg 一致，先删旧 .deb 再打包
+echo ">>> 清理输出目录中已有的 pkvm-ia .deb（如有）: $DEB_OUTPUT_DIR"
+rm -f "$DEB_OUTPUT_DIR"/*.deb
+
+echo ">>> make -j$(nproc) bindeb-pkg LOCALVERSION=-pkvm-ia"
+make -j$(nproc) bindeb-pkg LOCALVERSION=-pkvm-ia
 
 echo ""
 echo "完成. .deb 包已生成在: $DEB_OUTPUT_DIR"
@@ -57,6 +61,6 @@ ls -la "$DEB_OUTPUT_DIR"/*.deb 2>/dev/null || true
 echo ""
 echo "=== 安装说明（以下为绝对路径，任意当前目录下复制执行即可）==="
 INSTALL_CMD="sudo dpkg -i ${DEB_OUTPUT_DIR}/linux-image-*-pkvm-ia_*.deb ${DEB_OUTPUT_DIR}/linux-headers-*-pkvm-ia_*.deb"
-echo "$INSTALL_CMD"
+echo "${INSTALL_CMD}"
 echo ""
 echo "安装后重启并选择新内核: sudo reboot"

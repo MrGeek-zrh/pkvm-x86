@@ -77,3 +77,31 @@ sudo dpkg -i /home/mrgeek/pkvm-x86/linux-image-*.deb /home/mrgeek/pkvm-x86/linux
 ```
 
 依赖由脚本自动安装：`build-essential`、`flex`、`bison`、`libssl-dev`、`libelf-dev`、`bc`、`cpio`、`rsync`、`kmod`、`libncurses-dev`、`dpkg-dev`。
+
+---
+
+## 编译 Protected VM 的客户机内核（Guest kernel）
+
+Protected VM 的 guest kernel **必须**开启 `CONFIG_PKVM_GUEST=y`（它在 `HYPERVISOR_GUEST` 子菜单下），否则 crosvm 以 protected-vm 方式启动时会失败或行为异常。
+
+推荐做法：**同一份内核源码 + 单独的 O= 输出目录**，避免你为 guest 再复制一份源码树。
+
+仓库已提供脚本 `build-guest-kernel.sh`（同目录）用于快速构建：
+
+```bash
+cd /home/mrgeek/pkvm-x86/DOCS/pKVM-IA-docs
+./build-guest-kernel.sh
+```
+
+默认行为：
+- 复用宿主的 `pKVM-IA/.config` 作为起点（更贴合 pKVM-IA 分支的依赖组合）
+- 强制开启 `HYPERVISOR_GUEST=y`、`PKVM_GUEST=y`
+- 输出 guest bzImage 到：`/home/mrgeek/pkvm-x86/build-guest/arch/x86/boot/bzImage`
+
+如果你更想从一个“更干净”的 guest 配置起步，可以用：
+
+```bash
+./build-guest-kernel.sh --defconfig
+```
+
+注意：defconfig 通常需要你额外启用 guest 启动所需驱动（常见：virtio 块/网卡、文件系统、串口等）。
