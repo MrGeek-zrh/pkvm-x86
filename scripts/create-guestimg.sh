@@ -45,10 +45,14 @@ do_cleanup()
 }
 
 usage() {
-	echo "$0 -k <guest_kernel> -o <output directory> -s <image size> -u <ubuntu_base> -p <pkglist>"
+	echo "$0 -k <guest_kernel_src> [-o <output directory>] [-s <image size>] [-u <ubuntu_base>]"
 	echo ""
+	echo "说明:"
+	echo "  -k 指向内核源码树（用于 modules_install）。如使用 out-of-tree 构建，请额外设置 KERNEL_OUT。"
+	echo "  软件包列表通过环境变量 UBUNTU_PKGLIST 指定（默认可用 $BASE_DIR/scripts/package.list.24）。"
 	echo "环境变量:"
 	echo "  USE_CACHE=0  强制重建 sysroot 缓存"
+	echo "  KERNEL_OUT=<dir>  使用 out-of-tree 内核构建输出目录（即 make O=<dir> 的输出目录）"
 }
 
 while getopts "h?u:o:s:k:" opt; do
@@ -56,7 +60,7 @@ while getopts "h?u:o:s:k:" opt; do
 	h|\?)	usage
 		exit 0
 		;;
-	u)	UBUNTU_BASE=$UBUNTU_UNSTABLE
+	u)	UBUNTU_BASE=$OPTARG
 		;;
 	o)	OUTDIR=$OPTARG
 		;;
@@ -68,6 +72,7 @@ while getopts "h?u:o:s:k:" opt; do
 done
 
 [ ! -d "$GUEST_KERNEL" ] && sysroot_exit_error 1 "GUEST_KERNEL directory does not exist"
+[ -n "$KERNEL_OUT" ] && [ ! -d "$KERNEL_OUT" ] && sysroot_exit_error 1 "KERNEL_OUT directory does not exist"
 
 # Create sysroot dir
 TEMP_SYSROOT_DIR=$(mktemp -d --tmpdir="$(pwd)/build")
@@ -132,7 +137,12 @@ fi
 sysroot_mount_all "$BASE_DIR" "$TEMP_SYSROOT_DIR"
 
 echo "Installing kernel modules"
-sudo make -C"$GUEST_KERNEL" INSTALL_MOD_STRIP=1 INSTALL_MOD_PATH="$TEMP_SYSROOT_DIR" -j"$(nproc)" modules_install
+if [ -n "$KERNEL_OUT" ]; then
+	# Support kernels built with `make O=<out>` (out-of-tree build).
+	sudo make -C"$GUEST_KERNEL" O="$KERNEL_OUT" INSTALL_MOD_STRIP=1 INSTALL_MOD_PATH="$TEMP_SYSROOT_DIR" -j"$(nproc)" modules_install
+else
+	sudo make -C"$GUEST_KERNEL" INSTALL_MOD_STRIP=1 INSTALL_MOD_PATH="$TEMP_SYSROOT_DIR" -j"$(nproc)" modules_install
+fi
 
 sysroot_unmount_all "$TEMP_SYSROOT_DIR"
 sync
@@ -145,6 +155,18 @@ if [ ! -d "$OUTDIR" ]; then
 fi
 
 # 复制 guest 内核镜像（与 modules_install 的内核目录保持一致）
-cp -f "$GUEST_KERNEL/arch/x86_64/boot/bzImage" "$OUTDIR"
+BZIMAGE=""
+if [ -n "$KERNEL_OUT" ]; then
+	[ -f "$KERNEL_OUT/arch/x86/boot/bzImage" ] && BZIMAGE="$KERNEL_OUT/arch/x86/boot/bzImage"
+	[ -z "$BZIMAGE" ] && [ -f "$KERNEL_OUT/arch/x86_64/boot/bzImage" ] && BZIMAGE="$KERNEL_OUT/arch/x86_64/boot/bzImage"
+else
+	[ -f "$GUEST_KERNEL/arch/x86/boot/bzImage" ] && BZIMAGE="$GUEST_KERNEL/arch/x86/boot/bzImage"
+	[ -z "$BZIMAGE" ] && [ -f "$GUEST_KERNEL/arch/x86_64/boot/bzImage" ] && BZIMAGE="$GUEST_KERNEL/arch/x86_64/boot/bzImage"
+fi
+if [ -n "$BZIMAGE" ]; then
+	cp -f "$BZIMAGE" "$OUTDIR"
+else
+	echo "warning: bzImage not found under kernel tree/output dir; skip copying bzImage" >&2
+fi
 mv "$OUTFILE" "$OUTDIR"
 echo "Output saved at $OUTDIR"
