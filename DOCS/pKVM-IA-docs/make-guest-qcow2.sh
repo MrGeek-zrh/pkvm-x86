@@ -1,13 +1,47 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# 用途:
+#   一键生成用于 crosvm 启动的 guest qcow2（Ubuntu base rootfs + 必要软件包 + guest 内核模块）。
+#   本脚本本质上是对仓库内 `scripts/create-guestimg.sh` 的封装。
+#
+# 关键路径概念（容易混）:
+#   - kernel src (KERNEL_SRC): guest 内核源码树（用于 `make ... modules_install` 把模块装进镜像）
+#       默认:  <repo-root>/pkvm-ia-guest
+#       自动探测: 如果 <kernel-out>/Makefile 里有 `include /abs/path/to/linux/Makefile`，则用该路径反推 src。
+#       覆盖方式: --kernel-src <dir>
+#
+#   - kernel out (KERNEL_OUT): guest 内核的 out-of-tree 构建输出目录（也就是 `make O=<dir>` 的那个目录）
+#       默认:  <repo-root>/build-guest
+#       本脚本会从这里找:
+#         - <kernel-out>/.config
+#         - <kernel-out>/arch/x86/boot/bzImage 或 <kernel-out>/arch/x86_64/boot/bzImage
+#       覆盖方式: --kernel-out <dir>
+#
+#   - out dir (OUTDIR): 生成的 qcow2 + bzImage 的输出目录
+#       默认:  <repo-root>/images/guest
+#       覆盖方式: --outdir <dir>
+#
+# 前置条件（需要你提前准备好）:
+#   - guest 内核已经编译完成（至少有 bzImage + modules）：
+#       make -C <kernel-src> O=<kernel-out> bzImage modules
+#   - 运行环境需要 sudo；并且宿主机能正常加载 nbd（`modprobe nbd`），否则 qemu-nbd 无法挂载镜像。
+#   - 该流程会下载 ubuntu-base，并在 chroot 内 apt 安装软件包：需要网络可用。
+#
+# 用法:
+#   ./DOCS/pKVM-IA-docs/make-guest-qcow2.sh [--kernel-src <dir>] --kernel-out <dir> [--outdir <dir>] [--size 10G] [--efi] [--no-cache]
+#
+# 默认行为总结:
+#   - 在 <repo-root>/build-guest/ 下找 bzImage/.config（可用 --kernel-out 改）
+#   - 将 qcow2 输出到 <repo-root>/images/guest/（可用 --outdir 改）
+#
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 # This script lives under DOCS/pKVM-IA-docs/, so the repo root is two levels up.
 BASE_DIR="$(cd -- "${SCRIPT_DIR}/../.." && pwd)"
 
 usage() {
 	cat <<EOF
-make-guest-qcow2.sh - build guest qcow2 for crosvm from pKVM-IA kernel outputs
+make-guest-qcow2.sh - build guest qcow2 for crosvm from pkvm-ia-guest kernel
 
 Defaults:
   kernel src : ${BASE_DIR}/pkvm-ia-guest  (will auto-detect from build-guest/Makefile if present)
@@ -114,7 +148,9 @@ echo ""
 # but here we only create the qcow2 and install kernel modules into it.
 sudo -E KERNEL_OUT="${KERNEL_OUT}" \
 	"${BASE_DIR}/scripts/create-guestimg.sh" \
+	"${USER_NAME}" "${GROUP_NAME}" \
 	-k "${KERNEL_SRC}" \
 	-o "${OUTDIR}" \
-	-s "${SIZE}" \
-	"${USER_NAME}" "${GROUP_NAME}"
+	-s "${SIZE}"
+
+# NOTE: create-guestimg.sh expects USER/GROUP as the first two positional args.
