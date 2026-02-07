@@ -5,11 +5,11 @@
 | 文件 | 说明 |
 |------|------|
 | **PKVM-Kconfig.md** | 宿主与客户机内核的 Kconfig 要求（如 `CONFIG_PKVM_INTEL`、`CONFIG_PKVM_GUEST` 等）及依赖说明 |
-| **build-host-kernel.sh** | 宿主内核一键编译脚本：安装依赖 → 编译 → 打成 .deb 包（Debian/Ubuntu），需自行 `dpkg -i` 安装 |
+| **build-host-kernel.sh** | 宿主内核一键编译脚本：安装依赖 → 编译 → 打成 .deb 包（Debian/Ubuntu），支持 `--kernel pvVMCS-POC-v6.12|pkvm-v6.18|pKVM-IA`（默认 `pvVMCS-POC-v6.12`），产物默认输出到 `/home/mrgeek/pkvm-x86/output`，需自行 `dpkg -i` 安装 |
 | **build-guest-kernel.sh** | 客户机（Protected VM）内核编译脚本：复用或生成 .config → 强制开启 `CONFIG_PKVM_GUEST=y` → 编译 bzImage/modules |
 | **build-crosvm.sh** | crosvm（CrossVM）在 Linux 上的构建脚本：按官方文档 clone/submodule/setup/cargo build（可选 dev container） |
 
-使用前请先阅读 `PKVM-Kconfig.md` 配置好 `.config`，再执行 `build-host-kernel.sh` 编译宿主内核。
+使用前请先阅读 `PKVM-Kconfig.md` 配置好目标源码树中的 `.config`，再执行 `build-host-kernel.sh` 编译宿主内核。
 
 ## Protected VM（客户机）内核快速构建
 

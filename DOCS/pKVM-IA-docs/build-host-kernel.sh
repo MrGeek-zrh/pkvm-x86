@@ -3,33 +3,35 @@ set -e
 
 # pKVM Host 内核：自动安装依赖、编译、打包成 .deb（仅 Debian/Ubuntu）
 #
-# 支持两套内核源码树：
+# 支持三套内核源码树：
 # - pKVM-IA:   /home/mrgeek/pkvm-x86/pKVM-IA
-# - pkvm-v6.18:/home/mrgeek/pkvm-x86/pkvm-v6.18（默认）
+# - pkvm-v6.18: /home/mrgeek/pkvm-x86/pkvm-v6.18
+# - pvVMCS-POC-v6.12: /home/mrgeek/pkvm-x86/pvVMCS-POC-v6.12（默认）
 #
 # 用法:
-#   ./build-host-kernel.sh                    # 默认编译 pkvm-v6.18
+#   ./build-host-kernel.sh                    # 默认编译 pvVMCS-POC-v6.12
 #   ./build-host-kernel.sh --kernel pKVM-IA   # 编译 pKVM-IA
+#   ./build-host-kernel.sh --kernel pkvm-v6.18
 #   ./build-host-kernel.sh --out /path/to/out # 指定输出目录（默认: 仓库根目录/output）
 #
 # 注意:
 # - 每次编译前会清理输出目录中的 *.deb/*.buildinfo/*.changes
-# - bindeb-pkg 的产物默认输出到“当前源码目录的上一级”，因此脚本通过在输出目录下创建
-#   指向源码的 symlink 来确保产物直接落在输出目录中。
+# - bindeb-pkg 的产物默认输出到“源码目录的上一级”，脚本会将本次新生成的
+#   *.deb/*.buildinfo/*.changes 归集移动到输出目录中。
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # 仓库根目录（pKVM-IA 在 DOCS 的上一级），使用绝对路径以便任意目录下执行
 BASE_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-KERNEL_CHOICE="pkvm-v6.18"
+KERNEL_CHOICE="pvVMCS-POC-v6.12"
 OUT_DIR_DEFAULT="$BASE_DIR/output"
 OUT_DIR="$OUT_DIR_DEFAULT"
 
 usage() {
 	cat <<-EOF
-	Usage: $0 [--kernel pkvm-v6.18|pKVM-IA] [--out /abs/path]
+	Usage: $0 [--kernel pvVMCS-POC-v6.12|pkvm-v6.18|pKVM-IA] [--out /abs/path]
 
-	  --kernel   Select kernel source tree. Default: pkvm-v6.18
+	  --kernel   Select kernel source tree. Default: pvVMCS-POC-v6.12
 	  --out      Output directory for generated .deb/.buildinfo/.changes. Default: ${OUT_DIR_DEFAULT}
 	  -h,--help  Show this help.
 	EOF
@@ -68,6 +70,10 @@ while [ $# -gt 0 ]; do
 done
 
 case "$KERNEL_CHOICE" in
+pvVMCS-POC-v6.12|pvvmcs-poc-v6.12)
+	KERNEL_DIR="$BASE_DIR/pvVMCS-POC-v6.12"
+	KERNEL_NAME="pvvmcs-poc-v6.12"
+	;;
 pkvm-v6.18)
 	KERNEL_DIR="$BASE_DIR/pkvm-v6.18"
 	KERNEL_NAME="pkvm-v6.18"
@@ -77,7 +83,7 @@ pKVM-IA|pkvm-ia)
 	KERNEL_NAME="pkvm-ia"
 	;;
 *)
-	echo "错误: --kernel 仅支持: pkvm-v6.18 或 pKVM-IA"
+	echo "错误: --kernel 仅支持: pvVMCS-POC-v6.12 / pkvm-v6.18 / pKVM-IA"
 	exit 1
 	;;
 esac
@@ -119,22 +125,7 @@ sudo apt-get install -y \
 echo ">>> 内核源码: $KERNEL_DIR"
 echo ">>> 输出目录: $DEB_OUTPUT_DIR"
 
-# 通过在输出目录下创建 symlink，确保 bindeb-pkg 的产物直接输出到 $DEB_OUTPUT_DIR
-LINK_SRC="$DEB_OUTPUT_DIR/.src-${KERNEL_NAME}"
-if [ -L "$LINK_SRC" ]; then
-	# 如果已有旧链接但指向不一致，则替换
-	if [ "$(readlink -f "$LINK_SRC")" != "$(readlink -f "$KERNEL_DIR")" ]; then
-		rm -f "$LINK_SRC"
-		ln -s "$KERNEL_DIR" "$LINK_SRC"
-	fi
-elif [ -e "$LINK_SRC" ]; then
-	echo "错误: $LINK_SRC 已存在但不是 symlink，请手动处理后重试"
-	exit 1
-else
-	ln -s "$KERNEL_DIR" "$LINK_SRC"
-fi
-
-cd "$LINK_SRC"
+cd "$KERNEL_DIR"
 
 echo ">>> make olddefconfig (用默认值处理新选项，不交互)"
 make olddefconfig
@@ -144,7 +135,22 @@ echo ">>> 清理输出目录中已有的 deb/buildinfo/changes（如有）: $DEB
 rm -f "$DEB_OUTPUT_DIR"/*.deb "$DEB_OUTPUT_DIR"/*.buildinfo "$DEB_OUTPUT_DIR"/*.changes
 
 echo ">>> make -j$(nproc) bindeb-pkg LOCALVERSION=-${KERNEL_NAME}"
+BUILD_PARENT="$(cd "$KERNEL_DIR/.." && pwd)"
+START_TS="$(date +%s)"
+
+# 给 buildinfo/changes 一个可区分的 source 名，避免两套源码互相覆盖/混淆
+# Debian Source 字段通常要求小写；这里统一转成小写，避免 pvVMCS-POC-v6.12 触发打包失败
+KERNEL_SOURCE_NAME="$(echo "$KERNEL_NAME" | tr '[:upper:]' '[:lower:]')"
+export KDEB_SOURCENAME="linux-${KERNEL_SOURCE_NAME}"
+
 make -j"$(nproc)" bindeb-pkg LOCALVERSION="-${KERNEL_NAME}"
+
+# bindeb-pkg 默认将产物输出到源码目录的上一级；这里把本次新生成的文件统一搬到 $DEB_OUTPUT_DIR
+echo ">>> 归集本次构建产物到输出目录: $DEB_OUTPUT_DIR"
+find "$BUILD_PARENT" -maxdepth 1 -type f \
+	\( -name "*.deb" -o -name "*.buildinfo" -o -name "*.changes" \) \
+	-newermt "@${START_TS}" \
+	-exec mv -f -t "$DEB_OUTPUT_DIR" {} +
 
 echo ""
 echo "完成. .deb 包已生成在: $DEB_OUTPUT_DIR"
