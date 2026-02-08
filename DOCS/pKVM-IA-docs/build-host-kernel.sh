@@ -6,10 +6,10 @@ set -e
 # 支持三套内核源码树：
 # - pKVM-IA:   /home/mrgeek/pkvm-x86/pKVM-IA
 # - pkvm-v6.18: /home/mrgeek/pkvm-x86/pkvm-v6.18
-# - pvVMCS-POC-v6.12: /home/mrgeek/pkvm-x86/pvVMCS-POC-v6.12（默认）
+# - pvVMCS-POC-v6.12: /home/mrgeek/pkvm-x86/pvVMCS-POC-v6.12
 #
 # 用法:
-#   ./build-host-kernel.sh                    # 默认编译 pvVMCS-POC-v6.12
+#   ./build-host-kernel.sh                    # 默认编译 pKVM-IA
 #   ./build-host-kernel.sh --kernel pKVM-IA   # 编译 pKVM-IA
 #   ./build-host-kernel.sh --kernel pkvm-v6.18
 #   ./build-host-kernel.sh --out /path/to/out # 指定输出目录（默认: 仓库根目录/output）
@@ -23,7 +23,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # 仓库根目录（pKVM-IA 在 DOCS 的上一级），使用绝对路径以便任意目录下执行
 BASE_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-KERNEL_CHOICE="pvVMCS-POC-v6.12"
+KERNEL_CHOICE="pKVM-IA"
 OUT_DIR_DEFAULT="$BASE_DIR/output"
 OUT_DIR="$OUT_DIR_DEFAULT"
 
@@ -31,7 +31,7 @@ usage() {
 	cat <<-EOF
 	Usage: $0 [--kernel pvVMCS-POC-v6.12|pkvm-v6.18|pKVM-IA] [--out /abs/path]
 
-	  --kernel   Select kernel source tree. Default: pvVMCS-POC-v6.12
+	  --kernel   Select kernel source tree. Default: pKVM-IA
 	  --out      Output directory for generated .deb/.buildinfo/.changes. Default: ${OUT_DIR_DEFAULT}
 	  -h,--help  Show this help.
 	EOF
