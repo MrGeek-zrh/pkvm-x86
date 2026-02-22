@@ -62,13 +62,25 @@ PY
 ps -ef | rg -n "crosvm.*run" | head
 ```
 
-把你要测试的那一条 PID 记下来（通常是 parent 那个）。
+把你要测试的那一条 PID 记下来（注意：crosvm 常见是 multiprocess 模式，guest RAM 的映射不一定在你第一眼看到的那个进程）。
 
 为了减少“选错进程”的概率，你也可以用 RSS 最大的那个：
 
 ```bash
 PID="<替换成 parent pid>"
-ps -o pid,ppid,rss,cmd -p "$PID" $(pgrep -P "$PID" 2>/dev/null) --sort=-rss | head
+CHILDREN="$(pgrep -P "$PID" -d, 2>/dev/null || true)"
+PIDS="$PID${CHILDREN:+,$CHILDREN}"
+ps --sort=-rss -o pid,ppid,rss,cmd -p "$PIDS" | head
+```
+
+如果你不确定哪个进程里有 guest RAM 映射，可以直接在 parent + children 里找 `memfd:crosvm_guest`（后续步骤里的 `PID` 用“确实包含映射的那个”）：
+
+```bash
+PID="<替换成你认为的 parent pid>"
+for p in "$PID" $(pgrep -P "$PID" 2>/dev/null); do
+  echo "=== PID=$p ==="
+  sudo rg -n "memfd:crosvm_guest" /proc/"$p"/maps || true
+done
 ```
 
 ---
@@ -87,7 +99,7 @@ sudo rg -n "memfd:crosvm_guest" /proc/"$PID"/maps
 ...
 ```
 
-挑一段“最大的那段”（通常几百 MB 或几 GB），记下它的 `START-END`。
+如果出现多段 `memfd:crosvm_guest`，优先挑“最大的那段”（通常几百 MB 或几 GB），但注意：为了避免漏检导致假阴性，建议把所有段的 `START-END` 都记下来，逐段搜一遍。
 
 ---
 
@@ -97,9 +109,11 @@ sudo rg -n "memfd:crosvm_guest" /proc/"$PID"/maps
 
 ```bash
 NONCE="2026-02-06-01"
-SECRET="$(python3 - <<PY
+SECRET="$(NONCE="$NONCE" python3 - <<'PY'
 import hashlib
-print(hashlib.sha256(b"PKVMTEST:" + b"$NONCE").hexdigest())
+import os
+nonce = os.environ["NONCE"].encode()
+print(hashlib.sha256(b"PKVMTEST:" + nonce).hexdigest())
 PY
 )"
 echo "$SECRET"
@@ -109,7 +123,7 @@ echo "$SECRET"
 
 ## 6) Host：gdb 在 guest RAM 映射里搜索 secret
 
-把 `PID/START/END` 替换成你的值：
+把 `PID/START/END` 替换成你的值（如果你在第 4 步记了多段区间，就对每段都跑一次；任意一段找到都算“能搜到”）：
 
 ```bash
 PID="<crosvm pid>"
@@ -160,4 +174,3 @@ pVM:
 - SECRET(同一个 NONCE 算出来的):
 - gdb find 结果: found / not found
 ```
-
