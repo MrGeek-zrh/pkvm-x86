@@ -15,6 +15,7 @@ export SETUP_NET="${SETUP_NET:-0}"           # set to 0 to skip tap/iptables/sys
 export PROTECTED="${PROTECTED:-1}"           # set to 0 to run a normal (non-protected) VM
 export TAP_NAME="${TAP_NAME:-crosvm_tap}"
 export TAP_ADDR="${TAP_ADDR:-192.168.8.1/24}"
+export VFIO_DEV="${VFIO_DEV:-}"              # e.g. 0000:01:00.0 ; empty means no vfio passthrough
 
 [ ! -d /var/empty ] && mkdir /var/empty
 [ "x$DEBUG" != "x" ] && DEBUG='--gdb 1234' && KERNEL=vmlinux && CORECOUNT=1
@@ -27,6 +28,14 @@ NET_OPT="--net tap-name=${TAP_NAME}"
 if [ "x$SETUP_NET" = "x0" ]; then
         note "SETUP_NET=0: skipping tap/iptables/sysctl network setup; guest will have no network device"
         NET_OPT=""
+fi
+
+VFIO_OPT=""
+if [ -n "$VFIO_DEV" ]; then
+        VFIO_PATH="/sys/bus/pci/devices/$VFIO_DEV"
+        [ -e "$VFIO_PATH" ] || die "VFIO_DEV '$VFIO_DEV' not found at $VFIO_PATH"
+        VFIO_OPT="--vfio ${VFIO_PATH}"
+        note "enabling VFIO passthrough: $VFIO_DEV"
 fi
 
 if [ "x$SETUP_NET" != "x0" ] && [ ! -d "/sys/class/net/${TAP_NAME}" ]; then
@@ -52,6 +61,7 @@ fi
 
 ${CROSVM:-crosvm} --log-level=debug run $DEBUG $KERNEL --cpus num-cores=$CORECOUNT		\
 	--mem size=$RAM --block path=$IMAGE $NET_OPT	\
+	$VFIO_OPT \
 	--serial type=stdout,hardware=virtio-console,console,stdin		\
 	--core-scheduling false \
 	-p "root=/dev/vda1 rw" \

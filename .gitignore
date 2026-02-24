@@ -11,3 +11,4 @@
 *.changes
 *.buildinfo
 output/
+!AGENTS.md
