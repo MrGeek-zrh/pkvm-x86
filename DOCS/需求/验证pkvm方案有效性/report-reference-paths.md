@@ -34,3 +34,4 @@
 - `pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/ept.c`：`handle_host_ept_violation()`（memory address 返回 `-EPERM`；MMIO slowpath）。
 - `pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/vmexit.c`：`EXIT_REASON_EPT_VIOLATION` 分发，失败时 `kvm_inject_gp()`。
 - `pKVM-IA/virt/kvm/guest_memfd.c`：guest_memfd/gmem 的实现（如需写“内存后端/属性”背景可引用）。
+
