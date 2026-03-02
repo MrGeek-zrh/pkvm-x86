@@ -12,3 +12,4 @@
 *.buildinfo
 output/
 !AGENTS.md
+!pKVM-IA/
