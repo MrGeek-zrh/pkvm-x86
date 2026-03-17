@@ -1,0 +1,2 @@
+[Mon Mar 16 09:37:12 2026] systemd-journald[606]: /var/log/journal/9dce3dfe526f4a8cb553b21502da7d2a/user-1000.journal: Journal file uses a different sequence number ID, rotating.
+[Mon Mar 16 09:38:20 2026] VFIO - User Level meta-driver version: 0.3

@@ -1,0 +1,26 @@
+run-crosvm: SETUP_NET=0: skipping tap/iptables/sysctl network setup; guest will have no network device
+run-crosvm: enabling VFIO passthrough: 0000:01:00.0
+[2026-03-16T09:46:08.593517908+00:00 DEBUG crosvm::crosvm::sys::linux] creating hypervisor: Kvm { device: Some("/dev/kvm") }
+[2026-03-16T09:46:08.593776440+00:00 DEBUG x86_64] 0x0000000000000000-0x000000000009ffff GuestMemoryRegion
+[2026-03-16T09:46:08.593809767+00:00 DEBUG x86_64] 0x00000000000a0000-0x00000000000fffff ReservedMemory
+[2026-03-16T09:46:08.593826684+00:00 DEBUG x86_64] 0x0000000000100000-0x00000000cfffffff GuestMemoryRegion
+[2026-03-16T09:46:08.593841026+00:00 DEBUG x86_64] 0x0000000100000000-0x000000012fffffff GuestMemoryRegion
+[2026-03-16T09:46:08.598795586+00:00 INFO  crosvm::crosvm::sys::linux] crosvm entering multiprocess mode
+[2026-03-16T09:46:14.768173433+00:00 DEBUG devices::pci::vfio_pci] parsed device PCI address 0000:01:00.0
+[2026-03-16T09:46:14.769172677+00:00 INFO  crosvm::crosvm::sys::linux::device_helpers] Trying to attach block device: /home/mrgeek/pkvm-x86/images/guest/ubuntuguest.qcow2
+[2026-03-16T09:46:14.769271662+00:00 INFO  disk] disk size 8186429440
+[2026-03-16T09:46:14.824311866+00:00 DEBUG devices::pci::vfio_pci] set_gpe: gpe-nr 0 addr Some(PciAddress { bus: 1, dev: 0, func: 0 })
+[2026-03-16T09:46:14.854621938+00:00 DEBUG x86_64] 0x0000000000000000-0x000000000009ffff GuestMemoryRegion
+[2026-03-16T09:46:14.854689231+00:00 DEBUG x86_64] 0x00000000000a0000-0x00000000000fffff ReservedMemory
+[2026-03-16T09:46:14.854707901+00:00 DEBUG x86_64] 0x0000000000100000-0x00000000cfffffff GuestMemoryRegion
+[2026-03-16T09:46:14.854720671+00:00 DEBUG x86_64] 0x0000000100000000-0x000000012fffffff GuestMemoryRegion
+[2026-03-16T09:46:14.870606769+00:00 INFO  devices::sys::linux::acpi] Listening on acpi_mc_group of acpi_event family
+[2026-03-16T09:46:14.872432061+00:00 DEBUG x86_64::bzimage] setup_header file offset range: 0x01f1..0x026c
+[2026-03-16T09:46:14.877902967+00:00 INFO  x86_64] Loaded bzImage kernel
+[2026-03-16T09:46:14.877961839+00:00 DEBUG x86_64] kernel_max_cmdline_len=2047
+[2026-03-16T09:48:08.654253458+00:00 ERROR devices::proxy] recv from vfio 0000:01:00.0 device child device process failed: tube was disconnected
+[2026-03-16T09:48:08.657618127+00:00 ERROR devices::proxy] recv from xhci controller child device process failed: tube was disconnected
+[2026-03-16T09:48:08.657684583+00:00 ERROR devices::proxy] recv from pcivirtio-block child device process failed: tube was disconnected
+[2026-03-16T09:48:08.657687997+00:00 ERROR devices::proxy] recv from pcivirtio-rng child device process failed: tube was disconnected
+[2026-03-16T09:48:08.657740665+00:00 ERROR devices::proxy] recv from pcivirtio-balloon child device process failed: tube was disconnected
+[2026-03-16T09:48:08.682861328+00:00 ERROR devices::proxy] recv from pcivirtio-console child device process failed: tube was disconnected

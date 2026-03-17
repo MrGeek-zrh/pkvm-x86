@@ -1,0 +1,11 @@
+=== dmesg keywords ===
+
+=== crosvm keywords ===
+9:[2026-03-16T09:46:14.768173433+00:00 DEBUG devices::pci::vfio_pci] parsed device PCI address 0000:01:00.0
+12:[2026-03-16T09:46:14.824311866+00:00 DEBUG devices::pci::vfio_pci] set_gpe: gpe-nr 0 addr Some(PciAddress { bus: 1, dev: 0, func: 0 })
+21:[2026-03-16T09:48:08.654253458+00:00 ERROR devices::proxy] recv from vfio 0000:01:00.0 device child device process failed: tube was disconnected
+22:[2026-03-16T09:48:08.657618127+00:00 ERROR devices::proxy] recv from xhci controller child device process failed: tube was disconnected
+23:[2026-03-16T09:48:08.657684583+00:00 ERROR devices::proxy] recv from pcivirtio-block child device process failed: tube was disconnected
+24:[2026-03-16T09:48:08.657687997+00:00 ERROR devices::proxy] recv from pcivirtio-rng child device process failed: tube was disconnected
+25:[2026-03-16T09:48:08.657740665+00:00 ERROR devices::proxy] recv from pcivirtio-balloon child device process failed: tube was disconnected
+26:[2026-03-16T09:48:08.682861328+00:00 ERROR devices::proxy] recv from pcivirtio-console child device process failed: tube was disconnected

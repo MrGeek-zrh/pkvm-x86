@@ -1,0 +1,4 @@
+01:00.0 Non-Volatile memory controller [0108]: Red Hat, Inc. QEMU NVM Express Controller [1b36:0010] (rev 02)
+	Subsystem: Red Hat, Inc. QEMU NVM Express Controller [1af4:1100]
+	Kernel driver in use: vfio-pci
+	Kernel modules: nvme

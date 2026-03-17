@@ -1,0 +1,190 @@
+=== dmesg keywords ===
+
+=== crosvm keywords ===
+9:[2026-03-16T16:32:25.095582987+00:00 DEBUG devices::pci::vfio_pci] parsed device PCI address 0000:01:00.0
+12:[2026-03-16T16:32:25.168376060+00:00 DEBUG devices::pci::vfio_pci] set_gpe: gpe-nr 0 addr Some(PciAddress { bus: 1, dev: 0, func: 0 })
+21:[2026-03-16T16:32:30.318022612+00:00 ERROR devices::pci::vfio_pci] vfio 0000:01:00.0 device: failed to enable ACPI notifications
+22:[2026-03-16T16:32:30.439754802+00:00 ERROR devices::proxy] failed to read result of WriteConfig { reg_idx: 1, offset: 0, len: 2, data: [3, 5, 0, 0] } from child device process vfio 0000:01:00.0 device: tube was disconnected
+23:[2026-03-16T16:32:30.441526833+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+24:[2026-03-16T16:32:30.441706667+00:00 ERROR devices::proxy] failed to read result of ReadConfig(1) from child device process vfio 0000:01:00.0 device: tube was disconnected
+25:[2026-03-16T16:32:30.443097569+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+26:[2026-03-16T16:32:30.443133203+00:00 ERROR devices::proxy] failed to read result of WriteConfig { reg_idx: 1, offset: 0, len: 2, data: [3, 1, 0, 0] } from child device process vfio 0000:01:00.0 device: tube was disconnected
+27:[2026-03-16T16:32:30.443349306+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+28:[2026-03-16T16:32:30.443382370+00:00 ERROR devices::proxy] failed to read result of ReadConfig(15) from child device process vfio 0000:01:00.0 device: tube was disconnected
+29:[2026-03-16T16:32:30.443553842+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+30:[2026-03-16T16:32:30.443588340+00:00 ERROR devices::proxy] failed to read result of ReadConfig(1) from child device process vfio 0000:01:00.0 device: tube was disconnected
+31:[2026-03-16T16:32:30.443851054+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+32:[2026-03-16T16:32:30.443884894+00:00 ERROR devices::proxy] failed to read result of ReadConfig(4) from child device process vfio 0000:01:00.0 device: tube was disconnected
+33:[2026-03-16T16:32:30.444064128+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+34:[2026-03-16T16:32:30.444097952+00:00 ERROR devices::proxy] failed to read result of WriteConfig { reg_idx: 4, offset: 0, len: 4, data: [255, 255, 255, 255] } from child device process vfio 0000:01:00.0 device: tube was disconnected
+35:[2026-03-16T16:32:30.444283595+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+36:[2026-03-16T16:32:30.444317648+00:00 ERROR devices::proxy] failed to read result of ReadConfig(4) from child device process vfio 0000:01:00.0 device: tube was disconnected
+37:[2026-03-16T16:32:30.444493000+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+38:[2026-03-16T16:32:30.444527736+00:00 ERROR devices::proxy] failed to read result of WriteConfig { reg_idx: 4, offset: 0, len: 4, data: [0, 0, 0, 0] } from child device process vfio 0000:01:00.0 device: tube was disconnected
+39:[2026-03-16T16:32:30.444710577+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+40:[2026-03-16T16:32:30.444744185+00:00 ERROR devices::proxy] failed to read result of ReadConfig(1) from child device process vfio 0000:01:00.0 device: tube was disconnected
+41:[2026-03-16T16:32:30.445000061+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+42:[2026-03-16T16:32:30.445033964+00:00 ERROR devices::proxy] failed to read result of ReadConfig(5) from child device process vfio 0000:01:00.0 device: tube was disconnected
+43:[2026-03-16T16:32:30.445224902+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+44:[2026-03-16T16:32:30.445258524+00:00 ERROR devices::proxy] failed to read result of WriteConfig { reg_idx: 5, offset: 0, len: 4, data: [255, 255, 255, 255] } from child device process vfio 0000:01:00.0 device: tube was disconnected
+45:[2026-03-16T16:32:30.445432698+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+46:[2026-03-16T16:32:30.445467272+00:00 ERROR devices::proxy] failed to read result of ReadConfig(5) from child device process vfio 0000:01:00.0 device: tube was disconnected
+47:[2026-03-16T16:32:30.445641635+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+48:[2026-03-16T16:32:30.445675596+00:00 ERROR devices::proxy] failed to read result of WriteConfig { reg_idx: 5, offset: 0, len: 4, data: [0, 0, 0, 0] } from child device process vfio 0000:01:00.0 device: tube was disconnected
+49:[2026-03-16T16:32:30.445858158+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+50:[2026-03-16T16:32:30.445892492+00:00 ERROR devices::proxy] failed to read result of ReadConfig(1) from child device process vfio 0000:01:00.0 device: tube was disconnected
+51:[2026-03-16T16:32:30.446152270+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+52:[2026-03-16T16:32:30.446197011+00:00 ERROR devices::proxy] failed to read result of ReadConfig(6) from child device process vfio 0000:01:00.0 device: tube was disconnected
+53:[2026-03-16T16:32:30.446372713+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+54:[2026-03-16T16:32:30.446406534+00:00 ERROR devices::proxy] failed to read result of WriteConfig { reg_idx: 6, offset: 0, len: 4, data: [255, 255, 255, 255] } from child device process vfio 0000:01:00.0 device: tube was disconnected
+55:[2026-03-16T16:32:30.446581456+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+56:[2026-03-16T16:32:30.446614370+00:00 ERROR devices::proxy] failed to read result of ReadConfig(6) from child device process vfio 0000:01:00.0 device: tube was disconnected
+57:[2026-03-16T16:32:30.446788356+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+58:[2026-03-16T16:32:30.446822382+00:00 ERROR devices::proxy] failed to read result of WriteConfig { reg_idx: 6, offset: 0, len: 4, data: [0, 0, 0, 0] } from child device process vfio 0000:01:00.0 device: tube was disconnected
+59:[2026-03-16T16:32:30.447011174+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+60:[2026-03-16T16:32:30.447045673+00:00 ERROR devices::proxy] failed to read result of ReadConfig(1) from child device process vfio 0000:01:00.0 device: tube was disconnected
+61:[2026-03-16T16:32:30.447347406+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+62:[2026-03-16T16:32:30.447381249+00:00 ERROR devices::proxy] failed to read result of ReadConfig(7) from child device process vfio 0000:01:00.0 device: tube was disconnected
+63:[2026-03-16T16:32:30.447558167+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+64:[2026-03-16T16:32:30.447590238+00:00 ERROR devices::proxy] failed to read result of WriteConfig { reg_idx: 7, offset: 0, len: 4, data: [255, 255, 255, 255] } from child device process vfio 0000:01:00.0 device: tube was disconnected
+65:[2026-03-16T16:32:30.447766407+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+66:[2026-03-16T16:32:30.447798984+00:00 ERROR devices::proxy] failed to read result of ReadConfig(7) from child device process vfio 0000:01:00.0 device: tube was disconnected
+67:[2026-03-16T16:32:30.447973307+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+68:[2026-03-16T16:32:30.448004693+00:00 ERROR devices::proxy] failed to read result of WriteConfig { reg_idx: 7, offset: 0, len: 4, data: [0, 0, 0, 0] } from child device process vfio 0000:01:00.0 device: tube was disconnected
+69:[2026-03-16T16:32:30.448295362+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+70:[2026-03-16T16:32:30.448328142+00:00 ERROR devices::proxy] failed to read result of ReadConfig(1) from child device process vfio 0000:01:00.0 device: tube was disconnected
+71:[2026-03-16T16:32:30.448571764+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+72:[2026-03-16T16:32:30.448605772+00:00 ERROR devices::proxy] failed to read result of ReadConfig(8) from child device process vfio 0000:01:00.0 device: tube was disconnected
+73:[2026-03-16T16:32:30.448779937+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+74:[2026-03-16T16:32:30.448813831+00:00 ERROR devices::proxy] failed to read result of WriteConfig { reg_idx: 8, offset: 0, len: 4, data: [255, 255, 255, 255] } from child device process vfio 0000:01:00.0 device: tube was disconnected
+75:[2026-03-16T16:32:30.448992919+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+76:[2026-03-16T16:32:30.449026858+00:00 ERROR devices::proxy] failed to read result of ReadConfig(8) from child device process vfio 0000:01:00.0 device: tube was disconnected
+77:[2026-03-16T16:32:30.449214494+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+78:[2026-03-16T16:32:30.449248073+00:00 ERROR devices::proxy] failed to read result of WriteConfig { reg_idx: 8, offset: 0, len: 4, data: [0, 0, 0, 0] } from child device process vfio 0000:01:00.0 device: tube was disconnected
+79:[2026-03-16T16:32:30.449430843+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+80:[2026-03-16T16:32:30.449464151+00:00 ERROR devices::proxy] failed to read result of ReadConfig(1) from child device process vfio 0000:01:00.0 device: tube was disconnected
+81:[2026-03-16T16:32:30.449719962+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+82:[2026-03-16T16:32:30.449753889+00:00 ERROR devices::proxy] failed to read result of ReadConfig(9) from child device process vfio 0000:01:00.0 device: tube was disconnected
+83:[2026-03-16T16:32:30.449928158+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+84:[2026-03-16T16:32:30.449962003+00:00 ERROR devices::proxy] failed to read result of WriteConfig { reg_idx: 9, offset: 0, len: 4, data: [255, 255, 255, 255] } from child device process vfio 0000:01:00.0 device: tube was disconnected
+85:[2026-03-16T16:32:30.450146343+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+86:[2026-03-16T16:32:30.450180314+00:00 ERROR devices::proxy] failed to read result of ReadConfig(9) from child device process vfio 0000:01:00.0 device: tube was disconnected
+87:[2026-03-16T16:32:30.450367980+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+88:[2026-03-16T16:32:30.450401728+00:00 ERROR devices::proxy] failed to read result of WriteConfig { reg_idx: 9, offset: 0, len: 4, data: [0, 0, 0, 0] } from child device process vfio 0000:01:00.0 device: tube was disconnected
+89:[2026-03-16T16:32:30.450592260+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+90:[2026-03-16T16:32:30.450626675+00:00 ERROR devices::proxy] failed to read result of ReadConfig(1) from child device process vfio 0000:01:00.0 device: tube was disconnected
+91:[2026-03-16T16:32:30.450882526+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+92:[2026-03-16T16:32:30.450916319+00:00 ERROR devices::proxy] failed to read result of ReadConfig(12) from child device process vfio 0000:01:00.0 device: tube was disconnected
+93:[2026-03-16T16:32:30.451094858+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+94:[2026-03-16T16:32:30.451129426+00:00 ERROR devices::proxy] failed to read result of WriteConfig { reg_idx: 12, offset: 0, len: 4, data: [0, 248, 255, 255] } from child device process vfio 0000:01:00.0 device: tube was disconnected
+95:[2026-03-16T16:32:30.451350034+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+96:[2026-03-16T16:32:30.451383876+00:00 ERROR devices::proxy] failed to read result of ReadConfig(12) from child device process vfio 0000:01:00.0 device: tube was disconnected
+97:[2026-03-16T16:32:30.451558247+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+98:[2026-03-16T16:32:30.451592190+00:00 ERROR devices::proxy] failed to read result of WriteConfig { reg_idx: 12, offset: 0, len: 4, data: [0, 0, 0, 0] } from child device process vfio 0000:01:00.0 device: tube was disconnected
+99:[2026-03-16T16:32:30.451797915+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+100:[2026-03-16T16:32:30.451831642+00:00 ERROR devices::proxy] failed to read result of ReadConfig(11) from child device process vfio 0000:01:00.0 device: tube was disconnected
+101:[2026-03-16T16:32:30.452079128+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+102:[2026-03-16T16:32:30.452112946+00:00 ERROR devices::proxy] failed to read result of ReadConfig(11) from child device process vfio 0000:01:00.0 device: tube was disconnected
+103:[2026-03-16T16:32:30.452295695+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+104:[2026-03-16T16:32:30.452329837+00:00 ERROR devices::proxy] failed to read result of ReadConfig(34) from child device process vfio 0000:01:00.0 device: tube was disconnected
+105:[2026-03-16T16:32:30.452656279+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+106:[2026-03-16T16:32:30.452690089+00:00 ERROR devices::proxy] failed to read result of ReadConfig(33) from child device process vfio 0000:01:00.0 device: tube was disconnected
+107:[2026-03-16T16:32:30.452864035+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+108:[2026-03-16T16:32:30.452897877+00:00 ERROR devices::proxy] failed to read result of ReadConfig(34) from child device process vfio 0000:01:00.0 device: tube was disconnected
+109:[2026-03-16T16:32:30.453168234+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+110:[2026-03-16T16:32:30.453212644+00:00 ERROR devices::proxy] failed to read result of ReadConfig(41) from child device process vfio 0000:01:00.0 device: tube was disconnected
+111:[2026-03-16T16:32:30.453327017+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+112:[2026-03-16T16:32:30.453361020+00:00 ERROR devices::proxy] failed to read result of ReadConfig(64) from child device process vfio 0000:01:00.0 device: tube was disconnected
+113:[2026-03-16T16:32:30.453485580+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+114:[2026-03-16T16:32:30.453520296+00:00 ERROR devices::proxy] failed to read result of ReadConfig(64) from child device process vfio 0000:01:00.0 device: tube was disconnected
+115:[2026-03-16T16:32:30.453706211+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+116:[2026-03-16T16:32:30.453740886+00:00 ERROR devices::proxy] failed to read result of ReadConfig(41) from child device process vfio 0000:01:00.0 device: tube was disconnected
+117:[2026-03-16T16:32:30.453920159+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+118:[2026-03-16T16:32:30.453953999+00:00 ERROR devices::proxy] failed to read result of ReadConfig(1) from child device process vfio 0000:01:00.0 device: tube was disconnected
+119:[2026-03-16T16:32:30.454268076+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+120:[2026-03-16T16:32:30.454301017+00:00 ERROR devices::proxy] failed to read result of ReadConfig(1) from child device process vfio 0000:01:00.0 device: tube was disconnected
+121:[2026-03-16T16:32:30.454472943+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+122:[2026-03-16T16:32:30.454505156+00:00 ERROR devices::proxy] failed to read result of ReadConfig(1) from child device process vfio 0000:01:00.0 device: tube was disconnected
+123:[2026-03-16T16:32:30.454676715+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+124:[2026-03-16T16:32:30.454709225+00:00 ERROR devices::proxy] failed to read result of ReadConfig(1) from child device process vfio 0000:01:00.0 device: tube was disconnected
+125:[2026-03-16T16:32:30.454881247+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+126:[2026-03-16T16:32:30.454913011+00:00 ERROR devices::proxy] failed to read result of ReadConfig(1) from child device process vfio 0000:01:00.0 device: tube was disconnected
+127:[2026-03-16T16:32:30.455024795+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+128:[2026-03-16T16:32:30.455068477+00:00 ERROR devices::proxy] failed to read result of ReadConfig(64) from child device process vfio 0000:01:00.0 device: tube was disconnected
+129:[2026-03-16T16:32:30.455299813+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+130:[2026-03-16T16:32:30.455332678+00:00 ERROR devices::proxy] failed to read result of ReadConfig(64) from child device process vfio 0000:01:00.0 device: tube was disconnected
+131:[2026-03-16T16:32:30.455456321+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+132:[2026-03-16T16:32:30.455488961+00:00 ERROR devices::proxy] failed to read result of ReadConfig(64) from child device process vfio 0000:01:00.0 device: tube was disconnected
+133:[2026-03-16T16:32:30.455612561+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+134:[2026-03-16T16:32:30.455645273+00:00 ERROR devices::proxy] failed to read result of ReadConfig(64) from child device process vfio 0000:01:00.0 device: tube was disconnected
+135:[2026-03-16T16:32:30.455832382+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+136:[2026-03-16T16:32:30.455865131+00:00 ERROR devices::proxy] failed to read result of ReadConfig(1) from child device process vfio 0000:01:00.0 device: tube was disconnected
+137:[2026-03-16T16:32:30.456036889+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+138:[2026-03-16T16:32:30.456074161+00:00 ERROR devices::proxy] failed to read result of ReadConfig(1) from child device process vfio 0000:01:00.0 device: tube was disconnected
+139:[2026-03-16T16:32:30.456468289+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+140:[2026-03-16T16:32:30.456502995+00:00 ERROR devices::proxy] failed to read result of ReadConfig(64) from child device process vfio 0000:01:00.0 device: tube was disconnected
+141:[2026-03-16T16:32:30.456627819+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+142:[2026-03-16T16:32:30.456662423+00:00 ERROR devices::proxy] failed to read result of ReadConfig(64) from child device process vfio 0000:01:00.0 device: tube was disconnected
+143:[2026-03-16T16:32:30.456791077+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+144:[2026-03-16T16:32:30.456825389+00:00 ERROR devices::proxy] failed to read result of ReadConfig(64) from child device process vfio 0000:01:00.0 device: tube was disconnected
+145:[2026-03-16T16:32:30.456953397+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+146:[2026-03-16T16:32:30.456988204+00:00 ERROR devices::proxy] failed to read result of ReadConfig(64) from child device process vfio 0000:01:00.0 device: tube was disconnected
+147:[2026-03-16T16:32:30.457118096+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+148:[2026-03-16T16:32:30.457157537+00:00 ERROR devices::proxy] failed to read result of ReadConfig(64) from child device process vfio 0000:01:00.0 device: tube was disconnected
+149:[2026-03-16T16:32:30.457291582+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+150:[2026-03-16T16:32:30.457325559+00:00 ERROR devices::proxy] failed to read result of ReadConfig(64) from child device process vfio 0000:01:00.0 device: tube was disconnected
+151:[2026-03-16T16:32:30.457542276+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+152:[2026-03-16T16:32:30.457576796+00:00 ERROR devices::proxy] failed to read result of ReadConfig(64) from child device process vfio 0000:01:00.0 device: tube was disconnected
+153:[2026-03-16T16:32:30.457700915+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+154:[2026-03-16T16:32:30.457735228+00:00 ERROR devices::proxy] failed to read result of ReadConfig(64) from child device process vfio 0000:01:00.0 device: tube was disconnected
+155:[2026-03-16T16:32:30.457859492+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+156:[2026-03-16T16:32:30.457894219+00:00 ERROR devices::proxy] failed to read result of ReadConfig(64) from child device process vfio 0000:01:00.0 device: tube was disconnected
+157:[2026-03-16T16:32:30.458083058+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+158:[2026-03-16T16:32:30.458118249+00:00 ERROR devices::proxy] failed to read result of ReadConfig(43) from child device process vfio 0000:01:00.0 device: tube was disconnected
+159:[2026-03-16T16:32:30.458302205+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+160:[2026-03-16T16:32:30.458336081+00:00 ERROR devices::proxy] failed to read result of ReadConfig(35) from child device process vfio 0000:01:00.0 device: tube was disconnected
+161:[2026-03-16T16:32:30.458539172+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+162:[2026-03-16T16:32:30.458573821+00:00 ERROR devices::proxy] failed to read result of ReadConfig(35) from child device process vfio 0000:01:00.0 device: tube was disconnected
+163:[2026-03-16T16:32:30.458819299+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+164:[2026-03-16T16:32:30.458854213+00:00 ERROR devices::proxy] failed to read result of ReadConfig(36) from child device process vfio 0000:01:00.0 device: tube was disconnected
+165:[2026-03-16T16:32:30.459196529+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+166:[2026-03-16T16:32:30.459230897+00:00 ERROR devices::proxy] failed to read result of ReadConfig(1) from child device process vfio 0000:01:00.0 device: tube was disconnected
+167:[2026-03-16T16:32:30.461150135+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+168:[2026-03-16T16:32:30.461201286+00:00 ERROR devices::proxy] failed to read result of WriteVirtualConfig { reg_idx: 1, value: 0 } from child device process vfio 0000:01:00.0 device: tube was disconnected
+169:[2026-03-16T16:32:30.461633736+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+170:[2026-03-16T16:32:30.461668953+00:00 ERROR devices::proxy] failed to read result of WriteVirtualConfig { reg_idx: 1, value: 0 } from child device process vfio 0000:01:00.0 device: tube was disconnected
+171:[2026-03-16T16:32:30.462336967+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+172:[2026-03-16T16:32:30.462372707+00:00 ERROR devices::proxy] failed to read result of WriteVirtualConfig { reg_idx: 1, value: 0 } from child device process vfio 0000:01:00.0 device: tube was disconnected
+173:[2026-03-16T16:32:30.462711137+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+174:[2026-03-16T16:32:30.462745954+00:00 ERROR devices::proxy] failed to read result of WriteVirtualConfig { reg_idx: 1, value: 0 } from child device process vfio 0000:01:00.0 device: tube was disconnected
+175:[2026-03-16T16:32:30.463208266+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+176:[2026-03-16T16:32:30.463242591+00:00 ERROR devices::proxy] failed to read result of WriteVirtualConfig { reg_idx: 1, value: 0 } from child device process vfio 0000:01:00.0 device: tube was disconnected
+177:[2026-03-16T16:32:30.463580044+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+178:[2026-03-16T16:32:30.463614603+00:00 ERROR devices::proxy] failed to read result of WriteVirtualConfig { reg_idx: 1, value: 0 } from child device process vfio 0000:01:00.0 device: tube was disconnected
+179:[2026-03-16T16:32:30.463745300+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+180:[2026-03-16T16:32:30.463779345+00:00 ERROR devices::proxy] failed to read result of ReadConfig(64) from child device process vfio 0000:01:00.0 device: tube was disconnected
+181:[2026-03-16T16:32:30.463904856+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+182:[2026-03-16T16:32:30.463945726+00:00 ERROR devices::proxy] failed to read result of ReadConfig(64) from child device process vfio 0000:01:00.0 device: tube was disconnected
+183:[2026-03-16T16:32:30.464164080+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+184:[2026-03-16T16:32:30.464216200+00:00 ERROR devices::proxy] failed to read result of ReadConfig(64) from child device process vfio 0000:01:00.0 device: tube was disconnected
+185:[2026-03-16T16:32:30.464346453+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+186:[2026-03-16T16:32:30.464380701+00:00 ERROR devices::proxy] failed to read result of ReadConfig(64) from child device process vfio 0000:01:00.0 device: tube was disconnected
+187:[2026-03-16T16:32:30.464507072+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+188:[2026-03-16T16:32:30.464541748+00:00 ERROR devices::proxy] failed to read result of ReadConfig(64) from child device process vfio 0000:01:00.0 device: tube was disconnected
+189:[2026-03-16T16:32:30.464669567+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+190:[2026-03-16T16:32:30.464704155+00:00 ERROR devices::proxy] failed to read result of ReadConfig(64) from child device process vfio 0000:01:00.0 device: tube was disconnected
+191:[2026-03-16T16:32:30.464904880+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+192:[2026-03-16T16:32:30.464938636+00:00 ERROR devices::proxy] failed to read result of ReadConfig(33) from child device process vfio 0000:01:00.0 device: tube was disconnected
+193:[2026-03-16T16:32:30.465148904+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+194:[2026-03-16T16:32:30.465191323+00:00 ERROR devices::proxy] failed to read result of ReadConfig(35) from child device process vfio 0000:01:00.0 device: tube was disconnected
+195:[2026-03-16T16:32:30.465437771+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+196:[2026-03-16T16:32:30.465472079+00:00 ERROR devices::proxy] failed to read result of ReadConfig(36) from child device process vfio 0000:01:00.0 device: tube was disconnected
+197:[2026-03-16T16:32:30.465653148+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+198:[2026-03-16T16:32:30.465687248+00:00 ERROR devices::proxy] failed to read result of WriteConfig { reg_idx: 36, offset: 0, len: 2, data: [0, 0, 0, 0] } from child device process vfio 0000:01:00.0 device: tube was disconnected
+199:[2026-03-16T16:32:30.497236855+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+200:[2026-03-16T16:32:30.497309598+00:00 ERROR devices::proxy] failed to read result of ReadConfig(1) from child device process vfio 0000:01:00.0 device: tube was disconnected
+201:[2026-03-16T16:32:30.497515372+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+202:[2026-03-16T16:32:30.497563561+00:00 ERROR devices::proxy] failed to read result of ReadConfig(3) from child device process vfio 0000:01:00.0 device: tube was disconnected
+203:[2026-03-16T16:32:30.549371808+00:00 ERROR crosvm::crosvm::sys::linux] child vfio 0000:01:00.0 device (pid 3566) exited: signo 17, status 31, code 3
+204:[2026-03-16T16:32:30.559557102+00:00 ERROR devices::proxy] failed write to child device process vfio 0000:01:00.0 device: failed to send packet: Broken pipe (os error 32)
+205:[2026-03-16T16:32:30.559634052+00:00 ERROR devices::proxy] failed to read result of Shutdown from child device process vfio 0000:01:00.0 device: tube was disconnected

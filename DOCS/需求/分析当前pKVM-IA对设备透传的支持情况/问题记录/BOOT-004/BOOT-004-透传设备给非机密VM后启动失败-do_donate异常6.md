@@ -24,8 +24,8 @@ cat /sys/class/nvme/nvme0/serial
 readlink -f /sys/class/nvme/nvme0/device
 BDF=0000:01:00.0
 sudo modprobe vfio-pci
-echo vfio-pci | sudo tee /sys/bus/pci/devices/$BDF/driver_override
-echo "$BDF" | sudo tee /sys/bus/pci/devices/$BDF/driver/unbind || true
+sudo echo vfio-pci | sudo tee /sys/bus/pci/devices/$BDF/driver_override
+sudo echo "$BDF" | sudo tee /sys/bus/pci/devices/$BDF/driver/unbind || true
 echo "$BDF" | sudo tee /sys/bus/pci/drivers/vfio-pci/bind
 lspci -nnk -s 01:00.0
 

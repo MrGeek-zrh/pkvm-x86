@@ -1,0 +1,6 @@
+[2026-03-17 01:28:44] 开始执行 postboot 自动复现
+[2026-03-17 01:28:44] 保存清空前的 dmesg 到 /home/mrgeek/pkvm-x86/DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/问题记录/BOOT-004/logs/20260317-012822/dmesg.before-clear.log
+[2026-03-17 01:28:44] 清空 dmesg 并启动实时抓取
+[2026-03-17 01:28:45] 等待系统与设备稳定 8s
+[2026-03-17 01:28:53] 本次使用的 BDF: 0000:01:00.0
+/home/mrgeek/pkvm-x86/DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/问题记录/BOOT-004/auto-repro-boot004.sh: line 457: SKIP_VFIO_REBIND: unbound variable

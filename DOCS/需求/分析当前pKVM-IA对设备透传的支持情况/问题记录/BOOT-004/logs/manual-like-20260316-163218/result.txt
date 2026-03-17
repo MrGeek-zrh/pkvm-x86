@@ -1,0 +1,2 @@
+RESULT=crosvm_vfio_early_fail
+LOG_DIR=/home/mrgeek/pkvm-x86/DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/问题记录/BOOT-004/logs/manual-like-20260316-163218
