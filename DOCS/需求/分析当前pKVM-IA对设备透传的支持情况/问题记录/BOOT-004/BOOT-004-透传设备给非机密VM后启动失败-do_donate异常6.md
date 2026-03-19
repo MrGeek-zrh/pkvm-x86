@@ -29,7 +29,7 @@ sudo echo "$BDF" | sudo tee /sys/bus/pci/devices/$BDF/driver/unbind || true
 echo "$BDF" | sudo tee /sys/bus/pci/drivers/vfio-pci/bind
 lspci -nnk -s 01:00.0
 
-BDF=0000:01:00.0 sudo PROTECTED=0 SETUP_NET=0 VFIO_DEV=$BDF ./scripts/run-crosvm.sh
+sudo PROTECTED=0 SETUP_NET=0 VFIO_DEV=0000:01:00.0 ./scripts/run-crosvm.sh
 ```
 
 ## 原始日志（节选）
