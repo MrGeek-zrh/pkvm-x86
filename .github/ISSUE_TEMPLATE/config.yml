@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 本地长文记录入口
+    url: https://github.com/MrGeek-zrh/pkvm-x86/tree/main/DOCS
+    about: 长日志、源码分析和复现细节优先回收到仓库文档，再在 Issue 中链接引用。

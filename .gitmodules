@@ -22,3 +22,7 @@
 	path = uefi/firmware-open
 	url = https://github.com/system76/firmware-open.git
 	ignore = all
+[submodule "pKVM-IA"]
+	path = pKVM-IA
+	url = https://github.com/MrGeek-zrh/pKVM-IA.git
+	ignore = dirty

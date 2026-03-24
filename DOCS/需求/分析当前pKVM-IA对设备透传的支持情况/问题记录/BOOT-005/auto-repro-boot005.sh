@@ -10,6 +10,6 @@ echo "$BDF" | sudo tee /sys/bus/pci/drivers/vfio-pci/bind
 lspci -nnk -s 01:00.0
 
 # 不带vIOMMU
-# sudo PROTECTED=1 SETUP_NET=0 VFIO_DEV=0000:01:00.0 ./scripts/run-crosvm.sh
+sudo PROTECTED=1 SETUP_NET=0 VFIO_DEV=0000:01:00.0 ./scripts/run-crosvm.sh
 # 带vIOMMU
-sudo PROTECTED=1 SETUP_NET=0 VFIO_DEV=0000:01:00.0 VFIO_IOMMU=viommu ./scripts/run-crosvm.sh
+# sudo PROTECTED=1 SETUP_NET=0 VFIO_DEV=0000:01:00.0 VFIO_IOMMU=viommu ./scripts/run-crosvm.sh

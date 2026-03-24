@@ -1,0 +1,84 @@
+name: Bug
+description: 用于跟踪单个 panic/报错签名或明确的行为回归
+title: "[BUG] "
+labels:
+  - type/bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        规则：
+        - 一个 panic/报错签名对应一个独立 bug issue。
+        - 如果修复旧签名后暴露新签名，请新建 issue，不要继续复用旧 issue。
+        - 长日志、源码推理、完整复现记录请放到 `DOCS/.../问题记录/`，这里保留摘要和链接。
+  - type: dropdown
+    id: area
+    attributes:
+      label: 影响范围
+      options:
+        - area/pkvm-hyp
+        - area/pkvm-core
+        - area/crosvm
+        - area/vfio
+        - area/docs
+        - area/automation
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 优先级
+      options:
+        - prio/b0
+        - prio/p0
+        - prio/p1
+        - prio/p2
+    validations:
+      required: true
+  - type: input
+    id: signature
+    attributes:
+      label: 问题签名
+      description: 用一句话概括本 issue 唯一对应的 panic/报错签名
+      placeholder: 例如 BOOT-007 protected pVM NoIommu VFIO vcpu EFAULT
+    validations:
+      required: true
+  - type: textarea
+    id: symptom
+    attributes:
+      label: 现象
+      placeholder: 简述现象和影响
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: 最小复现
+      description: 贴命令、配置开关和环境要点
+      placeholder: |
+        sudo PROTECTED=1 SETUP_NET=0 VFIO_DEV=0000:01:00.0 ./scripts/run-crosvm.sh
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 关键证据
+      description: 日志节选、回溯、源码锚点或本地文档链接
+      placeholder: |
+        - 日志：
+        - 源码：
+        - 文档：
+    validations:
+      required: true
+  - type: textarea
+    id: root_cause
+    attributes:
+      label: 根因（当前判断）
+      placeholder: 未知也可以，写当前最合理的判断范围
+  - type: textarea
+    id: exit_criteria
+    attributes:
+      label: 验证要点
+      placeholder: 写清楚该签名怎样才算被关闭
+    validations:
+      required: true

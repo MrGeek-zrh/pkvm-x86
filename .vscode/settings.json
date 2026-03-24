@@ -1,4 +1,10 @@
 {
     "git.ignoreLimitWarning": true,
-    "gitlens.proxy": {}
+    "gitlens.proxy": {},
+    "git.autoRepositoryDetection": "subFolders",
+    "git.repositoryScanMaxDepth": 2,
+    "git.scanRepositories": [
+        "pKVM-IA"
+    ],
+    "scm.alwaysShowRepositories": true
 }
