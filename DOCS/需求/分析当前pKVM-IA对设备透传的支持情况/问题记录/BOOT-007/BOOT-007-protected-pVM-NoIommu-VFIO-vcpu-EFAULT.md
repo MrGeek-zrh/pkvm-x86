@@ -17,20 +17,25 @@
 ## 根因（简述）
 
 - 当前已确认这不是 T1 对应的“旧 host shadow IOMMU spgt 残留 refcount 阻塞 donate”问题。
-- 当前更高置信度的根因是：protected pVM 还不能消费 crosvm 这套 VFIO PCI 的 config/MMIO fallback 路径。
+- 当前更高置信度的根因是：在当前分支里，protected pVM 设备透传本身尚未被真正支持。
 - 证据链如下：
-  - crosvm 在 pKVM 场景下显式关闭 `ReadOnlyMemoryRegion`，见 `/home/mrgeek/pkvm-x86/crosvm/hypervisor/src/kvm/mod.rs`。
-  - 因此 `PciRoot::add_mapping()` 为 PCIe config page 建立只读 memslot 的优化路径会失败，并退回 `vm-exit`，见 `/home/mrgeek/pkvm-x86/crosvm/devices/src/pci/pci_root.rs`。
+  - crosvm 的通用能力判断本意上会在 pKVM 场景下关闭 `ReadOnlyMemoryRegion`，见 `/home/mrgeek/pkvm-x86/crosvm/hypervisor/src/kvm/mod.rs`。
+  - 但当前 x86_64 `is_pkvm()` 仍然硬编码返回 `false`，见 `/home/mrgeek/pkvm-x86/crosvm/hypervisor/src/kvm/x86_64.rs`。
+  - 因而当前本地 crosvm 会误以为只读 memslot 可用，先去尝试 `PciRoot::add_mapping()` 的 config page 只读映射，再在 `add_memory_region()` 处落到 `EINVAL` 并退回 `vm-exit`，见 `/home/mrgeek/pkvm-x86/crosvm/devices/src/pci/pci_root.rs`。
   - x86_64 上 PCIe ECAM 本身就是一个 `mmio_bus` 设备，见 `/home/mrgeek/pkvm-x86/crosvm/x86_64/src/lib.rs` 和 `/home/mrgeek/pkvm-x86/crosvm/devices/src/pci/pci_root.rs`。
   - pKVM x86 的 protected vCPU 缺页路径对 `RET_PF_EMULATE` 直接返回 `-EFAULT`，不走传统 MMIO emulation，见 `/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/mmu/mmu.c`。
-- 因而 `Failed to map mmio page; failed to create vm mapping` 不是单独的无害噪音，而是当前失败链的前置信号之一。
+  - 更关键的是，pVM guest 侧把 `pv_ops.mmio.raw_read* / raw_write* / pci_mmcfg_*` 全部接到了 `PKVM_GHC_IOREAD/IOWRITE`，见 `/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/coco/pkvm/pkvm.c`。
+  - 同时 host->pKVM 的透传 attach 接口目前只传 `BDF/PASID`，并没有把 BAR/MMIO 资源信息传给 guest/hyp，见 `/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/vmx/pkvm/pkvm_host.c` 和 `/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/ptdev.c`。
+  - 这与官方 issue `#46` 的维护者说明一致：当前 pVM 对任何 MMIO 访问都默认使用 hypercall，因而无法直接访问直通设备的物理 MMIO。
+- 因而 `Failed to map mmio page; failed to create vm mapping` 不是单独的无害噪音，而只是当前能力缺口暴露出来的早期症状之一。
 
 ## 解决方案
 
 - 当前无最终修复。
 - 下一步定位方向：
-  - 先补 protected pVM 的 VFIO config/MMIO 访问路径，使 guest 不再落入当前不支持的 MMIO emulation fallback。
-  - 之后再回到 `pgstate_pgt` / runtime DMA mirror 主线，处理真正的 DMA 可见性问题。
+  - 如果只是做实验性 workaround，可以先尝试绕开早期 ECAM/config fallback，看失败点是否继续后移。
+  - 如果要真正支持 protected pVM 设备透传，则必须先设计 guest/hyp 的 MMIO 语义和设备元数据通道，使 guest 能区分“模拟 MMIO”和“直通设备物理 MMIO”。
+  - 在该语义明确之前，`pgstate_pgt` / runtime DMA mirror 仍不是最前置 blocker。
 
 ## 验证要点
 
@@ -116,6 +121,7 @@ scripts/run-crosvm.sh
 - crosvm 在 pKVM 下不支持只读 memslot：
   - `/home/mrgeek/pkvm-x86/crosvm/hypervisor/src/kvm/mod.rs`
   - `VmCap::ReadOnlyMemoryRegion => !self.is_pkvm()`
+  - 但当前 x86_64 `/home/mrgeek/pkvm-x86/crosvm/hypervisor/src/kvm/x86_64.rs` 中 `is_pkvm()` 仍然直接返回 `false`，因此这是“设计上应禁用，但当前实现里被误报为可用”的 correctness 问题。
 - x86_64 PCIe config mmio 是 `mmio_bus` 设备：
   - `/home/mrgeek/pkvm-x86/crosvm/x86_64/src/lib.rs`
   - `/home/mrgeek/pkvm-x86/crosvm/devices/src/pci/pci_root.rs`
@@ -125,6 +131,10 @@ scripts/run-crosvm.sh
 - pKVM protected vCPU 不接受传统 MMIO emulation：
   - `/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/mmu/mmu.c`
   - `pkvm_page_fault()` 中 `RET_PF_EMULATE -> -EFAULT`
+- host->pKVM 透传 attach 接口缺少设备资源元数据：
+  - `/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/vmx/pkvm/pkvm_host.c`
+  - `/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/ptdev.c`
+  - 目前只传 `BDF/PASID`，未传 BAR/MMIO 范围
 - 已排除的旧路径：
   - `/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/iommu_spgt.c`
   - `/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/shadow_iommu.c`

@@ -26,6 +26,12 @@ GitHub Issue / PR 现在作为状态真相来源；本目录主要保存较长�
   - 在 T1 之后先判断新的运行期 `EFAULT` 是否属于现有主线缺项，避免后续实现跑偏。
 - `01B-B0-protected-pVM-VFIO-config-MMIO访问路径收敛.md`
   - 解决 B1 之后确认的更前置 blocker：protected pVM 当前还不能消费 VFIO PCI 的 config/MMIO fallback 路径。
+- `01C-B0-protected-pVM-guest-hyp-passthrough-MMIO语义设计.md`
+  - 收敛真正的主线前置任务：guest/hyp 如何识别 passthrough BAR/MMIO，以及相关设备元数据如何传递。
+- `01C-1-B3-1-protected-pVM-设备透传第一阶段上层方案.md`
+  - 先从上层方案收敛第一阶段支持范围、非目标、trust boundary 和实现顺序。
+- `01C-2-B3-2-x86-ptdev-metadata-最小结构草案.md`
+  - 细化第一阶段所需的 x86 `ptdev metadata` 最小字段集、ownership 和 guest 可见 allowlist。
 - `02-P0-pgstate_pgt语义收敛为DMA-mirror.md`
   - 把 `pgstate_pgt` 从“页状态 + teardown 回收”收敛为“纯 DMA mirror”。
 - `03-P0-donate后同步runtime-DMA-mirror.md`

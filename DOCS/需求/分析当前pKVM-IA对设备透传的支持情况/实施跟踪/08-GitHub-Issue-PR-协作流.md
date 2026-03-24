@@ -128,6 +128,7 @@ pkvm-x86 Issue
   - `pkvm-x86#4` `TASK`: B1 NoIommu 主线运行期 EFAULT 归因
   - `pkvm-x86#5` `BUG`: BOOT-007 protected pVM NoIommu VFIO vcpu EFAULT
   - `pkvm-x86#12` `TASK`: B2 protected pVM 的 VFIO config/MMIO 访问路径收敛
+  - `pkvm-x86#13` `TASK`: B3 protected pVM guest/hyp passthrough MMIO 语义设计
   - `pkvm-x86#6` `TASK`: T2 pgstate_pgt 语义收敛为 DMA mirror
   - `pkvm-x86#7` `TASK`: T3 donate 后同步 runtime DMA mirror
   - `pkvm-x86#8` `TASK`: T4 VM 销毁前 quiesce ptdev DMA

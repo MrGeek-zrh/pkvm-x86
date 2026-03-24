@@ -60,10 +60,19 @@
   - `crosvm/devices/src/vfio.rs`
 - 当前真正导致退出的用户态报错是 vCPU 运行阶段的 `Bad address (os error 14)`：
   - `crosvm/src/crosvm/sys/linux/vcpu.rs`
-- crosvm 在 pKVM 场景下明确关闭了 `ReadOnlyMemoryRegion` 能力：
+- 来自 pKVM-IA 官方 issue `#46` 的维护者答复（用户提供）进一步确认：
+  - 当前 `pKVM-IA` 尚不支持把设备分配给 protected pVM
+  - 旧 PoC 曾有过部分支持，但在不再使用 `#VE` 做 pVM MMIO emulation、转而要求 pVM 直接使用 hypercall 后，这条路径已不再工作
+- 本地源码与该结论一致：
+  - `/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/coco/pkvm/pkvm.c`
+  - `pv_ops.mmio.raw_read* / raw_write* / pci_mmcfg_*` 全部改成了 `PKVM_GHC_IOREAD/IOWRITE`
+  - 这意味着 pVM guest 目前并不会直接访问 passthrough 设备的物理 MMIO，而是把这些访问一律当成“由 host 模拟的 MMIO”
+- crosvm 的通用能力判断本意是：在 pKVM 场景下关闭 `ReadOnlyMemoryRegion`：
   - `/home/mrgeek/pkvm-x86/crosvm/hypervisor/src/kvm/mod.rs`
   - `VmCap::ReadOnlyMemoryRegion => !self.is_pkvm()`
-- 因此 `PciRoot::add_mapping()` 为 PCIe config page 建立只读 memslot 的优化路径在 pKVM 上必然失败，并退回到 `vm-exit`：
+- 但当前 x86_64 `KvmVm::is_pkvm()` 仍然硬编码返回 `false`：
+  - `/home/mrgeek/pkvm-x86/crosvm/hypervisor/src/kvm/x86_64.rs`
+- 因而当前本地 crosvm 实际会误以为 `ReadOnlyMemoryRegion` 可用，继续尝试为 PCIe config page 建立只读 memslot，最终在 `add_memory_region()` 处打出 `Failed to map mmio page; Invalid argument (os error 22)`，再退回到 `vm-exit`：
   - `/home/mrgeek/pkvm-x86/crosvm/devices/src/pci/pci_root.rs`
   - `/home/mrgeek/pkvm-x86/crosvm/x86_64/src/lib.rs`
 - PCIe ECAM 本身就是一个 `mmio_bus` 设备：
@@ -90,18 +99,29 @@
 - 当前更像是：
   - protected pVM 还不能消费 crosvm 这套 VFIO PCI 的 config/MMIO fallback 路径
   - 其中最直接的已知触发器是：ECAM 只读映射失败后退回 `vm-exit`，而 pKVM protected vCPU 不接受这类 MMIO emulation
-- 这意味着后续顺序不应直接跳到 T2/T3，而应先新增并处理一个更前置的 correctness 任务：
-  - 收敛 protected pVM 的 VFIO config/MMIO 访问路径
-  - 至少让 guest 能在不触发 `KVM_RUN -> -EFAULT` 的前提下完成设备枚举和基础寄存器访问
+- 但官方结论和 guest 侧源码进一步说明：这还不是完整根因的最深处。
+- 更深一层的主阻塞是：
+  - 当前 protected pVM guest 把“所有 MMIO”都走 hypercall
+  - 因而即使 crosvm 侧绕开早期 ECAM/config fallback，也依然无法让 passthrough 设备 BAR 的物理 MMIO 真正直达 guest
+- 进一步地，当前 host->pKVM 设备 attach 接口也没有传递 BAR/MMIO 资源元数据：
+  - `/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/vmx/pkvm/pkvm_host.c`
+  - `/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/ptdev.c`
+- 所以后续顺序不应把 crosvm workaround 当成主线修复，而应先承认当前分支在能力上“尚不支持 protected pVM 设备透传”，再决定是否要设计并实现新的 guest/hyp MMIO 语义
 
 ## 建议实施方式
 
-- 第一阶段：先补 protected pVM 的 VFIO config/MMIO 访问路径
-  - 优先避免 ECAM/config access 落入当前不受支持的 MMIO emulation fallback
-  - 明确 BAR mmap、config space、virtual config、非 mmap BAR 各自需要的访问语义
-- 第二阶段：在寄存器访问路径收敛后，再回到 DMA 主线
-  - 继续推进 T2 `pgstate_pgt` 纯 DMA mirror 语义化
-  - 再做 T3 donate 后 runtime DMA mirror 同步
+- 第一阶段：承认并记录当前 capability gap
+  - protected pVM 设备透传在当前分支尚不成立
+  - crosvm workaround 只能用于验证“早期症状是否前移”，不能作为最终修复
+- 第二阶段：如果仍要继续支持该能力，需要先设计 guest/hyp contract
+  - guest 如何区分“需要 hypercall 的 emulated MMIO”与“应直接访问的 passthrough 物理 MMIO”
+  - passthrough 设备 BAR/MMIO 资源信息如何从 host/VFIO 传给 guest/hyp
+  - 哪些 MMIO 区间需要在 guest 侧被特殊标记或改走新接口
+  - config space / BAR / MSI-X / virtual config 各自归谁处理
+- 第三阶段：在 guest MMIO 语义明确之后，再回到 DMA 主线
+  - B3 `protected pVM guest/hyp passthrough MMIO 语义设计`
+  - T2 `pgstate_pgt` 纯 DMA mirror 语义化
+  - T3 donate 后 runtime DMA mirror 同步
 
 ## 验收标准
 
