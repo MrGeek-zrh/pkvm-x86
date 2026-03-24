@@ -1,0 +1,48 @@
+run-crosvm: SETUP_NET=0: skipping tap/iptables/sysctl network setup; guest will have no network device
+run-crosvm: enabling VFIO passthrough: 0000:01:00.0 (iommu=viommu)
+[2026-03-23T17:06:06.958393796+00:00 DEBUG crosvm::crosvm::sys::linux] creating hypervisor: Kvm { device: Some("/dev/kvm") }
+[2026-03-23T17:06:06.959278977+00:00 DEBUG x86_64] 0x0000000000000000-0x000000000009ffff GuestMemoryRegion
+[2026-03-23T17:06:06.959409962+00:00 DEBUG x86_64] 0x00000000000a0000-0x00000000000fffff ReservedMemory
+[2026-03-23T17:06:06.959427978+00:00 DEBUG x86_64] 0x0000000000100000-0x00000000cfffffff GuestMemoryRegion
+[2026-03-23T17:06:06.959441760+00:00 DEBUG x86_64] 0x0000000100000000-0x000000012fffffff GuestMemoryRegion
+[2026-03-23T17:06:07.087898889+00:00 DEBUG devices::pci::vfio_pci] parsed device PCI address 0000:01:00.0
+[2026-03-23T17:06:07.090897292+00:00 INFO  crosvm::crosvm::sys::linux::device_helpers] Trying to attach block device: /home/mrgeek/pkvm-x86/images/guest/ubuntuguest.qcow2
+[2026-03-23T17:06:07.090987204+00:00 INFO  disk] disk size 8379367424
+[2026-03-23T17:06:07.157026248+00:00 ERROR devices::pci::pci_root] Failed to map mmio page; failed to create vm mapping
+
+Caused by:
+    Invalid argument (os error 22)
+[2026-03-23T17:06:07.158954117+00:00 DEBUG devices::pci::vfio_pci] set_gpe: gpe-nr 0 addr Some(PciAddress { bus: 1, dev: 0, func: 0 })
+[2026-03-23T17:06:07.159876487+00:00 ERROR devices::pci::pci_root] Failed to map mmio page; failed to create vm mapping
+
+Caused by:
+    Invalid argument (os error 22)
+[2026-03-23T17:06:07.160143125+00:00 ERROR devices::pci::pci_root] Failed to map mmio page; failed to create vm mapping
+
+Caused by:
+    Invalid argument (os error 22)
+[2026-03-23T17:06:07.160292960+00:00 ERROR devices::pci::pci_root] Failed to map mmio page; failed to create vm mapping
+
+Caused by:
+    Invalid argument (os error 22)
+[2026-03-23T17:06:07.160413198+00:00 ERROR devices::pci::pci_root] Failed to map mmio page; failed to create vm mapping
+
+Caused by:
+    Invalid argument (os error 22)
+[2026-03-23T17:06:07.160603580+00:00 ERROR devices::pci::pci_root] Failed to map mmio page; failed to create vm mapping
+
+Caused by:
+    Invalid argument (os error 22)
+[2026-03-23T17:06:07.160800202+00:00 ERROR devices::virtio::console::sys::linux] console input thread exited with error: failed creating WaitContext: Operation not permitted (os error 1)
+[2026-03-23T17:06:07.160992872+00:00 DEBUG x86_64] 0x0000000000000000-0x000000000009ffff GuestMemoryRegion
+[2026-03-23T17:06:07.161033320+00:00 DEBUG x86_64] 0x00000000000a0000-0x00000000000fffff ReservedMemory
+[2026-03-23T17:06:07.161049280+00:00 DEBUG x86_64] 0x0000000000100000-0x00000000cfffffff GuestMemoryRegion
+[2026-03-23T17:06:07.161062690+00:00 DEBUG x86_64] 0x0000000100000000-0x000000012fffffff GuestMemoryRegion
+[2026-03-23T17:06:07.161610687+00:00 INFO  devices::sys::linux::acpi] Listening on acpi_mc_group of acpi_event family
+[2026-03-23T17:06:07.162331311+00:00 DEBUG x86_64::bzimage] setup_header file offset range: 0x01f1..0x026c
+[2026-03-23T17:06:07.173570430+00:00 INFO  x86_64] Loaded bzImage kernel
+[2026-03-23T17:06:07.173632172+00:00 DEBUG x86_64] kernel_max_cmdline_len=2047
+[2026-03-23T17:06:28.027503420+00:00 ERROR crosvm::crosvm::sys::linux::vcpu] vcpu hit unknown error: Bad address (os error 14)
+[2026-03-23T17:06:28.030275933+00:00 INFO  crosvm::crosvm::sys::linux] vcpu crashed
+[2026-03-23T17:06:28.030494199+00:00 ERROR crosvm::crosvm::sys::linux::vcpu] failed to send VcpuControl: sending on a closed channel
+[2026-03-23T17:06:28.169985106+00:00 INFO  crosvm] exiting with success

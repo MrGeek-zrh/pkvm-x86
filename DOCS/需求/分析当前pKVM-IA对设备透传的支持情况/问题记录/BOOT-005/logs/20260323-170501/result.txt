@@ -1,0 +1,5 @@
+RESULT=crosvm_exit_0
+DETAIL=crosvm exited normally
+LOG_DIR=/home/mrgeek/pkvm-x86/DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/问题记录/BOOT-005/logs/20260323-170501
+BOOT_ID=f1040c57-8cc7-4d82-aa3b-349d208c70a3
+TIME=2026-03-23 17:06:31

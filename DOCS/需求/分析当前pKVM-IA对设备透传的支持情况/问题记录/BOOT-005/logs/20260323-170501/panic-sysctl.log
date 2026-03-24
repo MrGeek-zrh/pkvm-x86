@@ -1,0 +1,4 @@
+kernel.panic(before)=0
+kernel.panic_on_oops(before)=0
+kernel.panic(after)=10
+kernel.panic_on_oops(after)=1

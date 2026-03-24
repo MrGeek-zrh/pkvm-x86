@@ -20,6 +20,8 @@
   - 总览目标、阶段划分、依赖关系、当前状态和下一步。
 - `01-P0-清理旧shadow-spgt残留refcount.md`
   - 直接解除当前 donate panic 的最小阻塞项。
+- `01A-B0-NoIommu运行期EFAULT归因.md`
+  - 在 T1 之后先判断新的运行期 `EFAULT` 是否属于现有主线缺项，避免后续实现跑偏。
 - `02-P0-pgstate_pgt语义收敛为DMA-mirror.md`
   - 把 `pgstate_pgt` 从“页状态 + teardown 回收”收敛为“纯 DMA mirror”。
 - `03-P0-donate后同步runtime-DMA-mirror.md`
