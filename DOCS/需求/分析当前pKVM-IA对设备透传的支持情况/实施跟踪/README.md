@@ -8,6 +8,8 @@
 - 明确每个子任务的依赖、验收标准和源码锚点。
 - 跟踪当前状态，避免把实施进展堆在单个总文件里。
 
+GitHub Issue / PR 现在作为状态真相来源；本目录主要保存较长的分析、拆分、验证矩阵和阶段结论。对应协作规则见 `08-GitHub-Issue-PR-协作流.md`。
+
 ## 使用方式
 
 - 从 `00-总览与进展看板.md` 进入，先看当前阶段和下一步。
@@ -22,6 +24,8 @@
   - 直接解除当前 donate panic 的最小阻塞项。
 - `01A-B0-NoIommu运行期EFAULT归因.md`
   - 在 T1 之后先判断新的运行期 `EFAULT` 是否属于现有主线缺项，避免后续实现跑偏。
+- `01B-B0-protected-pVM-VFIO-config-MMIO访问路径收敛.md`
+  - 解决 B1 之后确认的更前置 blocker：protected pVM 当前还不能消费 VFIO PCI 的 config/MMIO fallback 路径。
 - `02-P0-pgstate_pgt语义收敛为DMA-mirror.md`
   - 把 `pgstate_pgt` 从“页状态 + teardown 回收”收敛为“纯 DMA mirror”。
 - `03-P0-donate后同步runtime-DMA-mirror.md`
@@ -34,3 +38,5 @@
   - 解决 remove-path、失败回滚、多设备共享状态机。
 - `07-验证矩阵.md`
   - 汇总阶段性验证项和回归检查项。
+- `08-GitHub-Issue-PR-协作流.md`
+  - 说明 Issue / PR / submodule 的协作边界和闭环流程。

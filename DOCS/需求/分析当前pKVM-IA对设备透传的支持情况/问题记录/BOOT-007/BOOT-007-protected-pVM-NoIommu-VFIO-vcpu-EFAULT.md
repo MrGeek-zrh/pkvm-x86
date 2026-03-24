@@ -16,24 +16,27 @@
 
 ## 根因（简述）
 
-- 待进一步定位。
 - 当前已确认这不是 T1 对应的“旧 host shadow IOMMU spgt 残留 refcount 阻塞 donate”问题。
-- `Failed to map mmio page; failed to create vm mapping` 对应 crosvm 的只读 MMIO 映射优化路径；按源码语义，它会退回到 vm-exit 处理，不应单独构成致命错误。
-- 当前更可能的主问题位于更后面的运行期路径：protected pVM + VFIO(`NoIommu`) 在 guest 启动后进入 vCPU 运行阶段时，触发了新的地址访问/映射可见性错误。
+- 当前更高置信度的根因是：protected pVM 还不能消费 crosvm 这套 VFIO PCI 的 config/MMIO fallback 路径。
+- 证据链如下：
+  - crosvm 在 pKVM 场景下显式关闭 `ReadOnlyMemoryRegion`，见 `/home/mrgeek/pkvm-x86/crosvm/hypervisor/src/kvm/mod.rs`。
+  - 因此 `PciRoot::add_mapping()` 为 PCIe config page 建立只读 memslot 的优化路径会失败，并退回 `vm-exit`，见 `/home/mrgeek/pkvm-x86/crosvm/devices/src/pci/pci_root.rs`。
+  - x86_64 上 PCIe ECAM 本身就是一个 `mmio_bus` 设备，见 `/home/mrgeek/pkvm-x86/crosvm/x86_64/src/lib.rs` 和 `/home/mrgeek/pkvm-x86/crosvm/devices/src/pci/pci_root.rs`。
+  - pKVM x86 的 protected vCPU 缺页路径对 `RET_PF_EMULATE` 直接返回 `-EFAULT`，不走传统 MMIO emulation，见 `/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/mmu/mmu.c`。
+- 因而 `Failed to map mmio page; failed to create vm mapping` 不是单独的无害噪音，而是当前失败链的前置信号之一。
 
 ## 解决方案
 
 - 当前无最终修复。
 - 下一步定位方向：
-  - 先沿 `NoIommu` 主线分析 vCPU `EFAULT` 的直接触发点。
-  - 判断该问题是否与 `pgstate_pgt` 仍未收敛为纯 DMA mirror、以及 donate 后缺少 runtime DMA mirror 同步有关。
-  - 暂不把 `Failed to map mmio page` 当作主故障，除非后续证据证明其与最终 `EFAULT` 有直接因果关系。
+  - 先补 protected pVM 的 VFIO config/MMIO 访问路径，使 guest 不再落入当前不支持的 MMIO emulation fallback。
+  - 之后再回到 `pgstate_pgt` / runtime DMA mirror 主线，处理真正的 DMA 可见性问题。
 
 ## 验证要点
 
 - 使用同样的 `NoIommu` 启动命令重测时：
   - 不应再出现 `vcpu hit unknown error: Bad address (os error 14)`。
-  - 若 `Failed to map mmio page` 仍然存在，需要确认它不再导致最终启动失败。
+  - 若 `Failed to map mmio page` 仍然存在，需要确认它不再把 config 访问推回当前不受支持的 fallback。
 - 持续确认旧 T1 签名仍不复现：
   - `host_initiate_donation: page refcounted`
   - `do_donate failed ret=-16`
@@ -110,9 +113,18 @@ scripts/run-crosvm.sh
 - crosvm 只读 MMIO 映射失败路径：
   - `/home/mrgeek/pkvm-x86/crosvm/devices/src/pci/pci_root.rs`
   - `PciRoot::add_mapping()` 中对 `mapper.add_mapping()` 的错误只打印日志并回退到 vm-exit 处理。
+- crosvm 在 pKVM 下不支持只读 memslot：
+  - `/home/mrgeek/pkvm-x86/crosvm/hypervisor/src/kvm/mod.rs`
+  - `VmCap::ReadOnlyMemoryRegion => !self.is_pkvm()`
+- x86_64 PCIe config mmio 是 `mmio_bus` 设备：
+  - `/home/mrgeek/pkvm-x86/crosvm/x86_64/src/lib.rs`
+  - `/home/mrgeek/pkvm-x86/crosvm/devices/src/pci/pci_root.rs`
 - crosvm vCPU 运行报错路径：
   - `/home/mrgeek/pkvm-x86/crosvm/src/crosvm/sys/linux/vcpu.rs`
   - 非 `EINTR/EAGAIN` 的错误会直接记为 `vcpu hit unknown error` 并退出。
+- pKVM protected vCPU 不接受传统 MMIO emulation：
+  - `/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/mmu/mmu.c`
+  - `pkvm_page_fault()` 中 `RET_PF_EMULATE -> -EFAULT`
 - 已排除的旧路径：
   - `/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/iommu_spgt.c`
   - `/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/shadow_iommu.c`

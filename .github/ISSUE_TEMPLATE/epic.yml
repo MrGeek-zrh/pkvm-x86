@@ -1,0 +1,45 @@
+name: Epic
+description: 用于描述一条较长主线及其任务拆分
+title: "[EPIC] "
+labels:
+  - type/epic
+body:
+  - type: input
+    id: objective
+    attributes:
+      label: 总目标
+      placeholder: 例如 pVM 设备透传落地
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: 范围
+      placeholder: 写清楚本 Epic 的目标、非目标和边界
+    validations:
+      required: true
+  - type: textarea
+    id: milestones
+    attributes:
+      label: 里程碑
+      placeholder: |
+        - M1:
+        - M2:
+        - M3:
+    validations:
+      required: true
+  - type: textarea
+    id: task_breakdown
+    attributes:
+      label: 任务拆分
+      placeholder: |
+        - [ ] T1
+        - [ ] T2
+        - [ ] B1
+    validations:
+      required: true
+  - type: textarea
+    id: risks
+    attributes:
+      label: 风险与阻塞
+      placeholder: 当前主要风险、未知项和阻塞

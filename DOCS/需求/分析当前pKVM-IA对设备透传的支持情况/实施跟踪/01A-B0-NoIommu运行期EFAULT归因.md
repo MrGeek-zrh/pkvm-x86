@@ -2,8 +2,10 @@
 
 ## 状态
 
-- 当前状态: 待开始
+- 当前状态: 已完成（源码归因）
 - 优先级: B0（当前主阻塞）
+- GitHub Task: `pkvm-x86#4`
+- 关联 Bug: `pkvm-x86#5`
 
 ## 目标
 
@@ -56,42 +58,63 @@
   - 不再出现 `pgtable_unmap_leaf` assertion
 - 当前 `NoIommu` 路径下，crosvm 会先对整段 guest RAM 做 `VFIO_IOMMU_MAP_DMA`：
   - `crosvm/devices/src/vfio.rs`
-- `PciRoot::add_mapping()` 中的 `failed to create vm mapping (EINVAL)` 在源码里被当成可回退到 vm-exit 的非致命路径：
-  - `crosvm/devices/src/pci/pci_root.rs`
 - 当前真正导致退出的用户态报错是 vCPU 运行阶段的 `Bad address (os error 14)`：
   - `crosvm/src/crosvm/sys/linux/vcpu.rs`
+- crosvm 在 pKVM 场景下明确关闭了 `ReadOnlyMemoryRegion` 能力：
+  - `/home/mrgeek/pkvm-x86/crosvm/hypervisor/src/kvm/mod.rs`
+  - `VmCap::ReadOnlyMemoryRegion => !self.is_pkvm()`
+- 因此 `PciRoot::add_mapping()` 为 PCIe config page 建立只读 memslot 的优化路径在 pKVM 上必然失败，并退回到 `vm-exit`：
+  - `/home/mrgeek/pkvm-x86/crosvm/devices/src/pci/pci_root.rs`
+  - `/home/mrgeek/pkvm-x86/crosvm/x86_64/src/lib.rs`
+- PCIe ECAM 本身就是一个 `mmio_bus` 设备：
+  - `/home/mrgeek/pkvm-x86/crosvm/devices/src/pci/pci_root.rs`
+    - `PciConfigMmio`
+  - `/home/mrgeek/pkvm-x86/crosvm/x86_64/src/lib.rs`
+    - `mmio_bus.insert(pcie_cfg_mmio, ...)`
+- pKVM x86 的 protected vCPU 缺页路径明确拒绝传统 MMIO emulation：
+  - `/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/mmu/mmu.c`
+    - `if (pkvm_is_protected_vcpu(vcpu) && r == RET_PF_EMULATE) return -EFAULT;`
+- 对于没有 memslot 的 private GPA，KVM 也会准备 `KVM_EXIT_MEMORY_FAULT` 并直接返回 `-EFAULT`：
+  - `/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/mmu/mmu.c`
+    - `kvm_handle_noslot_fault()`
+  - `/home/mrgeek/pkvm-x86/pKVM-IA/include/linux/kvm_host.h`
+    - `kvm_prepare_memory_fault_exit()`
+- 当前 crosvm 的 VFIO PCI 仍然依赖 host/userspace 参与至少一部分寄存器访问路径：
+  - PCI config 访问依赖 `PciRoot` / `PciConfigMmio`
+  - BAR 虽然可对可 mmap 区段做 `register_memory()`，但这并不能消除 config 路径依赖
+  - 见 `/home/mrgeek/pkvm-x86/crosvm/devices/src/pci/vfio_pci.rs`
 
-## 当前假设
+## 本任务结论
 
-- 假设 A：这是 T2/T3 缺失后的自然后果
-  - `ptdev->pgt` 已切到 `pgstate_pgt`
-  - 但 `pgstate_pgt` 仍未收敛为纯 DMA mirror 语义
-  - donate 后也缺少 runtime DMA mirror 同步
-  - 导致运行期某个 guest 可见页 / DMA 可见页 / ownership 语义发生错位
-- 假设 B：这是独立于 T2/T3 的另一条 bug 线
-  - 例如 protected VM 与 crosvm 某个只读映射优化、MMIO/shmem 映射、或 KVM run 依赖条件之间存在不兼容
+- `BOOT-007` 更高置信度地属于一条独立 blocker，而不是 T2/T3 缺失的直接自然后果。
+- 当前更像是：
+  - protected pVM 还不能消费 crosvm 这套 VFIO PCI 的 config/MMIO fallback 路径
+  - 其中最直接的已知触发器是：ECAM 只读映射失败后退回 `vm-exit`，而 pKVM protected vCPU 不接受这类 MMIO emulation
+- 这意味着后续顺序不应直接跳到 T2/T3，而应先新增并处理一个更前置的 correctness 任务：
+  - 收敛 protected pVM 的 VFIO config/MMIO 访问路径
+  - 至少让 guest 能在不触发 `KVM_RUN -> -EFAULT` 的前提下完成设备枚举和基础寄存器访问
 
 ## 建议实施方式
 
-- 第一阶段：先做最小归因，不急着改大语义
-  - 把 `vcpu EFAULT` 的直接触发窗口尽量收窄到具体 GPA/HPA/阶段
-  - 明确它发生在“guest 正常缺页建图之后”还是“设备相关路径被触发之后”
-- 第二阶段：根据归因结果决定走向
-  - 如果证据指向 `pgstate_pgt` / runtime mirror 缺失，则按既有主线推进 T2 → T3
-  - 如果证据指向独立 bug，则在 B1 完成后新增独立修复任务，再决定是否插到 T2/T3 前面
+- 第一阶段：先补 protected pVM 的 VFIO config/MMIO 访问路径
+  - 优先避免 ECAM/config access 落入当前不受支持的 MMIO emulation fallback
+  - 明确 BAR mmap、config space、virtual config、非 mmap BAR 各自需要的访问语义
+- 第二阶段：在寄存器访问路径收敛后，再回到 DMA 主线
+  - 继续推进 T2 `pgstate_pgt` 纯 DMA mirror 语义化
+  - 再做 T3 donate 后 runtime DMA mirror 同步
 
 ## 验收标准
 
-- 能明确回答以下问题中的至少前两项：
-  - `vcpu EFAULT` 的直接失败点在 host/crosvm/pKVM 的哪一层
-  - `failed to create vm mapping (EINVAL)` 是否只是伴随现象，还是与最终失败存在直接因果关系
-  - `BOOT-007` 是否可合理归入 T2/T3 缺失项
-  - 如果不能归入，是否需要新增独立 correctness 任务
+- 已完成：
+  - `vcpu EFAULT` 的直接失败层次已经收窄到 protected pVM 的 MMIO/config 访问语义不兼容
+  - `failed to create vm mapping (EINVAL)` 不再视为纯伴随现象；它是 ECAM 只读映射失败并退回 MMIO fallback 的前置信号
+  - `BOOT-007` 当前不再归入 T2/T3 缺失项
+  - 后续需要新增独立 correctness 任务
 
 ## 风险点
 
-- 如果过早把 `BOOT-007` 归入 T2/T3，可能掩盖独立 bug。
-- 如果长期停留在“只做归因”而不收敛到后续实现，会拖慢主线推进。
+- 当前结论仍是源码级高置信归因，不是带 GPA/回溯证据的最终运行时闭环。
+- 即使修掉 config/MMIO 路径，后续仍大概率会继续暴露 T2/T3 对应的 DMA mirror 问题。
 
 ## 依赖
 

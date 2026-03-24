@@ -1,0 +1,78 @@
+name: Task
+description: 用于跟踪一个实现阶段、归因任务或明确的工程动作
+title: "[TASK] "
+labels:
+  - type/task
+body:
+  - type: markdown
+    attributes:
+      value: |
+        规则：
+        - Task 用来表达“要完成什么”，不要把多个不同签名的问题混在一个 Task 里。
+        - 若 Task 被某个具体 panic/报错阻塞，请链接对应 Bug issue。
+  - type: dropdown
+    id: area
+    attributes:
+      label: 影响范围
+      options:
+        - area/pkvm-hyp
+        - area/pkvm-core
+        - area/crosvm
+        - area/vfio
+        - area/docs
+        - area/automation
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 优先级
+      options:
+        - prio/b0
+        - prio/p0
+        - prio/p1
+        - prio/p2
+    validations:
+      required: true
+  - type: input
+    id: goal
+    attributes:
+      label: 目标
+      placeholder: 例如 T2 pgstate_pgt 语义收敛为 DMA mirror
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: 背景与上下文
+      placeholder: 简述为什么要做、当前依赖和前置结论
+    validations:
+      required: true
+  - type: textarea
+    id: source_anchors
+    attributes:
+      label: 关键源码锚点
+      placeholder: |
+        - pKVM-IA/...
+        - crosvm/...
+    validations:
+      required: true
+  - type: textarea
+    id: deliverables
+    attributes:
+      label: 预期输出
+      placeholder: 代码、文档、结论或验证结果
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: 验收标准
+      placeholder: 完成到什么程度才算关闭
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: 依赖 / 阻塞
+      placeholder: 关联 issue、PR 或外部条件
