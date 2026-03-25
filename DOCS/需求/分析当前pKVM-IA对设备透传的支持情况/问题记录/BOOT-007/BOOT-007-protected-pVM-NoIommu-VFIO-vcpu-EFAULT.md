@@ -5,9 +5,11 @@
 - 使用 protected pVM + VFIO 透传 NVMe，且不向 guest 暴露虚拟 IOMMU 时，crosvm 可以走到 guest `bzImage` 加载完成，但随后在 vCPU 运行阶段失败：
   - `vcpu hit unknown error: Bad address (os error 14)`
   - `vcpu crashed`
-- 同一轮启动中，crosvm 还会多次打印：
+- 在第一轮 `ptdev MMIO metadata` / guest allowlist 实现后，2026-03-24 的端到端验证中，上述 `EFAULT` 签名仍然复现。
+- 当前同一轮启动中，crosvm 仍会打印：
   - `Failed to map mmio page; failed to create vm mapping`
   - `Invalid argument (os error 22)`
+- 相比 2026-03-23 的旧结果，`Failed to map mmio page` 已从多次下降到 1 次，但 `vcpu hit unknown error: Bad address (os error 14)` 仍未消失。
 - 当前 dmesg 中未再出现旧的 donate/refcount 阻塞签名：
   - `host_initiate_donation: page refcounted`
   - `do_donate failed ret=-16`
@@ -17,15 +19,18 @@
 ## 根因（简述）
 
 - 当前已确认这不是 T1 对应的“旧 host shadow IOMMU spgt 残留 refcount 阻塞 donate”问题。
-- 当前更高置信度的根因是：在当前分支里，protected pVM 设备透传本身尚未被真正支持。
+- 当前更高置信度的根因仍然是：在当前分支里，protected pVM 设备透传本身尚未被真正支持。
+- 截至 2026-03-24，第一轮 `ptdev MMIO metadata -> guest allowlist` 实现已经接入 host / hyp / guest / crosvm，但运行签名仍然没有变化，这说明当前剩余 blocker 仍然位于“会触发 `RET_PF_EMULATE` 的 MMIO 路径”，而不是普通 BAR 直达白名单本身。
 - 证据链如下：
   - crosvm 的通用能力判断本意上会在 pKVM 场景下关闭 `ReadOnlyMemoryRegion`，见 `/home/mrgeek/pkvm-x86/crosvm/hypervisor/src/kvm/mod.rs`。
   - 但当前 x86_64 `is_pkvm()` 仍然硬编码返回 `false`，见 `/home/mrgeek/pkvm-x86/crosvm/hypervisor/src/kvm/x86_64.rs`。
-  - 因而当前本地 crosvm 会误以为只读 memslot 可用，先去尝试 `PciRoot::add_mapping()` 的 config page 只读映射，再在 `add_memory_region()` 处落到 `EINVAL` 并退回 `vm-exit`，见 `/home/mrgeek/pkvm-x86/crosvm/devices/src/pci/pci_root.rs`。
-  - x86_64 上 PCIe ECAM 本身就是一个 `mmio_bus` 设备，见 `/home/mrgeek/pkvm-x86/crosvm/x86_64/src/lib.rs` 和 `/home/mrgeek/pkvm-x86/crosvm/devices/src/pci/pci_root.rs`。
+  - 因而当前本地 crosvm 仍会误以为只读 memslot 可用，在 `PciRoot::add_mapping()` 中尝试 config page 的只读映射，并在 `add_memory_region()` 处落到 `EINVAL` 后退回 `vm-exit`，见 `/home/mrgeek/pkvm-x86/crosvm/devices/src/pci/pci_root.rs`。
+  - 第一轮实现已经把 PCIe ECAM 的公开条件收敛为 `!components.hv_cfg.protection_type.isolates_memory()`，见 `/home/mrgeek/pkvm-x86/crosvm/x86_64/src/lib.rs`；这与 `Failed to map mmio page` 次数下降相符，但并未解除最终 `EFAULT`。
+  - 当前 x86_64 仍会无条件注册 `PciVirtualConfigMmio`，并无条件在 ACPI 中公开 `VCFG` 基址，见 `/home/mrgeek/pkvm-x86/crosvm/x86_64/src/lib.rs`。
+  - VFIO PCI 设备当前仍会生成 virtual config 相关 AML / shared-memory 资源，见 `/home/mrgeek/pkvm-x86/crosvm/devices/src/pci/vfio_pci.rs`。
   - pKVM x86 的 protected vCPU 缺页路径对 `RET_PF_EMULATE` 直接返回 `-EFAULT`，不走传统 MMIO emulation，见 `/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/mmu/mmu.c`。
-  - 更关键的是，pVM guest 侧把 `pv_ops.mmio.raw_read* / raw_write* / pci_mmcfg_*` 全部接到了 `PKVM_GHC_IOREAD/IOWRITE`，见 `/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/coco/pkvm/pkvm.c`。
-  - 同时 host->pKVM 的透传 attach 接口目前只传 `BDF/PASID`，并没有把 BAR/MMIO 资源信息传给 guest/hyp，见 `/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/vmx/pkvm/pkvm_host.c` 和 `/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/ptdev.c`。
+  - 本地第一轮实现已经让普通 BAR 子区间可以通过 `SET_PTDEV_MMIO_METADATA -> sync_ptdev_mmio_metadata -> guest allowlist` 进入 `pkvm_virt_mmio()` 的直达分流，见 `/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/vmx/pkvm/pkvm_host.c`、`/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/ptdev.c`、`/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/coco/pkvm/pkvm.c` 与 `/home/mrgeek/pkvm-x86/crosvm/devices/src/pci/vfio_pci.rs`。
+  - 因而截至本轮，更可疑的残余路径已经收敛到“仍未被 allowlist 覆盖、且会触发 MMIO emulation 的 config / virtual-config 路径”。
   - 这与官方 issue `#46` 的维护者说明一致：当前 pVM 对任何 MMIO 访问都默认使用 hypercall，因而无法直接访问直通设备的物理 MMIO。
 - 因而 `Failed to map mmio page; failed to create vm mapping` 不是单独的无害噪音，而只是当前能力缺口暴露出来的早期症状之一。
 
@@ -33,9 +38,13 @@
 
 - 当前无最终修复。
 - 下一步定位方向：
-  - 如果只是做实验性 workaround，可以先尝试绕开早期 ECAM/config fallback，看失败点是否继续后移。
-  - 如果要真正支持 protected pVM 设备透传，则必须先设计 guest/hyp 的 MMIO 语义和设备元数据通道，使 guest 能区分“模拟 MMIO”和“直通设备物理 MMIO”。
-  - 在该语义明确之前，`pgstate_pgt` / runtime DMA mirror 仍不是最前置 blocker。
+  - 优先继续收敛并绕开 protected VM 下残余的 config / virtual-config MMIO 路径：
+    - `PciVirtualConfigMmio`
+    - ACPI `VCFG`
+    - VFIO device virtual config AML / shared-memory path
+  - 当前不建议为此新开 bug issue，因为运行期退出签名仍然是同一个：`vcpu hit unknown error: Bad address (os error 14)`。
+  - 如果后续出现新的独立签名，例如 host panic / assertion / metadata 提交失败 / 非 `EFAULT` 的 `KVM_RUN` 退出，再新开 issue。
+  - 在该前置 MMIO 路径没有收敛前，`pgstate_pgt` / runtime DMA mirror 仍不是最前置 blocker。
 
 ## 验证要点
 
@@ -68,6 +77,27 @@ Caused by:
 [   74.044384] VFIO - User Level meta-driver version: 0.3
 [   77.098199] pkvm-debug: first-owner table full; suppressing further overflow logs
 [  125.788273] clocksource: Long readout interval, skipping watchdog check: cs_nsec: 5949682920 wd_nsec: 5949682949
+```
+
+```text
+sudo PROTECTED=1 SETUP_NET=0 VFIO_DEV=0000:01:00.0 ./scripts/run-crosvm.sh
+run-crosvm: enabling VFIO passthrough: 0000:01:00.0 (no virtual iommu, mapping all guest ram)
+...
+[2026-03-24T17:34:12.461662011+00:00 ERROR devices::pci::pci_root] Failed to map mmio page; failed to create vm mapping
+
+Caused by:
+    Invalid argument (os error 22)
+...
+[2026-03-24T17:34:12.475671285+00:00 INFO  x86_64] Loaded bzImage kernel
+...
+[2026-03-24T17:34:31.202794640+00:00 ERROR crosvm::crosvm::sys::linux::vcpu] vcpu hit unknown error: Bad address (os error 14)
+[2026-03-24T17:34:31.203953250+00:00 INFO  crosvm::crosvm::sys::linux] vcpu crashed
+[2026-03-24T17:34:31.204047220+00:00 ERROR crosvm::crosvm::sys::linux::vcpu] failed to send VcpuControl: sending on a closed channel
+[2026-03-24T17:34:31.546533564+00:00 INFO  crosvm] exiting with success
+
+[  130.761759] pkvm-debug: first-owner table full; suppressing further overflow logs
+[  146.532420] clocksource: Long readout interval, skipping watchdog check: cs_nsec: 5568468153 wd_nsec: 5568468162
+[  177.695909] sched: DL replenish lagged too much
 ```
 
 ## 触发条件/复现场景
@@ -122,9 +152,12 @@ scripts/run-crosvm.sh
   - `/home/mrgeek/pkvm-x86/crosvm/hypervisor/src/kvm/mod.rs`
   - `VmCap::ReadOnlyMemoryRegion => !self.is_pkvm()`
   - 但当前 x86_64 `/home/mrgeek/pkvm-x86/crosvm/hypervisor/src/kvm/x86_64.rs` 中 `is_pkvm()` 仍然直接返回 `false`，因此这是“设计上应禁用，但当前实现里被误报为可用”的 correctness 问题。
-- x86_64 PCIe config mmio 是 `mmio_bus` 设备：
+- x86_64 PCIe config mmio / virtual config 仍是核心嫌疑路径：
   - `/home/mrgeek/pkvm-x86/crosvm/x86_64/src/lib.rs`
   - `/home/mrgeek/pkvm-x86/crosvm/devices/src/pci/pci_root.rs`
+- 当前 ECAM 公开已经按 protected VM 做了条件收敛，但 `PciVirtualConfigMmio` 与 ACPI `VCFG` 仍是无条件注册/公开：
+  - `/home/mrgeek/pkvm-x86/crosvm/x86_64/src/lib.rs`
+  - `/home/mrgeek/pkvm-x86/crosvm/devices/src/pci/vfio_pci.rs`
 - crosvm vCPU 运行报错路径：
   - `/home/mrgeek/pkvm-x86/crosvm/src/crosvm/sys/linux/vcpu.rs`
   - 非 `EINTR/EAGAIN` 的错误会直接记为 `vcpu hit unknown error` 并退出。

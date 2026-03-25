@@ -6,6 +6,8 @@
 /refs
 /qemudebug.log
 /build
+/build-host
+/build-guest
 /ubuntu
 *.qcow2
 *.deb

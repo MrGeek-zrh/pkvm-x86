@@ -7,7 +7,7 @@ set -euo pipefail
 #
 # 关键路径概念（容易混）:
 #   - kernel src (KERNEL_SRC): guest 内核源码树（用于 `make ... modules_install` 把模块装进镜像）
-#       默认:  <repo-root>/pkvm-ia-guest
+#       默认:  <repo-root>/pKVM-IA
 #       自动探测: 如果 <kernel-out>/Makefile 里有 `include /abs/path/to/linux/Makefile`，则用该路径反推 src。
 #       覆盖方式: --kernel-src <dir>
 #
@@ -41,10 +41,10 @@ BASE_DIR="$(cd -- "${SCRIPT_DIR}/../.." && pwd)"
 
 usage() {
 	cat <<EOF
-make-guest-qcow2.sh - build guest qcow2 for crosvm from pkvm-ia-guest kernel
+make-guest-qcow2.sh - build guest qcow2 for crosvm from a pKVM-IA kernel build
 
 Defaults:
-  kernel src : ${BASE_DIR}/pkvm-ia-guest  (will auto-detect from build-guest/Makefile if present)
+  kernel src : ${BASE_DIR}/pKVM-IA        (will auto-detect from build-guest/Makefile if present)
   kernel out : ${BASE_DIR}/build-guest   (out-of-tree build directory, i.e. make O=...)
   out dir    : ${BASE_DIR}/images/guest
   size       : 10G
@@ -72,7 +72,7 @@ Example:
 EOF
 }
 
-KERNEL_SRC="${BASE_DIR}/pkvm-ia-guest"
+KERNEL_SRC="${BASE_DIR}/pKVM-IA"
 KERNEL_OUT="${BASE_DIR}/build-guest"
 OUTDIR="${BASE_DIR}/images/guest"
 SIZE="10G"
