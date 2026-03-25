@@ -8,6 +8,10 @@
 /build
 /build-host
 /build-guest
+/DOCS/tmp
+/pkvm-ia-guest
+/pkvm-v6.18
+/pvVMCS-POC-v6.12
 /ubuntu
 *.qcow2
 *.deb

@@ -100,6 +100,19 @@ Caused by:
 [  177.695909] sched: DL replenish lagged too much
 ```
 
+## 完整原始报错信息文件
+
+- 2026-03-23 crosvm 完整输出：
+  - [20260323-crosvm-noiommu.log](/home/mrgeek/pkvm-x86/DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/问题记录/BOOT-007/raw/20260323-crosvm-noiommu.log)
+- 2026-03-23 dmesg 原始节选：
+  - [20260323-dmesg-tail.log](/home/mrgeek/pkvm-x86/DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/问题记录/BOOT-007/raw/20260323-dmesg-tail.log)
+- 2026-03-24 crosvm 完整输出：
+  - [20260324-crosvm-noiommu.log](/home/mrgeek/pkvm-x86/DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/问题记录/BOOT-007/raw/20260324-crosvm-noiommu.log)
+- 2026-03-24 dmesg 原始节选：
+  - [20260324-dmesg-tail.log](/home/mrgeek/pkvm-x86/DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/问题记录/BOOT-007/raw/20260324-dmesg-tail.log)
+- 另有自动化脚本保存的 2026-03-23 原始日志目录：
+  - [BOOT-005/logs/20260323-170501](/home/mrgeek/pkvm-x86/DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/问题记录/BOOT-005/logs/20260323-170501)
+
 ## 触发条件/复现场景
 
 - Host 内核：`pKVM-IA`
