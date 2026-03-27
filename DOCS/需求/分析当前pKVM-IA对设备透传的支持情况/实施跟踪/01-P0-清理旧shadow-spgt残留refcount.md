@@ -32,6 +32,50 @@
 - `pkvm_put_host_iommu_spgt()` 在 spgt refcount 降到 0 时调用 `pkvm_pgtable_destroy(&spgt->pgt, NULL)`，不会经过 `shadow_pgt_unmap_leaf()`。
 - `host_initiate_donation()` 对目标页做 `hyp_page_count()` 检查，只要 refcount 非 0 就直接拒绝 donate。
 
+## 修复前 / 修复后关键调用路径对比
+
+- 修复前：shadow spgt 销毁路径不会回收 `shadow_pgt_map_leaf()` 对数据页额外持有的 refcount
+
+    sync_shadow_pgt()
+        -> pkvm_pgtable_sync_map_range()
+            -> shadow_pgt_map_leaf()
+                -> hyp_page_ref_inc(data_page)
+
+    ptdev attach / 换表 / 释放旧 spgt
+        -> pkvm_put_host_iommu_spgt()
+            -> pkvm_pgtable_destroy(&spgt->pgt, NULL)
+                -> 默认 leaf free 路径
+                    -> 只释放页表页本身
+            -> 不经过 shadow_pgt_unmap_leaf()
+                -> 不会 hyp_page_ref_dec(data_page)
+
+    后续 pVM 启动缺页 donate
+        -> __pkvm_host_donate_guest()
+            -> host_initiate_donation()
+                -> hyp_page_count(data_page) != 0
+                    -> return -EBUSY
+
+- 修复后：shadow spgt 销毁路径显式接入 destroy 专用 free callback，回收旧 refcount
+
+    sync_shadow_pgt()
+        -> pkvm_pgtable_sync_map_range()
+            -> shadow_pgt_map_leaf()
+                -> hyp_page_ref_inc(data_page)
+
+    ptdev attach / 换表 / 释放旧 spgt
+        -> pkvm_put_host_iommu_spgt()
+            -> free_leaf = pkvm_host_iommu_spgt_free_leaf
+            -> pkvm_pgtable_destroy(&spgt->pgt, free_leaf)
+                -> pkvm_host_iommu_spgt_free_leaf()
+                    -> hyp_page_ref_dec(data_page)
+                    -> put_page(ptep)
+
+    后续 pVM 启动缺页 donate
+        -> __pkvm_host_donate_guest()
+            -> host_initiate_donation()
+                -> hyp_page_count(data_page) == 0
+                    -> donate 不再被旧 shadow spgt 残留 refcount 阻塞
+
 ## 当前实施进展
 
 - 已完成首版补丁:

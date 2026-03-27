@@ -12,6 +12,7 @@ body:
         - 如果修复旧签名后暴露新签名，请新建 issue，不要继续复用旧 issue。
         - 长日志、源码推理、完整复现记录请放到 `DOCS/.../问题记录/`，这里保留摘要和链接。
         - 完整原始日志必须落盘到仓库中的问题记录目录；不要只在 issue 中保留节选、把全文留在聊天记录里。
+        - 如果这个 Bug 已经进入修复阶段，必须关联一个承载“修复方案摘要”的 Task issue；完整方案设计应落在本地 `DOCS/...`。
   - type: dropdown
     id: area
     attributes:
@@ -84,6 +85,16 @@ body:
     attributes:
       label: 根因（当前判断）
       placeholder: 未知也可以，写当前最合理的判断范围
+  - type: textarea
+    id: linked_task
+    attributes:
+      label: 关联 Task / 修复方案入口
+      description: 若已进入修复阶段，请写对应 Task issue，并补充本地方案文档入口；若尚未进入修复，可说明当前状态
+      placeholder: |
+        - 关联 Task：
+        - 当前修复阶段：
+        - 本地方案文档：
+        - 若尚未创建 Task，原因是什么：
   - type: textarea
     id: exit_criteria
     attributes:
