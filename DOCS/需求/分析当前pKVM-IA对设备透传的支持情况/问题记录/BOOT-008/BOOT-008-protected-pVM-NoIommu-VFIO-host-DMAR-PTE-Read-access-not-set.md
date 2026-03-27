@@ -19,6 +19,21 @@
   - guest CPU 启动链已经打通
   - 但透传 NVMe `0000:01:00.0` 的 DMA 访问仍然落在 host IOMMU fault，上层功能还不能视作“设备透传已正确可用”
 
+## 最新状态
+
+- 在 2026-03-27 的后续带 patch 实机验证中，这条签名当前已暂不复现：
+  - protected pVM 可启动到 Ubuntu login prompt
+  - guest `dmesg` 已出现 `nvme nvme0: pci function 0000:01:00.0`
+  - guest 已完成 `/dev/nvme0n1` 直接读取与 `mkfs.ext4 -F /dev/nvme0n1`
+  - guest 关机退出后，host `dmesg` 仍未见新的 DMAR / IOMMU fault
+  - host `dmesg` 全程未再出现：
+    - `DMA Read NO_PASID`
+    - `PTE Read access is not set`
+- 当前判断：
+  - T2/T3 这轮 patch 已经较高置信度解除 `BOOT-008` 的主签名
+  - 当前 teardown 退出路径已完成一轮验证，仍建议再补一次重复启动回归
+  - 若要把“文件系统级数据写入完整成功”作为硬证据，还需补一轮显式 mount 后的 NVMe 写入/回读
+
 ## 根因（简述）
 
 - 这已经不是 `BOOT-007` 的 MMIO emulation / virtual-config 路径问题，而是新的 DMA/IOMMU 映射签名。
@@ -61,6 +76,8 @@
 - 持续确认 `BOOT-007` 的旧签名不再复现：
   - `Failed to map mmio page; failed to create vm mapping`
   - `vcpu hit unknown error: Bad address (os error 14)`
+- 建议在关闭前再补：
+  - 一次同配置的重复启动
 
 ## 原始日志（节选）
 
