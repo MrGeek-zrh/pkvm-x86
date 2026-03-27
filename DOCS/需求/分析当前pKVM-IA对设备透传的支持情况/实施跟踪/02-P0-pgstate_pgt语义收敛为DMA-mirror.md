@@ -2,7 +2,7 @@
 
 ## 状态
 
-- 当前状态: 待开始
+- 当前状态: 待开始（2026-03-27 的 `BOOT-008` 已把主阻塞明确前移到本任务）
 - 优先级: P0
 
 ## 目标
@@ -28,6 +28,10 @@
 - 当前注释仍把 `pgstate_pgt` 描述为“内存是 pinned，映射不允许删除”。
 - 当前 `pkvm_pgstate_pgt_free_leaf()` 对 protected VM 会执行 `__pkvm_host_undonate_guest()`。
 - 当前 `guest_mmu_free_leaf()` 对 protected VM 也会执行 `__pkvm_host_undonate_guest()`。
+- 2026-03-27 的有效端到端验证已经表明：
+  - 旧 `BOOT-007` 不再复现
+  - 新签名变为 host DMAR `DMA Read NO_PASID / PTE Read access is not set`
+  - 这说明 `pgstate_pgt` 当前已经真正被设备 DMA 路径使用，但其语义还没有稳定收敛成“正确的 DMA mirror”
 
 ## 建议收敛方向
 

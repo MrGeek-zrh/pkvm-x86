@@ -2,7 +2,7 @@
 
 ## 状态
 
-- 当前状态: 待开始
+- 当前状态: 待开始（2026-03-27 的 `BOOT-008` 已直接暴露出 runtime DMA mirror 缺口）
 - 优先级: P0
 
 ## 目标
@@ -30,6 +30,10 @@
 - `guest_mmu_map_leaf()` 是 protected VM donate 的天然 hook 点。
 - `pkvm_iommu_flush_iotlb()` 已支持按指定 `root_pa` 定向刷 IOTLB。
 - guest mmu 本身就是 EPT，可直接作为 runtime mirror 的源页表。
+- 2026-03-27 的有效端到端验证中：
+  - guest 已经可以启动到 Ubuntu login prompt
+  - 但 host dmesg 出现 `DMA Read NO_PASID ... PTE Read access is not set`
+  - 这说明“attach 只切换 `ptdev->pgt` 指针”这一判断已经被实机现象再次印证，runtime mirror 仍未补齐
 
 ## 建议实施方式
 

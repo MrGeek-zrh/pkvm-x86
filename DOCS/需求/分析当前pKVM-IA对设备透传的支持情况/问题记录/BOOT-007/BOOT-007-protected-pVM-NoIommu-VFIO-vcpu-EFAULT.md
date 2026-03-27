@@ -15,6 +15,11 @@
   - `do_donate failed ret=-16`
   - `pkvm: exception`
   - `pgtable_unmap_leaf` assertion
+- 2026-03-27 的有效重测已经不再复现这条旧签名：
+  - `Failed to map mmio page; failed to create vm mapping` 未再出现
+  - `vcpu hit unknown error: Bad address (os error 14)` 未再出现
+  - guest 已经可以启动到 Ubuntu login prompt
+  - 当前暴露出的新签名已前移到 [BOOT-008-protected-pVM-NoIommu-VFIO-host-DMAR-PTE-Read-access-not-set.md](/home/mrgeek/pkvm-x86/DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/问题记录/BOOT-008/BOOT-008-protected-pVM-NoIommu-VFIO-host-DMAR-PTE-Read-access-not-set.md)
 
 ## 根因（简述）
 
@@ -38,19 +43,27 @@
 
 - 当前无最终修复。
 - 下一步定位方向：
+  - 当前本地修复/验证线已落到：
+    - [01B-B0-protected-pVM-VFIO-config-MMIO访问路径收敛.md](/home/mrgeek/pkvm-x86/DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/实施跟踪/01B-B0-protected-pVM-VFIO-config-MMIO访问路径收敛.md)
+  - 当前轮已完成的收敛包括：
+    - x86 crosvm `is_pkvm()` 改为真实走 `get_protected_vm_info()`
+    - protected VM 下停止注册 `PciVirtualConfigMmio`
+    - protected VM 下停止在 ACPI 中公开 `VCFG`
+    - protected VM 下停止注册设备级 virtual-config AML / shared-memory 入口
+  - 上述改动已在 2026-03-27 通过有效端到端重测，旧签名已经不再复现。
   - 优先继续收敛并绕开 protected VM 下残余的 config / virtual-config MMIO 路径：
     - `PciVirtualConfigMmio`
     - ACPI `VCFG`
     - VFIO device virtual config AML / shared-memory path
-  - 当前不建议为此新开 bug issue，因为运行期退出签名仍然是同一个：`vcpu hit unknown error: Bad address (os error 14)`。
-  - 如果后续出现新的独立签名，例如 host panic / assertion / metadata 提交失败 / 非 `EFAULT` 的 `KVM_RUN` 退出，再新开 issue。
+  - 截至 2026-03-27，这个旧签名本地已不再复现；新的 host DMAR fault 已单独拆为 `BOOT-008`，不应继续混写在本 issue 里。
   - 在该前置 MMIO 路径没有收敛前，`pgstate_pgt` / runtime DMA mirror 仍不是最前置 blocker。
 
 ## 验证要点
 
 - 使用同样的 `NoIommu` 启动命令重测时：
   - 不应再出现 `vcpu hit unknown error: Bad address (os error 14)`。
-  - 若 `Failed to map mmio page` 仍然存在，需要确认它不再把 config 访问推回当前不受支持的 fallback。
+  - 不应再出现 `Failed to map mmio page; failed to create vm mapping`。
+  - 若旧签名不再出现，而出现新的独立 DMA/IOMMU 签名，则必须新建 bug issue，不覆盖本 issue。
 - 持续确认旧 T1 签名仍不复现：
   - `host_initiate_donation: page refcounted`
   - `do_donate failed ret=-16`
