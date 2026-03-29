@@ -8,8 +8,8 @@
 	ignore = all
 [submodule "crosvm"]
 	path = crosvm
-	url = https://chromium.googlesource.com/crosvm/crosvm
-	ignore = all
+	url = https://github.com/MrGeek-zrh/crossvm.git
+	ignore = none
 [submodule "coreboot"]
 	path = coreboot
 	url = https://review.coreboot.org/coreboot.git
@@ -25,4 +25,4 @@
 [submodule "pKVM-IA"]
 	path = pKVM-IA
 	url = https://github.com/MrGeek-zrh/pKVM-IA.git
-	ignore = dirty
+	ignore = none

@@ -2,7 +2,7 @@
 
 ## 状态
 
-- 当前状态: 待开始
+- 当前状态: 进行中（已完成首轮运行验证；teardown / 重复启动回归待补）
 - 优先级: P0
 
 ## 目标
@@ -30,6 +30,35 @@
 - `guest_mmu_map_leaf()` 是 protected VM donate 的天然 hook 点。
 - `pkvm_iommu_flush_iotlb()` 已支持按指定 `root_pa` 定向刷 IOTLB。
 - guest mmu 本身就是 EPT，可直接作为 runtime mirror 的源页表。
+- 2026-03-27 的有效端到端验证中：
+  - guest 已经可以启动到 Ubuntu login prompt
+  - 但 host dmesg 出现 `DMA Read NO_PASID ... PTE Read access is not set`
+  - 这说明“attach 只切换 `ptdev->pgt` 指针”这一判断已经被实机现象再次印证，runtime mirror 仍未补齐
+
+## 当前本地实现进展
+
+- 已在 [mem_protect.c](/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/mem_protect.c) 的 `__pkvm_host_donate_guest()` 后补一版 runtime DMA mirror hook。
+- 当前实现做法是：
+  - 仅在 VM 已存在 attached ptdev 时才同步 `pgstate_pgt`
+  - 从 guest EPT 叶子派生 mirror 映射
+  - 写入前剥离 `PKVM_PAGE_STATE_PROT_MASK` 软件位
+  - 完成后对 `pgstate_pgt->root_pa` 对应的 IOMMU 视图做定向 IOTLB flush
+- 2026-03-27 最新运行验证中：
+  - protected pVM 已稳定启动到 Ubuntu login prompt
+  - guest `lsblk` / sysfs / `dmesg` 已能看到透传 NVMe `0000:01:00.0`
+  - guest 已完成 `/dev/nvme0n1` 直接读取与 `mkfs.ext4 -F /dev/nvme0n1`
+  - host `dmesg` 全程未再出现 `DMA Read NO_PASID` / `PTE Read access is not set`
+- 当前这台工作树仍缺 `pKVM-IA/.config`，因此没有在本工作树内补做独立增量编译记录；当前结论来自已启动到新内核后的实机验证。
+
+## 最新验证证据
+
+- runtime DMA mirror 当前已具备较高置信度可用：
+  - 原始块设备读取 `dd if=/dev/nvme0n1 of=/dev/null bs=4M count=64 iflag=direct` 成功。
+  - `mkfs.ext4 -F /dev/nvme0n1` 成功，未引出 host IOMMU fault。
+  - guest 关机退出后，host `dmesg` 仍未见新的 DMAR / IOMMU fault，说明本轮 runtime mirror patch 至少未在当前 teardown 路径上立即暴露新错误。
+- 当前仍保留一个证据边界：
+  - 本轮粘贴的 guest 终端记录未显示 `mount /dev/nvme0n1 /mnt/nvme`，因此 `/mnt/nvme/payload.bin` 的文件级 hash 结果暂不作为“已明确落到 NVMe 文件系统”的硬证据保存。
+  - 若需要把文件级读写也作为硬证据，应补一轮显式 mount 后的写入/回读，或直接做原始块设备写入/回读校验。
 
 ## 建议实施方式
 

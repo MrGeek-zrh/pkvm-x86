@@ -1,0 +1,4 @@
+[Fri Mar 27 06:21:01 2026] DMAR: DRHD: handling fault status reg 2
+[Fri Mar 27 06:21:01 2026] DMAR: [DMA Read NO_PASID] Request device [01:00.0] fault addr 0x105cff000 [fault reason 0x06] PTE Read access is not set
+[Fri Mar 27 06:34:31 2026] DMAR: DRHD: handling fault status reg 2
+[Fri Mar 27 06:34:31 2026] DMAR: [DMA Read NO_PASID] Request device [01:00.0] fault addr 0x106313000 [fault reason 0x06] PTE Read access is not set

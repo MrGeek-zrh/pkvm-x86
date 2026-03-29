@@ -2,7 +2,7 @@
 
 ## 状态
 
-- 当前状态: 进行中（结构草案）
+- 当前状态: 进行中（第一轮 host / guest / crosvm 实现已基本成型，首轮端到端验证已完成但 `BOOT-007` 仍未解除）
 - 所属主任务: `pkvm-x86#13`
 - 关联任务: `B3`
 - 关联上层方案: [01C-1-B3-1-protected-pVM-设备透传第一阶段上层方案.md](/home/mrgeek/pkvm-x86/DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/实施跟踪/01C-1-B3-1-protected-pVM-设备透传第一阶段上层方案.md)
@@ -10,12 +10,44 @@
 
 ## 目标
 
-在不进入实现的前提下，先给出 x86 第一阶段可落地的 `ptdev metadata` 最小结构草案，回答下面 4 件事：
+给出 x86 第一阶段可落地的 `ptdev metadata` 最小结构，并据此推进第一轮实现，回答下面 4 件事：
 
 - hyp 内部到底需要保存哪些字段
 - guest 实际需要看到哪些字段
 - 这些字段由谁填充、何时冻结
 - 它们在 MMIO 分流里怎么被使用
+
+## 当前实现进展
+
+- 已在 [asm/kvm.h](/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/include/uapi/asm/kvm.h) 增加第一版 `SET_PTDEV_MMIO_METADATA` UAPI 常量与 userspace 提交结构。
+- 已在 [kvm_host.h](/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/include/asm/kvm_host.h) 为 `struct kvm_protected_vm` 增加 host 侧 metadata 缓存。
+- 已在 [pkvm_host.c](/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/vmx/pkvm/pkvm_host.c) 实现第一版：
+  - userspace `copy_from_user`
+  - 基础格式校验
+  - 冻结前缓存
+  - 完全一致提交的幂等成功
+- 已在 [pkvm_hypercalls.h](/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/include/asm/pkvm_hypercalls.h)、[vmexit.c](/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/vmexit.c)、[hyp/pkvm.c](/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/pkvm.c) 增加 `sync_ptdev_mmio_metadata` hypercall 通路。
+- 已在 [ptdev.h](/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/ptdev.h) 和 [ptdev.c](/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/ptdev.c) 增加 hyp 侧 metadata 挂载，使 host 提交后的 metadata 能绑定到已 attach 的 `ptdev`。
+- 已在 [linux/kvm_para.h](/home/mrgeek/pkvm-x86/pKVM-IA/include/uapi/linux/kvm_para.h) 定义 guest 查询 allowlist 的 `INFO/READ` hypercall 和 allowlist 结构。
+- 已在 [hyp/pkvm_hyp_types.h](/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/pkvm_hyp_types.h)、[hyp/ptdev.c](/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/ptdev.c)、[pkvm/vmx/vmx.c](/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/pkvm/vmx/vmx.c) 打通 guest allowlist 的派生、查询和写回 guest buffer。
+- 已在 [arch/x86/coco/pkvm/pkvm.c](/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/coco/pkvm/pkvm.c) 加入 allowlist 缓存和 `pkvm_virt_mmio()` 分流：命中 `DIRECT_BAR` 时直接走 `raw_read*/raw_write*`，否则继续走原有 `PKVM_GHC_IOREAD/IOWRITE`。
+- 已在 [hypervisor/src/x86_64.rs](/home/mrgeek/pkvm-x86/crosvm/hypervisor/src/x86_64.rs)、[hypervisor/src/kvm/x86_64.rs](/home/mrgeek/pkvm-x86/crosvm/hypervisor/src/kvm/x86_64.rs)、[devices/src/pci/vfio_pci.rs](/home/mrgeek/pkvm-x86/crosvm/devices/src/pci/vfio_pci.rs)、[arch/src/lib.rs](/home/mrgeek/pkvm-x86/crosvm/arch/src/lib.rs) 和 [src/crosvm/sys/linux/device_helpers.rs](/home/mrgeek/pkvm-x86/crosvm/src/crosvm/sys/linux/device_helpers.rs) / [src/crosvm/sys/linux.rs](/home/mrgeek/pkvm-x86/crosvm/src/crosvm/sys/linux.rs) 打通 crosvm 的第一版 metadata 导出和提交路径：
+  - 从 VFIO sparse mmap 导出普通 BAR 子区间
+  - 排除 MSI-X table / PBA
+  - 在 PCI BAR 布局完成后提交 `SET_PTDEV_MMIO_METADATA`
+- 已完成 crosvm 本地构建验证：
+  - 已安装 Rust `1.77.2` 工具链，并通过 `cargo build -p crosvm --locked`
+  - 构建过程中已修复：
+    - [hypervisor/src/kvm/x86_64.rs](/home/mrgeek/pkvm-x86/crosvm/hypervisor/src/kvm/x86_64.rs) 的常量引用名
+    - [arch/src/lib.rs](/home/mrgeek/pkvm-x86/crosvm/arch/src/lib.rs) 的错误枚举排序
+    - [x86_64/src/lib.rs](/home/mrgeek/pkvm-x86/crosvm/x86_64/src/lib.rs) 的 `hv_cfg.protection_type` 字段访问
+- 当前尚未完成：
+  - host / guest / crosvm 三者联动的端到端运行验证
+- 已完成第一次端到端运行验证，当前结论是：
+  - `Loaded bzImage kernel` 后仍然触发 `vcpu hit unknown error: Bad address (os error 14)`
+  - `Failed to map mmio page` 已从多次下降到 1 次
+  - 第一轮 `DIRECT_BAR` allowlist 已经不足以解除当前 blocker
+  - 当前更可疑的残余路径是 protected VM 下仍然存在的 config / virtual-config MMIO 访问链
 
 ## 为什么当前 `struct pkvm_ptdev` 不够
 

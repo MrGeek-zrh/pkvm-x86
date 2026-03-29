@@ -1,0 +1,28 @@
+sudo PROTECTED=1 SETUP_NET=0 VFIO_DEV=0000:01:00.0 ./scripts/run-crosvm.sh
+run-crosvm: SETUP_NET=0: skipping tap/iptables/sysctl network setup; guest will have no network device
+run-crosvm: enabling VFIO passthrough: 0000:01:00.0 (no virtual iommu, mapping all guest ram)
+[2026-03-24T17:33:56.454710507+00:00 DEBUG crosvm::crosvm::sys::linux] creating hypervisor: Kvm { device: Some("/dev/kvm") }
+[2026-03-24T17:33:56.455801698+00:00 DEBUG x86_64] 0x0000000000000000-0x000000000009ffff GuestMemoryRegion
+[2026-03-24T17:33:56.455963752+00:00 DEBUG x86_64] 0x00000000000a0000-0x00000000000fffff ReservedMemory
+[2026-03-24T17:33:56.455991915+00:00 DEBUG x86_64] 0x0000000000100000-0x00000000cfffffff GuestMemoryRegion
+[2026-03-24T17:33:56.456019201+00:00 DEBUG x86_64] 0x0000000100000000-0x000000012fffffff GuestMemoryRegion
+[2026-03-24T17:34:12.399690490+00:00 DEBUG devices::pci::vfio_pci] parsed device PCI address 0000:01:00.0
+[2026-03-24T17:34:12.401442809+00:00 INFO  crosvm::crosvm::sys::linux::device_helpers] Trying to attach block device: /home/mrgeek/pkvm-x86/images/guest/ubuntuguest.qcow2
+[2026-03-24T17:34:12.401526767+00:00 INFO  disk] disk size 8379367424
+[2026-03-24T17:34:12.461662011+00:00 ERROR devices::pci::pci_root] Failed to map mmio page; failed to create vm mapping
+
+Caused by:
+    Invalid argument (os error 22)
+[2026-03-24T17:34:12.464446575+00:00 DEBUG devices::pci::vfio_pci] set_gpe: gpe-nr 0 addr Some(PciAddress { bus: 1, dev: 0, func: 0 })
+[2026-03-24T17:34:12.466316652+00:00 DEBUG x86_64] 0x0000000000000000-0x000000000009ffff GuestMemoryRegion
+[2026-03-24T17:34:12.466373208+00:00 DEBUG x86_64] 0x00000000000a0000-0x00000000000fffff ReservedMemory
+[2026-03-24T17:34:12.466393990+00:00 DEBUG x86_64] 0x0000000000100000-0x00000000cfffffff GuestMemoryRegion
+[2026-03-24T17:34:12.466420298+00:00 DEBUG x86_64] 0x0000000100000000-0x000000012fffffff GuestMemoryRegion
+[2026-03-24T17:34:12.467061601+00:00 INFO  devices::sys::linux::acpi] Listening on acpi_mc_group of acpi_event family
+[2026-03-24T17:34:12.467686676+00:00 DEBUG x86_64::bzimage] setup_header file offset range: 0x01f1..0x026c
+[2026-03-24T17:34:12.475671285+00:00 INFO  x86_64] Loaded bzImage kernel
+[2026-03-24T17:34:12.475726235+00:00 DEBUG x86_64] kernel_max_cmdline_len=2047
+[2026-03-24T17:34:31.202794640+00:00 ERROR crosvm::crosvm::sys::linux::vcpu] vcpu hit unknown error: Bad address (os error 14)
+[2026-03-24T17:34:31.203953250+00:00 INFO  crosvm::crosvm::sys::linux] vcpu crashed
+[2026-03-24T17:34:31.204047220+00:00 ERROR crosvm::crosvm::sys::linux::vcpu] failed to send VcpuControl: sending on a closed channel
+[2026-03-24T17:34:31.546533564+00:00 INFO  crosvm] exiting with success

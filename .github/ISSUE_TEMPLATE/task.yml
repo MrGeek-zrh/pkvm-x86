@@ -10,6 +10,7 @@ body:
         规则：
         - Task 用来表达“要完成什么”，不要把多个不同签名的问题混在一个 Task 里。
         - 若 Task 被某个具体 panic/报错阻塞，请链接对应 Bug issue。
+        - Task 一旦标记为进行中，正文里必须已经写清楚修复方案摘要；若已有完整方案设计，请附本地 `DOCS/...` 文档链接。
   - type: dropdown
     id: area
     attributes:
@@ -42,10 +43,34 @@ body:
     validations:
       required: true
   - type: textarea
+    id: current_state
+    attributes:
+      label: 当前表现 / 当前阻塞
+      description: 先用 2-5 行写清楚现在卡在哪里、最直接的现象是什么
+      placeholder: |
+        - 当前现象：
+        - 当前阻塞：
+        - 为什么现在要做这个 Task：
+    validations:
+      required: true
+  - type: textarea
     id: context
     attributes:
       label: 背景与上下文
       placeholder: 简述为什么要做、当前依赖和前置结论
+    validations:
+      required: true
+  - type: textarea
+    id: plan
+    attributes:
+      label: 修复方案摘要 / 本地方案文档
+      description: GitHub 中保留可执行摘要；若已有完整方案设计，请附本地 `DOCS/...` 文档路径或链接
+      placeholder: |
+        - 方案摘要：
+        - 关键改动点：
+        - 为什么这样改：
+        - 这轮明确不做什么：
+        - 本地方案文档：
     validations:
       required: true
   - type: textarea

@@ -11,6 +11,8 @@ body:
         - 一个 panic/报错签名对应一个独立 bug issue。
         - 如果修复旧签名后暴露新签名，请新建 issue，不要继续复用旧 issue。
         - 长日志、源码推理、完整复现记录请放到 `DOCS/.../问题记录/`，这里保留摘要和链接。
+        - 完整原始日志必须落盘到仓库中的问题记录目录；不要只在 issue 中保留节选、把全文留在聊天记录里。
+        - 如果这个 Bug 已经进入修复阶段，必须关联一个承载“修复方案摘要”的 Task issue；完整方案设计应落在本地 `DOCS/...`。
   - type: dropdown
     id: area
     attributes:
@@ -47,7 +49,14 @@ body:
     id: symptom
     attributes:
       label: 现象
-      placeholder: 简述现象和影响
+      description: 先贴 3-10 行最关键的原始日志，再补一句话概括现象和影响
+      placeholder: |
+        - 关键日志：
+          [  84.805341] pkvm: host_initiate_donation: page refcounted ...
+          [  84.809384] pkvm: do_donate: __do_donate failed ret=-16 ...
+          [  84.811354] kvm: pkvm: vm_mmu_map failed ret=-16 ...
+        - 现象概括：
+          protected pVM 在设备透传启动阶段失败。
     validations:
       required: true
   - type: textarea
@@ -63,11 +72,12 @@ body:
     id: evidence
     attributes:
       label: 关键证据
-      description: 日志节选、回溯、源码锚点或本地文档链接
+      description: 日志节选、回溯、源码锚点，以及完整原始报错信息文件/原始分析文档链接
       placeholder: |
         - 日志：
         - 源码：
-        - 文档：
+        - 原始分析文档：
+        - 原始报错信息文件：
     validations:
       required: true
   - type: textarea
@@ -75,6 +85,16 @@ body:
     attributes:
       label: 根因（当前判断）
       placeholder: 未知也可以，写当前最合理的判断范围
+  - type: textarea
+    id: linked_task
+    attributes:
+      label: 关联 Task / 修复方案入口
+      description: 若已进入修复阶段，请写对应 Task issue，并补充本地方案文档入口；若尚未进入修复，可说明当前状态
+      placeholder: |
+        - 关联 Task：
+        - 当前修复阶段：
+        - 本地方案文档：
+        - 若尚未创建 Task，原因是什么：
   - type: textarea
     id: exit_criteria
     attributes:

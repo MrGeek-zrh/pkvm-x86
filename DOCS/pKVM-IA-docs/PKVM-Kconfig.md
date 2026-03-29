@@ -46,10 +46,11 @@
 
 ```bash
 # 宿主
-grep -E '^CONFIG_(KVM|KVM_INTEL|PKVM_INTEL|KSM|BLK_DEV_FD|INTEL_IOMMU)=' pKVM-IA/.config
+grep -E '^CONFIG_(KVM|KVM_INTEL|PKVM_INTEL|KSM|BLK_DEV_FD|INTEL_IOMMU)=' \
+  /home/mrgeek/pkvm-x86/build-host/pkvm-ia/.config
 
 # 客户机
-grep -E '^CONFIG_PKVM_GUEST=' pKVM-IA/.config
+grep -E '^CONFIG_PKVM_GUEST=' /home/mrgeek/pkvm-x86/build-guest/.config
 ```
 
 ---
@@ -66,17 +67,28 @@ grep -E '^CONFIG_PKVM_GUEST=' pKVM-IA/.config
 同目录下的 `build-host-kernel.sh` 会：自动安装依赖 → 编译内核 → 打成 .deb 包（仅 Debian/Ubuntu）。不执行 `make install`，需自行用 dpkg 安装。
 
 ```bash
-cd /home/mrgeek/pkvm-x86/pKVM-IA-docs
+cd /home/mrgeek/pkvm-x86/DOCS/pKVM-IA-docs
 ./build-host-kernel.sh
 ```
 
-生成的 .deb 在 `pkvm-x86/` 目录下。手动安装示例：
+默认行为：
+- 使用 `pKVM-IA` 作为源码树
+- 使用 `/home/mrgeek/pkvm-x86/build-host/pkvm-ia` 作为 Host 的 `O=` 输出目录
+- 将 `.deb/.buildinfo/.changes` 归集到 `/home/mrgeek/pkvm-x86/output`
+
+手动安装示例：
 
 ```bash
-sudo dpkg -i /home/mrgeek/pkvm-x86/linux-image-*.deb /home/mrgeek/pkvm-x86/linux-headers-*.deb
+sudo dpkg -i /home/mrgeek/pkvm-x86/output/linux-image-*.deb /home/mrgeek/pkvm-x86/output/linux-headers-*.deb
 ```
 
 依赖由脚本自动安装：`build-essential`、`flex`、`bison`、`libssl-dev`、`libelf-dev`、`bc`、`cpio`、`rsync`、`kmod`、`libncurses-dev`、`dpkg-dev`。
+
+若你以前做过 in-tree 构建，源码树里可能还留着 `pKVM-IA/.config`、`pKVM-IA/include/config/`、`pKVM-IA/arch/x86/include/generated/`。共享同一份源码树给 Host/Guest 做 `O=` 构建时，这些残留必须先清掉。脚本会优先把旧的 `pKVM-IA/.config` 迁移到 `build-host/pkvm-ia/.config`，然后提示你执行：
+
+```bash
+make -C /home/mrgeek/pkvm-x86/pKVM-IA ARCH=x86_64 mrproper
+```
 
 ---
 
@@ -94,8 +106,9 @@ cd /home/mrgeek/pkvm-x86/DOCS/pKVM-IA-docs
 ```
 
 默认行为：
-- 复用宿主的 `pKVM-IA/.config` 作为起点（更贴合 pKVM-IA 分支的依赖组合）
+- 复用宿主的 `/home/mrgeek/pkvm-x86/build-host/pkvm-ia/.config` 作为起点（更贴合 pKVM-IA 分支的依赖组合）
 - 强制开启 `HYPERVISOR_GUEST=y`、`PKVM_GUEST=y`
+- 将 guest 的 `.config` 独立保存在 `/home/mrgeek/pkvm-x86/build-guest/.config`
 - 输出 guest bzImage 到：`/home/mrgeek/pkvm-x86/build-guest/arch/x86/boot/bzImage`
 
 如果你更想从一个“更干净”的 guest 配置起步，可以用：

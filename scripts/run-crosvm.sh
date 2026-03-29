@@ -10,10 +10,32 @@
 
 # 脚本所在目录的上一级为仓库根目录，用于默认路径
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+
+first_existing() {
+        for path in "$@"; do
+                [ -e "$path" ] && {
+                        printf '%s\n' "$path"
+                        return 0
+                }
+        done
+        return 1
+}
+
+DEFAULT_BZIMAGE="$(first_existing \
+        "$REPO_ROOT/build-guest/arch/x86/boot/bzImage" \
+        "$REPO_ROOT/build-guest/arch/x86_64/boot/bzImage" \
+)"
+DEFAULT_VMLINUX="$(first_existing \
+        "$REPO_ROOT/build-guest/vmlinux" \
+        "$REPO_ROOT/vmlinux" \
+)"
+KERNEL_SET_BY_USER=0
+[ "${KERNEL+x}" = "x" ] && KERNEL_SET_BY_USER=1
+
 export PATH="$REPO_ROOT:$PATH"
 export CROSVM="${CROSVM:-$REPO_ROOT/crosvm/target/debug/crosvm}"
 export IMAGE="${IMAGE:-$REPO_ROOT/images/guest/ubuntuguest.qcow2}"
-export KERNEL="${KERNEL:-$REPO_ROOT/images/guest/bzImage}"
+export KERNEL="${KERNEL:-$DEFAULT_BZIMAGE}"
 export RAM="${RAM:-4096}"
 export CORECOUNT="${CORECOUNT:-2}"
 export SETUP_NET="${SETUP_NET:-0}"           # set to 0 to skip tap/iptables/sysctl changes
@@ -28,7 +50,11 @@ export VFIO_DEV="${VFIO_DEV:-}"              # e.g. 0000:01:00.0 ; empty means n
 export VFIO_IOMMU="${VFIO_IOMMU:-}"          # iommu type for vfio device: viommu, coiommu, or empty (no virtual iommu, maps all guest ram)
 
 [ ! -d /var/empty ] && mkdir /var/empty
-[ "x$DEBUG" != "x" ] && DEBUG='--gdb 1234' && KERNEL=vmlinux && CORECOUNT=1
+[ "x$DEBUG" = "x" ] || {
+        DEBUG='--gdb 1234'
+        [ "$KERNEL_SET_BY_USER" -eq 1 ] || KERNEL="${DEFAULT_VMLINUX:-$KERNEL}"
+        CORECOUNT=1
+}
 
 need_cmd() { command -v "$1" >/dev/null 2>&1; }
 note() { echo "run-crosvm: $*" >&2; }
@@ -92,6 +118,9 @@ if [ "x$SETUP_NET" = "x0" ]; then
         note "SETUP_NET=0: skipping tap/iptables/sysctl network setup; guest will have no network device"
         NET_OPT=""
 fi
+
+[ -n "$KERNEL" ] || die "failed to locate guest kernel under $REPO_ROOT/build-guest; set KERNEL=... or build guest kernel first"
+[ -f "$KERNEL" ] || die "guest kernel not found: $KERNEL"
 
 if [ -n "$VFIO_DEV" ]; then
         VFIO_PATH="/sys/bus/pci/devices/$VFIO_DEV"
