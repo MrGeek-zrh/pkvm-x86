@@ -45,15 +45,20 @@
   - 完成后对 `pgstate_pgt->root_pa` 对应的 IOMMU 视图做定向 IOTLB flush
 - 2026-03-27 最新运行验证中：
   - protected pVM 已稳定启动到 Ubuntu login prompt
+  - guest `readlink -f /sys/block/nvme0n1/device` 已指向 `0000:01:00.0`
   - guest `lsblk` / sysfs / `dmesg` 已能看到透传 NVMe `0000:01:00.0`
-  - guest 已完成 `/dev/nvme0n1` 直接读取与 `mkfs.ext4 -F /dev/nvme0n1`
+  - guest 已完成 `/dev/nvme0n1` 整盘直接读取
+  - guest 已完成向 `/dev/nvme0n1` 连续写入 1 GiB 零数据
+  - guest 已完成 `mkfs.ext4 -F /dev/nvme0n1`
   - host `dmesg` 全程未再出现 `DMA Read NO_PASID` / `PTE Read access is not set`
-- 当前这台工作树仍缺 `pKVM-IA/.config`，因此没有在本工作树内补做独立增量编译记录；当前结论来自已启动到新内核后的实机验证。
+- 已完成手动增量编译验证，当前可复用带 `.config` 的构建树完成 host 内核构建；当前结论同时来自编译通过后的实机验证。
 
 ## 最新验证证据
 
 - runtime DMA mirror 当前已具备较高置信度可用：
-  - 原始块设备读取 `dd if=/dev/nvme0n1 of=/dev/null bs=4M count=64 iflag=direct` 成功。
+  - `readlink -f /sys/block/nvme0n1/device` 指向 `0000:01:00.0`，说明 guest 看到的是透传 NVMe 本体而非其他虚拟块设备。
+  - 原始块设备读取 `dd if=/dev/nvme0n1 of=/dev/null bs=4M iflag=direct status=progress` 成功，8 GiB 顺序读完成，峰值约 1.1 GB/s。
+  - 原始块设备写入 `dd if=/dev/zero of=/dev/nvme0n1 bs=4M count=256 oflag=direct conv=fdatasync status=progress` 成功，连续写入 1 GiB 完成。
   - `mkfs.ext4 -F /dev/nvme0n1` 成功，未引出 host IOMMU fault。
   - guest 关机退出后，host `dmesg` 仍未见新的 DMAR / IOMMU fault，说明本轮 runtime mirror patch 至少未在当前 teardown 路径上立即暴露新错误。
 - 当前仍保留一个证据边界：
