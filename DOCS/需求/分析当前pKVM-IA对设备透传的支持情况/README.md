@@ -6,6 +6,7 @@
 
 - `当前进度.md`
   - 记录这项需求目前的目标、当前进度、卡点，以及实施跟踪入口。
+  - 当前基线已经更新到：`BOOT-007` 旧签名不再复现，`BOOT-008` 主签名在 T2/T3 首轮 patch 验证中已暂不复现；但仍存在与其强关联的偶发 `BOOT-009`，说明重复启动与稳定性回归尚未完成。
 
 - `pVM设备透传设计方案.md`
   - 记录当前推荐主线方案，重点是方案 B: `donate + pVM DMA mirror pgtable`。
@@ -28,6 +29,9 @@
 
 ## 当前已知问题记录
 
+- `问题记录/BOOT-005/BOOT-005-disable-sandbox后vCPU-hw-run-failure-0x80000021.md`
+  - 保留最早一轮 protected pVM + VFIO bring-up 现场，用于对照“旧现场现象”和后续 BOOT-006 的根因收敛。
+
 - `问题记录/BOOT-004-调用链-非机密VFIO触发host到hyp-donate并UD软锁死.md`
   - 说明非机密 VM 在 VFIO 场景下，为什么会走到 host -> hyp donate，并进一步触发 #UD 与 soft lockup。
 
@@ -36,3 +40,15 @@
 
 - `问题记录/BOOT-004/BOOT-004-panic分析报告.md`
   - 对 BOOT-004 的 panic / donate 失败机制做更详细的分析，包含当前已证实结论和待确认问题。
+
+- `问题记录/BOOT-006/BOOT-006-机密VM-donate失败-IOMMU影子页表refcount冲突.md`
+  - 当前已关闭的旧主签名，记录“旧 shadow spgt 残留 refcount 阻塞 donate”这一已解决 blocker。
+
+- `问题记录/BOOT-007/BOOT-007-protected-pVM-NoIommu-VFIO-vcpu-EFAULT.md`
+  - 当前已降级为历史 blocker，记录 protected pVM 在 MMIO/config 路径未收敛前触发 `Bad address (os error 14)` 的旧签名。
+
+- `问题记录/BOOT-008/BOOT-008-protected-pVM-NoIommu-VFIO-host-DMAR-PTE-Read-access-not-set.md`
+  - 当前主线问题记录入口，用于跟踪 host DMAR `DMA Read NO_PASID / PTE Read access is not set` 的新签名，以及 T2/T3 首轮 patch 后的最新验证状态。
+
+- `问题记录/BOOT-009/BOOT-009-protected-pVM-NoIommu-VFIO-copy-gpa-exception14-soft-lockup.md`
+  - 记录与 `BOOT-008` 强相关的偶发新签名：`copy_gpa__pkvm` 写侧 `#PF(err=0x2)` 继发 host `soft lockup` / `RCU stall`。

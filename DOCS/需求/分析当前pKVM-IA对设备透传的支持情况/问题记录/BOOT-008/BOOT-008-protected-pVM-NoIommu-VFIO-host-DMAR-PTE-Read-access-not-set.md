@@ -36,6 +36,11 @@
 - 当前判断：
   - T2/T3 这轮 patch 已经较高置信度解除 `BOOT-008` 的主签名
   - 当前 teardown 退出路径已完成一轮验证，仍建议再补一次重复启动回归
+  - 2026-04-01 又整理出一条强关联但不同签名的偶发问题 `BOOT-009`：
+    - `pkvm: exception 14 @ copy_gpa__pkvm ... err code 0x2`
+    - 后续继发 `soft lockup` / `rcu_preempt stalls`
+    - 当前更像是“本轮运行没有稳定进入 `BOOT-008` 修复后的正常路径，转而提前暴露了别的 bug”
+    - 因为签名已变，不应并回 `BOOT-008`，而应独立记录为 [BOOT-009-protected-pVM-NoIommu-VFIO-copy-gpa-exception14-soft-lockup.md](/home/mrgeek/pkvm-x86/DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/问题记录/BOOT-009/BOOT-009-protected-pVM-NoIommu-VFIO-copy-gpa-exception14-soft-lockup.md)
   - 若要把“文件系统级数据写入完整成功”作为硬证据，还需补一轮显式 mount 后的 NVMe 写入/回读
 
 ## 根因（简述）
@@ -88,6 +93,7 @@
   - `vcpu hit unknown error: Bad address (os error 14)`
 - 建议在关闭前再补：
   - 一次同配置的重复启动
+  - 针对 `BOOT-009` 的负向回归确认，确保 `copy_gpa__pkvm` 写侧 `#PF(err=0x2)` 不再偶发出现
   - 如需更强硬证据，再补一次显式 mount 后的 NVMe 写入/回读
 
 ## 原始日志（节选）
