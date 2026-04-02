@@ -32,6 +32,8 @@ GitHub Issue / PR 现在作为状态真相来源；本目录主要保存较长�
   - 先从上层方案收敛第一阶段支持范围、非目标、trust boundary 和实现顺序。
 - `01C-2-B3-2-x86-ptdev-metadata-最小结构草案.md`
   - 细化第一阶段所需的 x86 `ptdev metadata` 最小字段集、ownership 和 guest 可见 allowlist。
+- `01D-B4-protected-pVM-allowlist-guest-gpa回写路径修复.md`
+  - 单独收敛 `BOOT-009`：修正 hyp 对 protected guest allowlist 缓冲区的 GPA 回写语义。
 - `02-P0-pgstate_pgt语义收敛为DMA-mirror.md`
   - 把 `pgstate_pgt` 从“页状态 + teardown 回收”收敛为“纯 DMA mirror”。
 - `03-P0-donate后同步runtime-DMA-mirror.md`

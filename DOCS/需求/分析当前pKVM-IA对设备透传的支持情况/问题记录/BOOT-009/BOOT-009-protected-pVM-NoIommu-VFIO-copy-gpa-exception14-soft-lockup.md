@@ -22,6 +22,15 @@
   - 当次运行无法继续作为 `BOOT-008` 修复生效的有效验证样本；
   - host 内核进入长时间不前进状态，最终演变成 soft lockup / RCU stall。
 
+## 最新状态
+
+- 2026-04-02 的当前工作树观察里，在 [memory.c](/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/memory.c) 补上 protected guest GPA 回写语义修正后，这条签名当前暂未再次复现。
+- 当前判断：
+  - 这说明 `B4` 的本地修正很可能已经覆盖到 `BOOT-009` 的直接 fault 入口；
+  - 但当前还不能直接关闭本问题，因为还缺更完整的重复启动 / 负向回归记录。
+- 当前关联修复 Task：
+  - pkvm-x86#19
+
 ## 根因（简述）
 
 - 当前更合理的源码侧入口不是 DMA fault 本身，而是 hyp 向 guest 回写 MMIO allowlist 缓冲区时的 `copy_gpa()` 写路径。
@@ -29,7 +38,7 @@
   - [memory.c](/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/memory.c)
     - `copy_gpa()` / `write_gpa()` 最终都落到 `__copy_gpa()`
     - `err code 0x2` 对应写 fault；而 `__copy_gpa()` 的写侧正是 `memcpy(hva, addr, len)`
-    - 文件里的注释仍写着 `only support host VM now`
+    - `host_gpa2hva()` 当前直接执行 `pkvm_phys_to_virt(gpa)`，本质上假设“传进来的 GPA 就是 host identity GPA/HPA”
   - [vmx.c](/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/pkvm/vmx/vmx.c)
     - 当前 `__PKVM_HYP__` 路径下，`write_gpa()` 的调用点只有：
       - `pkvm_handle_ptdev_mmio_info()`
@@ -41,14 +50,21 @@
       - `kvm_hypercall2(PKVM_GHC_PTDEV_MMIO_INFO, __pa(&pkvm_mmio_info), ...)`
       - `kvm_hypercall3(PKVM_GHC_PTDEV_MMIO_READ, __pa(pkvm_mmio_allow_ranges), ...)`
       让 hyp 把数据直接写回 guest 物理地址
-    - 同文件里的 `pkvm_set_mem_host_visibility()` 明确说明：当 guest EPT 里还没有页表项时，host/hyp 访问 guest 页可能失败，因此它在 share 前会先 `memset()` 触页；而 `pkvm_init_mmio_allowlist()` 当前没有做类似的预触页/可见性准备
+    - 但 `pkvm_init_mmio_allowlist()` 在两个 hypercall 之前其实已经对 `pkvm_mmio_info` 和 `pkvm_mmio_allow_ranges` 做了完整 `memset()`，因此“allowlist buffer 没有预触页/没 materialize”不能再作为当前主根因
+  - [mmu.c](/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/mmu/mmu.c)
+    - protected VM 的 runtime page fault 最终通过 `pkvm_hypercall(vm_mmu_map, ..., base_gfn << PAGE_SHIFT, fault->pfn << PAGE_SHIFT, ...)` 把 guest GPA 和 host HPA 分开传给 pKVM
+    - 这说明 protected guest 下 `gpa != hpa` 本来就是实现前提，不能把 guest GPA 当成 host identity GPA 直接 `phys_to_virt`
+  - [mem_protect.c](/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/mem_protect.c)
+    - `__pkvm_guest_share_host()` / `__pkvm_guest_unshare_host()` 在处理 guest 提供的 GPA 时，都会先 `pkvm_pgtable_lookup(guest_pgt, gpa, &hpa, ...)`
+    - 这也说明“guest GPA 先翻译成 HPA 再访问”才是 pKVM 当前已有的正确模式
 - 因此，当前更像是：
   - guest 在早期初始化里发起 `PKVM_GHC_PTDEV_MMIO_INFO/READ`
   - hyp 在 `write_gpa()` -> `copy_gpa()` 写回 guest GPA 缓冲区
-  - 某些运行里该 guest GPA 对应页还没有稳定 materialize / 可见
-  - `copy_gpa__pkvm` 写侧因此触发 `#PF(err=0x2)`，CPU10 卡死在 pKVM 异常路径里
+  - 这条路径当前把 protected guest 提供的 GPA 直接送进 `host_gpa2hva()`，绕过了 guest MMU 的 GPA -> HPA 翻译
+  - 当这个 guest GPA 不能对应到一个可写的 hyp direct-map HPA 时，`copy_gpa__pkvm` 写侧就会在 `memcpy(hva, addr, len)` 触发 `#PF(err=0x2)`，CPU10 卡死在 pKVM 异常路径里
+  - 即使没立刻 fault，这种“误把 guest GPA 当 host HPA”的路径也可能写到错误的 host 物理页，因此它更适合解释“偶发”而不是“每次同样早死”
   - 其它 CPU 后续在 TLB flush / RCU 推进时等不到 CPU10 响应，于是外显为 soft lockup 与 RCU stall
-- 上述最后几条是基于日志、调用点和现有代码的推断，不是内核已经打印出来的显式结论。
+- 上述最后几条，尤其是“偶发”的解释，是基于日志、调用点和现有代码的推断，不是内核已经打印出来的显式结论。
 
 ## 解决方案
 
@@ -58,10 +74,12 @@
 - 但它和 `BOOT-008/T2/T3` 明显强相关：
   - 一旦 `BOOT-009` 先出现，当次运行就无法证明 runtime DMA mirror 是否已稳定生效
   - 当前应把它视为“`BOOT-008` 修复闭环尚未稳定覆盖到所有运行”的派生偶发 bug
-- 当前排查重点应放在：
-  - guest MMIO allowlist 回写缓冲区在 `PKVM_GHC_PTDEV_MMIO_INFO/READ` 前是否已经稳定有 EPT 映射
-  - `write_gpa()` / `copy_gpa()` 这条 `only support host VM now` 的老路径，是否被直接拿来承担 protected guest 的回写语义
-  - 是否需要在 allowlist 查询前显式预触页，或把回写改为带翻译/容错的 guest copy 路径
+- 当前修复重点应切到：
+  - 在 [memory.c](/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/memory.c) 里把 protected guest 的 `read_gpa()` / `write_gpa()` 收敛成“先查 guest MMU 做 GPA -> HPA 翻译，再 `memcpy()`”
+  - 翻译成功后还要明确拒绝 MMIO / direct-BAR 这类非 RAM GPA；`write_gpa()` / `read_gpa()` 只应该接受 guest 提供的普通 RAM buffer
+  - 翻译失败时直接返回 `-EFAULT` 给 `pkvm_handle_ptdev_mmio_info()` / `pkvm_handle_ptdev_mmio_read()`，不要让 hyp 自己在 `memcpy()` 里 fault
+  - host VM 继续保留现有 identity copy 语义，不把 non-protected 路径一起改坏
+  - 这轮不修改 guest allowlist ABI，也不把 `BOOT-009` 和 T2/T3/T4 的 DMA 生命周期问题混在同一个 patch 里
 
 ## 验证要点
 
@@ -72,6 +90,8 @@
     - `rcu_preempt detected stalls`
     - `NMIs are not reaching exc_nmi() handler`
   - guest 仍应能稳定完成 ptdev MMIO allowlist 初始化，继续进入 NVMe 枚举与后续 DMA 访问阶段
+  - 若 guest 传入的 GPA 在某次运行里确实不存在映射，也应表现为 hypercall 返回失败，而不是 host/hyp 自身卡死在 `copy_gpa__pkvm`
+  - 若 guest 误传的是 MMIO / direct-BAR GPA，也应表现为 hypercall 返回失败，而不是被当作普通内存地址去 `memcpy()`
   - 只有在这条偶发签名也不再出现后，`BOOT-008` 的重复启动回归才具有足够解释力
 
 ## 原始日志（节选）
@@ -170,14 +190,19 @@ CPU30 / kcompactd0
 ## 线索
 
 - [memory.c](/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/memory.c)
-  - `copy_gpa()` / `write_gpa()` 当前仍保留 `only support host VM now` 注释
+  - `host_gpa2hva()` 当前是 host identity helper；`copy_gpa()` / `write_gpa()` 若直接复用它，就会把 protected guest GPA 当成 host HPA
 - [vmx.c](/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/pkvm/vmx/vmx.c)
   - `pkvm_handle_ptdev_mmio_info()` / `pkvm_handle_ptdev_mmio_read()` 是当前 `write_gpa()` 唯一调用点
 - [pkvm.c](/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/coco/pkvm/pkvm.c)
   - `pkvm_guest_init_coco()` 早期即调用 `pkvm_init_mmio_allowlist()`
-  - `pkvm_set_mem_host_visibility()` 里的预触页说明，也表明 guest 页未 materialize 时 host/hyp 访问可能失败
+  - `pkvm_init_mmio_allowlist()` 在 hypercall 前已 `memset()` 两个回写缓冲区，说明当前主问题不再是“没预触页”
+- [mmu.c](/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/mmu/mmu.c)
+  - protected VM 的 `vm_mmu_map` hypercall 明确把 `gpa` 和 `hpa` 分离传入 pKVM
+- [mem_protect.c](/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/mem_protect.c)
+  - guest GPA 相关的 share/unshare 路径已经证明“先 lookup guest pgt，再拿 HPA 访问”才是正确模型
 
 ## 备注
 
 - 当前应继续把 `BOOT-008` 视为 runtime DMA mirror 主签名，把 `BOOT-009` 视为强关联但独立的偶发派生 bug。
+- 当前更高置信度的直接修复入口是 `memory.c` 的 protected guest GPA copy 语义，而不是继续围绕“allowlist buffer 是否预触页”做实验。
 - 若后续确认它实际来自别的 `write_gpa()` 使用路径，再按新证据修正文档；在此之前不应把它和 `BOOT-008` 混成同一签名。

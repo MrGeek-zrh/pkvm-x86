@@ -68,6 +68,7 @@
   - 2026-04-01 又归档到一条偶发 `BOOT-009`，表现为 `copy_gpa__pkvm` 写侧 `#PF(err=0x2)`，随后 host 进入 `soft lockup`
   - 这条签名本身不是 `BOOT-008` 的 DMAR 主签名回归，但会让当次运行在更早阶段失效，无法继续证明 runtime DMA mirror 是否已经稳定触发
   - 当前更像是“修复闭环尚未覆盖到所有运行”的残余稳定性问题，而不是已经推翻 2026-03-27 的正向验证结论
+  - 2026-04-02 的进一步源码归因表明，当前更直接的修复入口是 `B4`：修正 hyp `memory.c` 对 protected guest GPA 的回写语义，而不是继续围绕“allowlist buffer 未 materialize”做实验
 
 ## 建议实施方式
 
@@ -89,7 +90,7 @@
 
 - mirror 与 guest mmu 权限位不一致，可能导致 DMA 访问行为偏差。
 - IOTLB flush 粒度不对，会导致旧翻译残留。
-- ptdev MMIO allowlist 的 guest 缓冲区若在早期初始化里尚未稳定 materialize，`write_gpa()` / `copy_gpa()` 写回路径可能先于 DMA 验证阶段命中 `#PF(err=0x2)`，见 `BOOT-009`。
+- `BOOT-009` 当前更高置信度的直接原因，是 `write_gpa()` / `copy_gpa()` 仍把 protected guest GPA 当作 host identity GPA 访问；这条早期路径若不先收敛，会污染 T3 的重复启动验证样本。
 
 ## 依赖
 
