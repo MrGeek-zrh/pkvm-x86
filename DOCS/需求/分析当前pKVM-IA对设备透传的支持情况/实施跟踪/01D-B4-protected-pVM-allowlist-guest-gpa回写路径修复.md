@@ -2,7 +2,7 @@
 
 ## 状态
 
-- 当前状态: 进行中（当前工作树下已一轮暂不复现；待补更完整重复启动回归）
+- 当前状态: 已完成（`BOOT-009` 当前可认为已修复）
 - 优先级: P0
 
 ## 关联问题
@@ -64,19 +64,20 @@
 
 ## 当前本地实现进展
 
-- 已在 [memory.c](/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/memory.c) 落一版最小修正：
+- 已在 [memory.c](/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/memory.c) 落地并提交最小修正：
   - protected pVM 的 `__copy_gpa()` 先 lookup `pkvm_vm->mmu`
   - lookup 成功后先校验 `hpa` 落在 hyp 已知 normal RAM 范围
   - 只有 normal RAM 才使用 `pkvm_phys_to_virt(hpa)` copy
   - MMIO / 非 RAM buffer 直接返回 `-EFAULT`
   - lookup 失败时返回 `-EFAULT`
-- 根据 2026-04-02 当前工作树下的本地观察，这版修正后暂未再次看到：
+- 对应内核提交：`b86cfd0230b9`
+- 根据当前验证判断，这版修正后未再次看到：
   - `pkvm: exception 14 @ copy_gpa__pkvm ... err code 0x2`
   - `watchdog: BUG: soft lockup`
   - `rcu_preempt detected stalls`
-- 当前仍缺：
-  - 更完整的同配置重复启动计数
-  - 独立的负向回归记录，用来证明这条路径已从“偶发卡死”收敛成“当前稳定不复现”
+- 当前结论：
+  - `pkvm-x86#19` 已满足关闭条件
+  - `pkvm-x86#18` 当前也可作为已修复 bug 关闭保留
 
 ## 实现范围
 

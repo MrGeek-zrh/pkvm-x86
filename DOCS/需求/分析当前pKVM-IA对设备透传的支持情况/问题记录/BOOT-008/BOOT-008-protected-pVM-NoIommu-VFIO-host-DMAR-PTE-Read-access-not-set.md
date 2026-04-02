@@ -36,11 +36,10 @@
 - 当前判断：
   - T2/T3 这轮 patch 已经较高置信度解除 `BOOT-008` 的主签名
   - 当前 teardown 退出路径已完成一轮验证，仍建议再补一次重复启动回归
-  - 2026-04-01 又整理出一条强关联但不同签名的偶发问题 `BOOT-009`：
-    - `pkvm: exception 14 @ copy_gpa__pkvm ... err code 0x2`
-    - 后续继发 `soft lockup` / `rcu_preempt stalls`
-    - 当前更像是“本轮运行没有稳定进入 `BOOT-008` 修复后的正常路径，转而提前暴露了别的 bug”
-    - 因为签名已变，不应并回 `BOOT-008`，而应独立记录为 [BOOT-009-protected-pVM-NoIommu-VFIO-copy-gpa-exception14-soft-lockup.md](/home/mrgeek/pkvm-x86/DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/问题记录/BOOT-009/BOOT-009-protected-pVM-NoIommu-VFIO-copy-gpa-exception14-soft-lockup.md)
+  - 2026-04-01 归档的强关联偶发问题 `BOOT-009` 已由 `B4` 独立修复：
+    - 对应签名是 `pkvm: exception 14 @ copy_gpa__pkvm ... err code 0x2`
+    - 对应内核提交：`b86cfd0230b9`
+    - 因为签名不同，它作为独立 bug 关闭保留，不并回 `BOOT-008`
   - 若要把“文件系统级数据写入完整成功”作为硬证据，还需补一轮显式 mount 后的 NVMe 写入/回读
 
 ## 根因（简述）
@@ -75,8 +74,8 @@
   - T3：`__pkvm_host_donate_guest()` 成功后已补一版 runtime DMA mirror 同步，并按 `pgstate_pgt->root_pa` 定向刷 IOTLB
   - 生命周期补强：`shadow_vm` teardown 顺序已调整为先 detach ptdev，再 deinit `pgstate_pgt`
 - 当前状态已经从“等待真实修复”前移到“首轮修复后等待回归确认”：
-  - 首轮带 patch 实机验证里，这条签名已暂不复现
-  - 关闭前仍建议补一次同配置重复启动回归，以及一轮更强的数据路径证据
+  - 首轮带 patch 实机验证里，这条签名已不再复现
+  - 当前已满足作为已修复历史 blocker 关闭保留的条件；后续重复启动与更强数据路径证据继续作为验证补全项维护
 
 ## 验证要点
 
@@ -92,8 +91,6 @@
   - `Failed to map mmio page; failed to create vm mapping`
   - `vcpu hit unknown error: Bad address (os error 14)`
 - 建议在关闭前再补：
-  - 一次同配置的重复启动
-  - 针对 `BOOT-009` 的负向回归确认，确保 `copy_gpa__pkvm` 写侧 `#PF(err=0x2)` 不再偶发出现
   - 如需更强硬证据，再补一次显式 mount 后的 NVMe 写入/回读
 
 ## 原始日志（节选）

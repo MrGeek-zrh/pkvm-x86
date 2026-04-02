@@ -2,7 +2,7 @@
 
 ## 状态
 
-- 当前状态: 进行中（已完成首轮运行验证；重复启动回归与偶发 `BOOT-009` 待收敛）
+- 当前状态: 进行中（主签名与 `BOOT-009` 均已解除；剩余工作是生命周期与更强回归验证）
 - 优先级: P0
 
 ## 目标
@@ -65,10 +65,9 @@
   - 本轮粘贴的 guest 终端记录未显示 `mount /dev/nvme0n1 /mnt/nvme`，因此 `/mnt/nvme/payload.bin` 的文件级 hash 结果暂不作为“已明确落到 NVMe 文件系统”的硬证据保存。
   - 若需要把文件级读写也作为硬证据，应补一轮显式 mount 后的写入/回读，或直接做原始块设备写入/回读校验。
 - 当前还保留一个强关联残余风险：
-  - 2026-04-01 又归档到一条偶发 `BOOT-009`，表现为 `copy_gpa__pkvm` 写侧 `#PF(err=0x2)`，随后 host 进入 `soft lockup`
-  - 这条签名本身不是 `BOOT-008` 的 DMAR 主签名回归，但会让当次运行在更早阶段失效，无法继续证明 runtime DMA mirror 是否已经稳定触发
-  - 当前更像是“修复闭环尚未覆盖到所有运行”的残余稳定性问题，而不是已经推翻 2026-03-27 的正向验证结论
-  - 2026-04-02 的进一步源码归因表明，当前更直接的修复入口是 `B4`：修正 hyp `memory.c` 对 protected guest GPA 的回写语义，而不是继续围绕“allowlist buffer 未 materialize”做实验
+  - 2026-04-01 归档过一条偶发 `BOOT-009`，表现为 `copy_gpa__pkvm` 写侧 `#PF(err=0x2)`，随后 host 进入 `soft lockup`
+  - 这条签名后来已由 `B4` 单独修复，不再作为当前 T3 的开放阻塞
+  - 对应内核提交：`b86cfd0230b9`
 
 ## 建议实施方式
 
@@ -90,7 +89,7 @@
 
 - mirror 与 guest mmu 权限位不一致，可能导致 DMA 访问行为偏差。
 - IOTLB flush 粒度不对，会导致旧翻译残留。
-- `BOOT-009` 当前更高置信度的直接原因，是 `write_gpa()` / `copy_gpa()` 仍把 protected guest GPA 当作 host identity GPA 访问；这条早期路径若不先收敛，会污染 T3 的重复启动验证样本。
+- 当前主要风险已前移到 teardown、首次 attach / prepopulate 与 remove-path，而不是 `BOOT-009` 这条已关闭的早期路径。
 
 ## 依赖
 

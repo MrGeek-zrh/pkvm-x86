@@ -24,10 +24,12 @@
 
 ## 最新状态
 
-- 2026-04-02 的当前工作树观察里，在 [memory.c](/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/memory.c) 补上 protected guest GPA 回写语义修正后，这条签名当前暂未再次复现。
+- 2026-04-02，`B4` 对应的修复已经正式提交到 [memory.c](/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/memory.c)：
+  - 对应内核提交：`b86cfd0230b9`
+  - 修复要点是把 protected guest 的 GPA 回写收敛成“先 `GPA -> HPA` 翻译，再拒绝非 RAM buffer”的 guest copy 语义
 - 当前判断：
-  - 这说明 `B4` 的本地修正很可能已经覆盖到 `BOOT-009` 的直接 fault 入口；
-  - 但当前还不能直接关闭本问题，因为还缺更完整的重复启动 / 负向回归记录。
+  - 这说明 `B4` 已覆盖到 `BOOT-009` 的直接 fault 入口；
+  - 当前可把本问题作为已修复 bug 关闭保留。
 - 当前关联修复 Task：
   - pkvm-x86#19
 

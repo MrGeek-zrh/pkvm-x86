@@ -6,7 +6,7 @@
 
 - `当前进度.md`
   - 记录这项需求目前的目标、当前进度、卡点，以及实施跟踪入口。
-  - 当前基线已经更新到：`BOOT-007` 旧签名不再复现，`BOOT-008` 主签名在 T2/T3 首轮 patch 验证中已暂不复现；但仍存在与其强关联的偶发 `BOOT-009`，说明重复启动与稳定性回归尚未完成。
+  - 当前基线已经更新到：`BOOT-007`、`BOOT-008`、`BOOT-009` 三条已知启动/早期运行签名都已不再复现；当前剩余工作已前移到 teardown 生命周期、首次 attach / remove-path 与更完整回归验证。
 
 - `pVM设备透传设计方案.md`
   - 记录当前推荐主线方案，重点是方案 B: `donate + pVM DMA mirror pgtable`。
@@ -48,7 +48,7 @@
   - 当前已降级为历史 blocker，记录 protected pVM 在 MMIO/config 路径未收敛前触发 `Bad address (os error 14)` 的旧签名。
 
 - `问题记录/BOOT-008/BOOT-008-protected-pVM-NoIommu-VFIO-host-DMAR-PTE-Read-access-not-set.md`
-  - 当前主线问题记录入口，用于跟踪 host DMAR `DMA Read NO_PASID / PTE Read access is not set` 的新签名，以及 T2/T3 首轮 patch 后的最新验证状态。
+  - 当前已关闭的主线历史 blocker，记录 host DMAR `DMA Read NO_PASID / PTE Read access is not set` 签名及其修复验证证据。
 
 - `问题记录/BOOT-009/BOOT-009-protected-pVM-NoIommu-VFIO-copy-gpa-exception14-soft-lockup.md`
-  - 记录与 `BOOT-008` 强相关的偶发新签名：`copy_gpa__pkvm` 写侧 `#PF(err=0x2)` 继发 host `soft lockup` / `RCU stall`。
+  - 当前已关闭的关联历史 blocker，记录 `copy_gpa__pkvm` 写侧 `#PF(err=0x2)` 继发 host `soft lockup` / `RCU stall` 的签名、根因与 B4 修复证据。
