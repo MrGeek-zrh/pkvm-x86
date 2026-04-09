@@ -2,7 +2,7 @@
 
 ## 状态
 
-- 当前状态: 待开始
+- 当前状态: 验证优先（T4A 已建样例，待执行）
 - 优先级: P0
 
 ## 目标
@@ -12,7 +12,7 @@
 ## 为什么单独拆分
 
 - 这是 correctness 前提，不是优化项。
-- 当前实现里“先销毁 guest/mmu，再处理 ptdev”是错误顺序。
+- 当前源码里 guest/mmu teardown 与 ptdev / VFIO 销毁时序存在生命周期风险，需要单独验证和收敛。
 - 更关键的是，现有 `pkvm_detach_ptdev()` 只是切回 host IOMMU 视图，不等于真正 quiesce DMA。
 
 ## 关键源码锚点
@@ -38,14 +38,21 @@
 - `pkvm_teardown_shadow_vm()` 当前先 `pkvm_pgstate_pgt_deinit()`，再 `pkvm_detach_ptdev()`。
 - `kvm_destroy_vm()` 当前是先 `kvm_arch_destroy_vm()`，再 `kvm_destroy_devices()`，因此 VFIO 设备释放晚于 pKVM VM 销毁。
 - 现有 `pkvm_detach_ptdev()` 会把 `ptdev->pgt` 直接切回 `host_vm.ept` 并调用 `pkvm_iommu_sync()`，这更像“恢复 host 视图”，不是“立即阻断 DMA”。
+- 截至 2026-04-07，上述结论仍然属于源码推导出的 correctness 风险，尚未对应到独立复现的 teardown panic / DMAR fault 签名。
 
 ## 建议实施方向
 
+- 当前先不直接进入代码修改，先按 `04A-P0-teardown-DMA生命周期风险验证与触发样例.md` 执行验证样例。
 - 不要直接把现有 `pkvm_detach_ptdev()` 前移当成最终解。
 - 需要单独设计一个“VM teardown 前的 ptdev quiesce/invalidate”步骤，至少满足：
   - 设备不再通过 `pgstate_pgt` 访问 pVM 页。
   - 设备也不能在 VFIO 设备对象仍存活时重新走回 host 侧旧 DMA 映射。
   - quiesce 完成后，guest mmu 才允许 undonate 页面。
+
+## 当前验证入口
+
+- 触发样例与证据采集规则见 `04A-P0-teardown-DMA生命周期风险验证与触发样例.md`。
+- 在 T4A 跑出独立签名前，当前文档继续作为“风险归因 + 修复方向”入口使用。
 
 ## 验收标准
 

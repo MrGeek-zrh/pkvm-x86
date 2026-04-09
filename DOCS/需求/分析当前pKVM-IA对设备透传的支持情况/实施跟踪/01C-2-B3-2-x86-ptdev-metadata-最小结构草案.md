@@ -2,7 +2,7 @@
 
 ## 状态
 
-- 当前状态: 进行中（第一轮 host / guest / crosvm 实现已基本成型，首轮端到端验证已完成但 `BOOT-007` 仍未解除）
+- 当前状态: 已完成当前阶段（第一轮 metadata / allowlist 通路已落地并用于解除 `BOOT-007`；当前保留为 allowlist 结构与 ABI 设计依据）
 - 所属主任务: `pkvm-x86#13`
 - 关联任务: `B3`
 - 关联上层方案: [01C-1-B3-1-protected-pVM-设备透传第一阶段上层方案.md](/home/mrgeek/pkvm-x86/DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/实施跟踪/01C-1-B3-1-protected-pVM-设备透传第一阶段上层方案.md)
@@ -41,13 +41,49 @@
     - [hypervisor/src/kvm/x86_64.rs](/home/mrgeek/pkvm-x86/crosvm/hypervisor/src/kvm/x86_64.rs) 的常量引用名
     - [arch/src/lib.rs](/home/mrgeek/pkvm-x86/crosvm/arch/src/lib.rs) 的错误枚举排序
     - [x86_64/src/lib.rs](/home/mrgeek/pkvm-x86/crosvm/x86_64/src/lib.rs) 的 `hv_cfg.protection_type` 字段访问
-- 当前尚未完成：
-  - host / guest / crosvm 三者联动的端到端运行验证
-- 已完成第一次端到端运行验证，当前结论是：
+- 首轮历史端到端运行验证（2026-03-24）曾显示：
   - `Loaded bzImage kernel` 后仍然触发 `vcpu hit unknown error: Bad address (os error 14)`
   - `Failed to map mmio page` 已从多次下降到 1 次
-  - 第一轮 `DIRECT_BAR` allowlist 已经不足以解除当前 blocker
-  - 当前更可疑的残余路径是 protected VM 下仍然存在的 config / virtual-config MMIO 访问链
+  - 第一轮 `DIRECT_BAR` allowlist 已经不足以解除当时的 blocker
+  - 当时更可疑的残余路径是 protected VM 下仍然存在的 config / virtual-config MMIO 访问链
+- 但在 2026-03-27 的后续 userspace/B2 路径收敛完成后，`BOOT-007` 已不再复现；本文件当前主要用于保留 allowlist 结构、ownership 和 ABI 约束，而不是继续承载该旧签名的主跟踪。
+
+## 2026-04-08 设计校正：当前 allowlist 不是 EPT 动态授权
+
+- 当前 x86 allowlist 的真实链路是：
+
+```text
+userspace / crosvm
+    SET_PTDEV_MMIO_METADATA
+        -> sync_ptdev_mmio_metadata
+pKVM/hyp
+    pkvm_update_vm_mmio_allowlist()
+        -> vm->mmio_allow_ranges[]
+guest boot early
+    PKVM_GHC_PTDEV_MMIO_INFO / READ
+        -> 本地缓存 allowlist
+guest runtime
+    pkvm_virt_mmio()
+        -> pkvm_mmio_allow_hit()
+            -> DIRECT_BAR : raw MMIO
+            -> miss : PKVM_GHC_IOREAD/IOWRITE
+```
+
+- 这条实现解决的是“guest 如何知道哪些 GPA 可以绕过 hypercall 直达 BAR MMIO”，不是“hyp 如何在首次 EPT fault 后长期放行 CPU MMIO”。
+- 关键源码证据是：
+  - `pkvm_set_ptdev_mmio_metadata()` / `pkvm_update_vm_mmio_allowlist()` 只是在 hyp 里把 metadata 派生成 VM 级 allowlist 快照
+  - `pkvm_get_ptdev_mmio_info()` / `pkvm_read_ptdev_mmio_allow_ranges()` 只是把这份快照导出给 guest
+  - `pkvm_init_mmio_allowlist()` 启动早期拉取 allowlist，`pkvm_mmio_allow_hit()` 在 guest 侧每次访问时本地判断
+  - `PKVM_GHC_IOREAD/IOWRITE` 在 `vmx.c` 里仍只是 “forward to host”
+  - `pgstate_pgt` 在 `pkvm_hyp_types.h` / `ept.c` 中被明确定义为 DMA mirror，不是 CPU MMIO permission table
+- 所以，这一版 allowlist 应被理解成：
+  - hyp 持有 authoritative metadata/allowlist
+  - guest 消费的静态直达提示
+  - 不是“trap once, then direct-map”的半成品
+- 如果后续真的要把 allowlist 设计推进到 “trap once, then direct-map”，新的设计问题就不只是字段结构了，而是还要额外补：
+  - CPU 侧 MMIO fault 的授权状态放在哪里
+  - 首次放行后如何 revoke / invalidate
+  - 它和当前 `pgstate_pgt` 的 DMA mirror 语义如何彻底分离
 
 ## 为什么当前 `struct pkvm_ptdev` 不够
 
@@ -305,17 +341,19 @@ pkvm_mmio_read*/write*()
 ## 当前结论
 
 - `ptdev metadata` 不是为了替代 `struct pkvm_ptdev`，而是补齐它当前缺失的“设备资源语义”。
+- 当前第一轮实现进一步说明：allowlist 的现实现状应被理解为“guest 侧静态分流提示”，而不是 EPT 动态授权状态。
 - 第一阶段最合理的做法是：
   - `ptdev` 持有 identity / IOMMU / attachment
   - `ptdev_metadata` 持有富 MMIO 资源描述
-  - guest 只获取精简 allowlist
+  - guest 只获取精简 allowlist，并在 `pkvm_virt_mmio()` 里按访问点做本地命中判断
 
 ## 下一步
 
-- 在这个结构草案基础上，再继续收敛：
-  - userspace -> host KVM -> pKVM 的提交接口形态
-  - guest 的查询接口形态
-- 在这两项明确前，不进入代码实现。
+- 在当前第一轮实现已经落地的前提下，allowlist 设计调研更应继续回答：
+  - 当前 guest 本地缓存 allowlist 的模型，是否足以覆盖 remove-path / hotplug / revoke
+  - allowlist 是否应长期保持为 guest 消费视图，还是要升级成 hyp / CPU fault path 消费的授权状态
+  - 如果未来真的做 `trap once, then direct-map`，新的 CPU 侧状态机如何与 `pgstate_pgt` 的 DMA mirror 语义分离
+- 在这些问题没收口前，不建议把“trap once”直接当成现有 metadata ABI 的自然下一步。
 
 ## 最小接口草案
 

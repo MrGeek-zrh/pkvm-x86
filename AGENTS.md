@@ -13,8 +13,13 @@
 - GitHub 管理应遵循“旧问题关闭、新问题新建”的理念：
   - 已解决的旧签名应关闭并保留为历史 blocker。
   - 修复旧签名后暴露的新签名必须新建 issue，不能覆盖旧 issue 的历史语义。
+- 永远不要主动尝试全量编译 Linux 内核：
+  - 默认不运行 `make -j...`、`make bzImage`、`make bindeb-pkg` 等全量内核构建。
+  - 若需要验证内核改动，默认只提供最小编译目标或验证建议，由用户自行决定是否编译。
+  - 除非用户明确要求并确认范围，否则不要自行发起 Linux 内核编译，以避免长时间卡死。
 - 当需要分析代码实现和原理时，必须结合源码进行讲解，并引用相关文件路径。
 - 除非用户明确要求，否则分析内核代码时默认只分析 `/home/mrgeek/pkvm-x86/pKVM-IA` 下的代码。
+- 若任务明确涉及 ARM pKVM 参考实现、ARM 对照分析或 ARM 文档校对，默认分析 `/home/mrgeek/pkvm-x86/refs/android-kernel-common` 下的相关代码与文档（优先看 `arch/arm64/`、`drivers/virt/coco/pkvm-guest/`、`Documentation/virt/kvm/arm/`、`drivers/iommu/pkvm-pviommu.c`）。
 - 代码调用关系的临时展示使用 4 空格缩进来表示不同函数间的调用层级。
 - 若调用栈/调用链需要发布到 GitHub issue / PR / comment 中，必须放在 fenced code block 里（例如 ```text```），不要依赖普通段落中的前导空格缩进；否则 GitHub 会折叠缩进，导致层级难以阅读。
 - 对复杂任务进行分阶段推进时，必须同步维护对应的任务管理文件；当任务状态、阶段结论、当前阻塞或下一步发生实质变化后，应及时更新跟踪文档，而不是等到任务结束后一次性补写。

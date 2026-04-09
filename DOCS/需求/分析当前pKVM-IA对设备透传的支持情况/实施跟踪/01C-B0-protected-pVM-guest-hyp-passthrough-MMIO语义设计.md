@@ -2,7 +2,7 @@
 
 ## 状态
 
-- 当前状态: 进行中（设计收敛）
+- 当前状态: 已完成当前阶段（第一阶段 guest/hyp MMIO contract 已落地；当前保留为设计与复盘入口）
 - 优先级: B0（主线前置阻塞）
 - GitHub Task: `pkvm-x86#13`
 - 关联前置任务: `B1`
@@ -65,20 +65,30 @@
 
 ## 当前已确认事实
 
-- guest 侧当前把 `pv_ops.mmio.raw_*` 和 `pv_ops.mmio.pci_mmcfg_*` 全部改写成了 `PKVM_GHC_IOREAD/IOWRITE`：
+- guest 侧当前不是“所有 MMIO 都直接改写成 `PKVM_GHC_IOREAD/IOWRITE`”；更准确地说，`pv_ops.mmio.raw_*` 和 `pv_ops.mmio.pci_mmcfg_*` 都先汇聚到 `pkvm_virt_mmio()`，再由它按 allowlist 分流：
+  - 命中 `pkvm_mmio_allow_hit()` 的 `DIRECT_BAR` 区间时，走 `pkvm_direct_mmio_read/write()`，最终执行 `raw_read* / raw_write*`
+  - 未命中时，才退回 `mmio_read()/mmio_write()`，触发 `PKVM_GHC_IOREAD/IOWRITE`
   - `/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/coco/pkvm/pkvm.c`
 - `ioread/iowrite` 最终会落到 `readb/readl/writeb/writel`，而在 `CONFIG_PARAVIRT` 下这些宏被重定向到了 `pv_read*/pv_write*`：
   - `/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/include/asm/io.h`
   - `/home/mrgeek/pkvm-x86/pKVM-IA/lib/iomap.c`
-- 因而当前 guest 内核里并不存在“按 BAR 地址例外直达”的现成分流路径。
-- 不过 `io.h` 里保留了原始 `raw_read* / raw_write*` 实现，这意味着若后续在 `pkvm_virt_mmio()` 增加地址判断，技术上可以直接回退到原始 MMIO 读写，而不必完全重构 x86 MMIO 宏层。
+- allowlist 当前也不是 userspace 直接交给 guest 的表；host 侧提交的 `ptdev metadata` 会先在 hyp 里派生为 `vm->mmio_allow_ranges[]`，guest 再通过 `PKVM_GHC_PTDEV_MMIO_INFO/READ` 在启动早期拉取并缓存：
+  - `/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/ptdev.c`
+  - `/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/coco/pkvm/pkvm.c`
+  - `/home/mrgeek/pkvm-x86/pKVM-IA/include/uapi/linux/kvm_para.h`
+- 这意味着当前 allowlist 的直接消费者是 guest 的 `pkvm_mmio_allow_hit()`，不是 CPU 侧 EPT fault handler 或某个“首次 trap 后放行”的授权状态机。
+- `io.h` 里保留了原始 `raw_read* / raw_write*` 实现，这也是当前 allowlist 能在 `pkvm_virt_mmio()` 命中后直接回退到原生 MMIO 读写的基础。
 - x86 平台已有 `x86_platform.hyper.is_private_mmio(addr)` 这种“按物理 MMIO 地址分类”的架构钩子：
   - `/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/include/asm/x86_init.h`
   - `/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/mm/ioremap.c`
   - 但它当前控制的是 ioremap/private 属性，不是 `readl/writel` 的访问分发。
-- host 侧当前透传 attach 接口只把 `BDF/PASID` 传进 pKVM：
+- `pgstate_pgt` 在当前 x86 pKVM 里已经被明确定义成 protected VM 的 DMA mirror，而不是 CPU MMIO 权限表：
+  - `/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/pkvm_hyp_types.h`
+  - `/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/ept.c`
+- host 侧 `add_ptdev` 这条 attach 接口本身仍然只把 `BDF/PASID` 传进 pKVM；BAR/MMIO 资源语义是通过独立的 `SET_PTDEV_MMIO_METADATA -> sync_ptdev_mmio_metadata` 通路后加进去的：
   - `/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/vmx/pkvm/pkvm_host.c`
     - `add_device_to_pkvm() -> pkvm_hypercall(add_ptdev, vm_handle, devid, 0)`
+  - `/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/ptdev.c`
 - 这条路径已经体现了当前 pKVM 的基本 trust boundary：
   - host 负责“发现设备并发起请求”
   - 真正的 `ptdev` 状态和 IOMMU second-level 切换最终落在 pKVM/hyp，见
@@ -88,12 +98,46 @@
 - 反过来，当前 guest 的 `PKVM_GHC_IOREAD/IOWRITE` 在 pKVM/hyp 里会被直接“转发给 host”：
   - `/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/pkvm/vmx/vmx.c`
   - 这正说明“最终由 host 处理 MMIO 真相”不是我们想继续扩大的主线模式。
-- `ptdev.c` 现有注释也直接承认：当前既没有“让 pKVM 独立知道透传设备信息”的通道，也没有“让 protected VM 查询自身透传设备信息”的通道：
+- `pkvm_high.c` 的 `pkvm_check_emulate_instruction()` 也说明：对 protected vCPU 而言，host 侧 MMIO emulation 不应成为常态；pVM 正常模式应该是 enlightened hypercall，或者走 `#VE` 重试逻辑：
+  - `/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/vmx/pkvm_high.c`
+- `ptdev.c` 里的旧 `FIXME` 记录了早期能力缺口；当前虽然已经补上 `SET_PTDEV_MMIO_METADATA` 和 guest `INFO/READ` 查询通路，但这条新通路补的是“guest 可消费的 allowlist metadata”，不是“pKVM 独立维护的 CPU MMIO fault 授权表”：
   - `/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/ptdev.c`
 - crosvm 现有 VFIO PCI 路径已经能把可 mmap 的 BAR 子区间直接注册进 guest GPA：
   - `/home/mrgeek/pkvm-x86/crosvm/devices/src/pci/vfio_pci.rs`
     - `add_bar_mmap() -> register_memory()`
   - 这说明只要 guest 访问语义打通，BAR 直达并非完全没有基础。
+
+## 2026-04-08 补充：为什么当前实现不是“trap once, then direct-map”
+
+- 这次源码复盘后，需要把问题表述校正为：当前 x86 pKVM 并不是“硬件层把所有 pVM MMIO 都 trap 到 pKVM 再决定是否放行”；更准确地说，是 guest 在 `pkvm_guest_init_coco()` 里接管了 MMIO API 入口，把真正的分流点放在 `pkvm_virt_mmio()`。
+- 当前真实路径更接近：
+
+```text
+guest readl/writel
+    -> pkvm_virt_mmio()
+        -> 命中 allowlist
+            -> pkvm_direct_mmio_read/write()
+                -> raw_read/raw_write
+        -> 未命中 allowlist
+            -> mmio_read/mmio_write()
+                -> PKVM_GHC_IOREAD/IOWRITE
+                    -> host
+```
+
+- 这也解释了为什么现状不是“首次 trap 后长期直通”：
+  - `pkvm_update_vm_mmio_allowlist()` 只是把 `DIRECT_BAR` metadata 派生成 `vm->mmio_allow_ranges[]`；我没有看到任何代码把这份 allowlist 接到 CPU 侧 EPT fault handler、EPT promote，或“首 fault 后长期直通”的状态机。
+  - guest 侧 `pkvm_init_mmio_allowlist()` 在启动早期把 allowlist 整份拉到本地，后续每次访问都在 `pkvm_mmio_allow_hit()` 里做区间命中判断；这是“静态快照 + 本地软件分流”，不是“首次 fault 后修改硬件映射”。
+  - `PKVM_GHC_IOREAD/IOWRITE` 在 host 侧 `vmx.c` 里仍然只是 “forward to host”；`pkvm_high.c` 的注释也表明 protected vCPU 的 MMIO emulation 不应该成为常态主线。
+  - `pgstate_pgt` 已被明确收敛为 DMA mirror，服务 assigned device 的 IOMMU second-level root，并不是 CPU load/store 的 MMIO 授权表。
+- 因而如果后续真的要研究“trap once, then direct-map”，那已经不是当前 allowlist 字段设计的小修小补，而是要新增一条 CPU 侧 MMIO 授权与 revoke 状态机，至少还要回答：
+  - 首次由谁 trap、trap 到哪一层
+  - trap 后谁来改哪一份 EPT / shadow state
+  - detach / remove-path / hotplug 时如何 revoke 与 shootdown
+  - 这条 CPU 侧状态机与当前 DMA mirror 语义如何避免混用
+- 作为对照，当前仓库里的 arm64 更接近“映射期 guard + 运行期 stage-2 abort”的组合：
+  - `/home/mrgeek/pkvm-x86/pKVM-IA/arch/arm64/mm/ioremap.c`
+  - `/home/mrgeek/pkvm-x86/pKVM-IA/arch/arm64/kvm/mmu.c`
+  - 这也说明“trap once / fault-path authorize”并不是概念上完全不可想象，但它和当前 x86 allowlist 的落点不是同一套 plumbing。
 
 ## 本任务要回答的问题
 
@@ -113,6 +157,8 @@
   - 只先保证 BAR MMIO 直达
   - config space 继续走 host/emulated 路径
   - MSI-X 保持 trap/emulate
+- allowlist 最终应继续保持“guest 本地缓存的静态直达提示”，还是后续要升级成“hyp / CPU fault path 消费的动态授权状态”？
+- 如果未来真的支持“trap once, then direct-map”，对应的 revoke / invalidate / generation 语义该如何定义？
 
 ## 当前推荐方向
 

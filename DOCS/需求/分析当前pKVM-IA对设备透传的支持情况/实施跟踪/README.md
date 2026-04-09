@@ -40,6 +40,8 @@ GitHub Issue / PR 现在作为状态真相来源；本目录主要保存较长�
   - 在 guest donate 成功后建立和维护 DMA 可见映射。
 - `04-P0-VM销毁前quiesce-ptdev-DMA.md`
   - 解决 teardown 生命周期和 DMA 仍可达的问题。
+- `04A-P0-teardown-DMA生命周期风险验证与触发样例.md`
+  - 先记录 T4 的触发样例、证据采集要求和 issue 规划边界。
 - `05-P1-prepopulate与首次attach路径.md`
   - 解决已有 donated 页面在首次 attach/hotplug 时的预填充。
 - `06-P1-VFIO-remove-path与失败回滚.md`
