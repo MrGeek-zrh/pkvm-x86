@@ -1,10 +1,17 @@
 {
     "git.ignoreLimitWarning": true,
     "gitlens.proxy": {},
-    "git.autoRepositoryDetection": "subFolders",
-    "git.repositoryScanMaxDepth": 2,
+    "git.autoRepositoryDetection": false,
     "git.scanRepositories": [
-        "pKVM-IA"
+        "pKVM-IA",
+        "crosvm"
+    ],
+    "git.ignoredRepositories": [
+        "linux",
+        "qemu",
+        "coreboot",
+        "uefi/shim",
+        "uefi/firmware-open"
     ],
     "scm.alwaysShowRepositories": true
 }

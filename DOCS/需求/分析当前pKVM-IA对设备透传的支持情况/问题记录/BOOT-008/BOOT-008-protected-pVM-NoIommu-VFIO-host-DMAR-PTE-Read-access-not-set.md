@@ -24,7 +24,11 @@
 - 在 2026-03-27 的后续带 patch 实机验证中，这条签名当前已暂不复现：
   - protected pVM 可启动到 Ubuntu login prompt
   - guest `dmesg` 已出现 `nvme nvme0: pci function 0000:01:00.0`
-  - guest 已完成 `/dev/nvme0n1` 直接读取与 `mkfs.ext4 -F /dev/nvme0n1`
+  - guest `readlink -f /sys/block/nvme0n1/device` 已指向 `0000:01:00.0`
+  - guest `lsblk` 已看到透传盘 `nvme0n1`
+  - guest 已完成 `/dev/nvme0n1` 整盘直接读取
+  - guest 已完成向 `/dev/nvme0n1` 连续写入 1 GiB 零数据
+  - guest 已完成 `mkfs.ext4 -F /dev/nvme0n1`
   - guest 关机退出后，host `dmesg` 仍未见新的 DMAR / IOMMU fault
   - host `dmesg` 全程未再出现：
     - `DMA Read NO_PASID`
@@ -32,6 +36,10 @@
 - 当前判断：
   - T2/T3 这轮 patch 已经较高置信度解除 `BOOT-008` 的主签名
   - 当前 teardown 退出路径已完成一轮验证，仍建议再补一次重复启动回归
+  - 2026-04-01 归档的强关联偶发问题 `BOOT-009` 已由 `B4` 独立修复：
+    - 对应签名是 `pkvm: exception 14 @ copy_gpa__pkvm ... err code 0x2`
+    - 对应内核提交：`b86cfd0230b9`
+    - 因为签名不同，它作为独立 bug 关闭保留，不并回 `BOOT-008`
   - 若要把“文件系统级数据写入完整成功”作为硬证据，还需补一轮显式 mount 后的 NVMe 写入/回读
 
 ## 根因（简述）
@@ -58,18 +66,24 @@
 ## 解决方案
 
 - 当前不应再把这个现象继续混记到 `BOOT-007`。
-- 当前 blocker 已经前移到 T2/T3 主线：
+- 当前 blocker 已经前移到 T2/T3 主线，并且已完成一轮真实 patch 落地：
   - [02-P0-pgstate_pgt语义收敛为DMA-mirror.md](/home/mrgeek/pkvm-x86/DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/实施跟踪/02-P0-pgstate_pgt语义收敛为DMA-mirror.md)
   - [03-P0-donate后同步runtime-DMA-mirror.md](/home/mrgeek/pkvm-x86/DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/实施跟踪/03-P0-donate后同步runtime-DMA-mirror.md)
-- 当前优先方向：
-  - T2：把 `pgstate_pgt` 语义真正收敛成 DMA mirror，而不是继续混用 page-state / undonate 语义
-  - T3：在 protected VM donate 成功后，把新 leaf 同步写入 `pgstate_pgt`，并对刷新的 `root_pa` 做 IOTLB flush
-- 在还没有开始真实修复前，这里只记录现象和根因收敛；等进入修复阶段，再补对应 `Task` 的方案摘要和 GitHub 关联。
+- 当前这轮 patch 已完成的关键动作：
+  - T2：`pgstate_pgt` 注释与 free 路径已收敛为 DMA mirror 语义，protected VM 的 shadow teardown 不再执行 `__pkvm_host_undonate_guest()`
+  - T3：`__pkvm_host_donate_guest()` 成功后已补一版 runtime DMA mirror 同步，并按 `pgstate_pgt->root_pa` 定向刷 IOTLB
+  - 生命周期补强：`shadow_vm` teardown 顺序已调整为先 detach ptdev，再 deinit `pgstate_pgt`
+- 当前状态已经从“等待真实修复”前移到“首轮修复后等待回归确认”：
+  - 首轮带 patch 实机验证里，这条签名已不再复现
+  - 当前已满足作为已修复历史 blocker 关闭保留的条件；后续重复启动与更强数据路径证据继续作为验证补全项维护
 
 ## 验证要点
 
 - 继续使用同样的 `NoIommu` 命令重测时：
   - guest 仍应能稳定启动到 login prompt
+  - guest 内应能看到 `nvme0n1`，且 sysfs 路径落到 `0000:01:00.0`
+  - 原始块设备直接读取应成功
+  - 原始块设备直接写入应成功
   - host dmesg 不应再出现：
     - `DMA Read NO_PASID`
     - `PTE Read access is not set`
@@ -77,7 +91,7 @@
   - `Failed to map mmio page; failed to create vm mapping`
   - `vcpu hit unknown error: Bad address (os error 14)`
 - 建议在关闭前再补：
-  - 一次同配置的重复启动
+  - 如需更强硬证据，再补一次显式 mount 后的 NVMe 写入/回读
 
 ## 原始日志（节选）
 
@@ -92,6 +106,8 @@
 
 - host dmesg 原始节选：
   - [20260327-host-dmar-fault.log](/home/mrgeek/pkvm-x86/DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/问题记录/BOOT-008/raw/20260327-host-dmar-fault.log)
+- guest 补充验证终端记录：
+  - [20260327-guest-nvme-dd-verify.log](/home/mrgeek/pkvm-x86/DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/问题记录/BOOT-008/raw/20260327-guest-nvme-dd-verify.log)
 
 ## 触发条件/复现场景
 
@@ -127,6 +143,88 @@ scripts/run-crosvm.sh
                     host DMAR fault: PTE Read access is not set
 ```
 
+### 修复前的 DMA fault 路径细化
+
+```text
+scripts/run-crosvm.sh
+    crosvm --vfio /sys/bus/pci/devices/0000:01:00.0
+        host/hyp
+            pkvm_attach_ptdev(...)                          (hyp/ptdev.c)
+                ptdev->pgt = &vm->pgstate_pgt
+                pkvm_iommu_sync(...)                        (hyp/iommu.c)
+                    sync_shadow_id(...)                     (hyp/shadow_iommu.c)
+                        sync_shadow_context_entry(...)      (hyp/shadow_iommu.c)
+                            context_lm_set_slptr(..., ptdev->pgt->root_pa)
+                            // 设备 DMA 的 second-level root 已切到 pgstate_pgt
+
+        guest runtime page population
+            kvm_mmu_page_fault(...)                         (arch/x86/kvm/mmu/mmu.c)
+                pkvm_hypercall(vm_mmu_map, ...)             (arch/x86/kvm/pkvm/pkvm.c)
+                    pkvm_vm_mmu_map(...)                    (arch/x86/kvm/pkvm/mmu.c)
+                        guest_mmu_map_leaf(...)             (arch/x86/kvm/pkvm/mmu.c)
+                            __pkvm_host_donate_guest(...)   (hyp/mem_protect.c)
+                                do_donate(...)
+                                    CPU 访问链建立
+                                    // 修复前这条路径到这里结束
+                                    // 只建立了 guest MMU / ownership 侧映射
+                                    // 没有把新 GPA->HPA leaf 同步到 pgstate_pgt
+
+        device DMA                                          [基于 NoIommu 语义和 DMAR 日志的推断]
+            NVMe 发起 DMA Read (NO_PASID)
+                Intel IOMMU walks ptdev->pgt == pgstate_pgt
+                    pgstate_pgt 上该 GPA 对应的 runtime leaf 缺失 / stale
+                    或 DMA 可见 leaf 的 read 权限没有正确准备好
+                        host DMAR fault
+                            [DMA Read NO_PASID]
+                            [fault reason 0x06] PTE Read access is not set
+```
+
+### 加入方案后的 DMA 路径
+
+```text
+scripts/run-crosvm.sh
+    crosvm --vfio /sys/bus/pci/devices/0000:01:00.0
+        host/hyp
+            pkvm_attach_ptdev(...)                          (hyp/ptdev.c)
+                ptdev->pgt = &vm->pgstate_pgt
+                pkvm_iommu_sync(...)                        (hyp/iommu.c)
+                    sync_shadow_id(...)                     (hyp/shadow_iommu.c)
+                        sync_shadow_context_entry(...)      (hyp/shadow_iommu.c)
+                            context_lm_set_slptr(..., ptdev->pgt->root_pa)
+                            // 设备 DMA 的 second-level root 仍然指向 pgstate_pgt
+
+        guest runtime page population
+            kvm_mmu_page_fault(...)                         (arch/x86/kvm/mmu/mmu.c)
+                pkvm_hypercall(vm_mmu_map, ...)             (arch/x86/kvm/pkvm/pkvm.c)
+                    pkvm_vm_mmu_map(...)                    (arch/x86/kvm/pkvm/mmu.c)
+                        guest_mmu_map_leaf(...)             (arch/x86/kvm/pkvm/mmu.c)
+                            __pkvm_host_donate_guest(...)   (hyp/mem_protect.c)
+                                do_donate(...)
+                                    CPU 访问链建立
+                                pkvm_shadow_vm_sync_dma_mirror(...)
+                                    pkvm_pgtable_sync_map_range(guest_pgt,
+                                                                &vm->pgstate_pgt,
+                                                                gpa, size, ...)
+                                        pkvm_pgstate_pgt_map_leaf(...)
+                                            strip PKVM_PAGE_STATE_PROT_MASK
+                                            建立 DMA-visible GPA->HPA leaf
+                                pkvm_iommu_flush_iotlb(&vm->pgstate_pgt, gpa, size)
+
+        device DMA                                          [基于 NoIommu 语义和 DMAR 日志的推断]
+            NVMe 发起 DMA Read (NO_PASID)
+                Intel IOMMU walks ptdev->pgt == pgstate_pgt
+                    这次 pgstate_pgt 已经有对应的 fresh runtime leaf
+                    DMA 可见 read 权限来自刚同步进去的 mirror leaf
+                        DMA 访问成功
+                        host 不再报 PTE Read access is not set
+```
+
+### NoIommu 模式下 DMA 路径的特殊性
+
+- guest 不暴露虚拟 IOMMU，设备直接使用 pasid=0 (NO_PASID)
+- 设备 DMA 地址直接经过 ptdev->pgt (即 pgstate_pgt) 翻译
+- 因此 pgstate_pgt 必须包含设备 DMA 可能访问的所有 GPA 范围的正确映射
+
 ## 影响
 
 - protected pVM + VFIO(`NoIommu`) 的 guest 启动链已经明显前移，不再被 `BOOT-007` 阻塞。
@@ -147,10 +245,16 @@ scripts/run-crosvm.sh
   - `pkvm_attach_ptdev()` 会把 IOMMU second-level root 切到 `vm->pgstate_pgt`
 - [iommu.c](/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/iommu.c)
   - `pkvm_iommu_sync()` 负责把新的 `ptdev->pgt->root_pa` 同步到 IOMMU context / PASID entry
+- [shadow_iommu.c](/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/shadow_iommu.c)
+  - `sync_shadow_context_entry()` 在 legacy mode 下设置 shadow context entry 的 SLPTR 指向 `ptdev->pgt`
+  - `sync_shadow_pgt()` 用于同步 shadow IOMMU second-level page table
+  - `shadow_pgt_map_leaf()` 维护 shadow IOMMU 页表映射的 HPA refcount
 - [mmu.c](/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/pkvm/mmu.c)
   - `guest_mmu_map_leaf()` 是 protected VM donate 的天然 runtime hook 点
 - [ept.c](/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/ept.c)
   - `pgstate_pgt` 当前仍带有 teardown undonate 语义，和纯 DMA mirror 目标不一致
+- [iommu_internal.h](/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/iommu_internal.h)
+  - `context_lm_set_slptr()` 设置 context entry 的 second-level page table pointer
 
 ## 备注
 

@@ -20,3 +20,7 @@
 output/
 !AGENTS.md
 !pKVM-IA/
+
+.auto-coder/
+/actions/
+/output.txt

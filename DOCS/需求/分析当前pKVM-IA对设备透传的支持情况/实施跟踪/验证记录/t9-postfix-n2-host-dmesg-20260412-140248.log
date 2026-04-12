@@ -1,0 +1,27 @@
+[Sun Apr 12 13:48:59 2026] ACPI: DMAR 0x000000007FFE301F 0000A0 (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[Sun Apr 12 13:48:59 2026] ACPI: Reserving DMAR table memory at [mem 0x7ffe301f-0x7ffe30be]
+[Sun Apr 12 13:48:59 2026] DMAR: IOMMU enabled
+[Sun Apr 12 13:48:59 2026] DMAR: Scalable mode is disallowed
+[Sun Apr 12 13:49:00 2026] DMAR: Host address width 48
+[Sun Apr 12 13:49:00 2026] DMAR: DRHD base: 0x000000fed90000 flags: 0x0
+[Sun Apr 12 13:49:00 2026] DMAR: dmar0: reg_base_addr fed90000 ver 1:0 cap d2008c222f0686 ecap f00f5e
+[Sun Apr 12 13:49:00 2026] DMAR: ATSR flags: 0x1
+[Sun Apr 12 13:49:00 2026] DMAR-IR: IOAPIC id 0 under DRHD base  0xfed90000 IOMMU 0
+[Sun Apr 12 13:49:00 2026] DMAR-IR: Queued invalidation will be enabled to support x2apic and Intr-remapping.
+[Sun Apr 12 13:49:00 2026] DMAR-IR: Enabled IRQ remapping in x2apic mode
+[Sun Apr 12 13:49:00 2026] pci 0000:02:00.0: [1b36:0010] type 00 class 0x010802 PCIe Endpoint
+[Sun Apr 12 13:49:00 2026] pci 0000:02:00.0: BAR 0 [mem 0xfe600000-0xfe603fff 64bit]
+[Sun Apr 12 13:49:01 2026] pkvm: about to init IOMMU: enable_pkvm=1 pkvm_enabled=1 ret=0
+[Sun Apr 12 13:49:01 2026] DMAR: No RMRR found
+[Sun Apr 12 13:49:01 2026] DMAR: No SATC found
+[Sun Apr 12 13:49:01 2026] DMAR: dmar0: Using Queued invalidation
+[Sun Apr 12 13:49:01 2026] DMAR: pkvm-debug: iommu0 set_root_entry: pkvm_enabled=1 enable_pkvm=1 tsc_khz=2800000 timeout_cycles=28000000000
+[Sun Apr 12 13:49:01 2026] DMAR: IOMMU batching disallowed due to virtualization
+[Sun Apr 12 13:49:01 2026] pci 0000:02:00.0: Adding to iommu group 9
+[Sun Apr 12 13:49:01 2026] DMAR: Intel(R) Virtualization Technology for Directed I/O
+[Sun Apr 12 13:49:01 2026] nvme nvme0: pci function 0000:01:00.0
+[Sun Apr 12 13:49:01 2026] nvme nvme1: pci function 0000:02:00.0
+[Sun Apr 12 13:49:02 2026] nvme nvme0: 32/0/0 default/read/poll queues
+[Sun Apr 12 13:49:02 2026] nvme nvme1: 32/0/0 default/read/poll queues
+[Sun Apr 12 13:49:02 2026] nvme nvme0: Ignoring bogus Namespace Identifiers
+[Sun Apr 12 13:49:02 2026] nvme nvme1: Ignoring bogus Namespace Identifiers

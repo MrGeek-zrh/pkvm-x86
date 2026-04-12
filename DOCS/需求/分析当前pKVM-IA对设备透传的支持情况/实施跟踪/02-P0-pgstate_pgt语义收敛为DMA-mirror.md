@@ -39,7 +39,7 @@
 - 已在 [ept.c](/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/ept.c) 的 `pkvm_pgstate_pgt_free_leaf()` 去掉 protected VM 路径上的 `__pkvm_host_undonate_guest()`，改为只释放 mirror leaf / 页表引用。
 - 已在 [pkvm.c](/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/pkvm.c) 把 shadow VM teardown 顺序调整为“先 detach ptdev，再 deinit pgstate_pgt”，避免 IOMMU 仍指向待销毁 mirror。
 - 2026-03-27 最新运行验证中，protected pVM 已可启动到 login prompt，guest 内可见 `nvme0n1`，host 侧未再出现 `DMA Read NO_PASID` / `PTE Read access is not set`。
-- 当前这台工作树仍缺 `pKVM-IA/.config`，因此没有在本工作树内补做独立增量编译记录；当前结论来自已启动到新内核后的实机验证。
+- 已完成手动增量编译验证，当前可复用带 `.config` 的构建树完成 host 内核构建；当前结论同时来自编译通过后的实机验证。
 
 ## 最新验证证据
 

@@ -9,6 +9,10 @@
 - [B3 上层与 MMIO 语义设计](/home/mrgeek/pkvm-x86/DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/实施跟踪/01C-B0-protected-pVM-guest-hyp-passthrough-MMIO语义设计.md)
 - [B3-1 第一阶段上层方案](/home/mrgeek/pkvm-x86/DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/实施跟踪/01C-1-B3-1-protected-pVM-设备透传第一阶段上层方案.md)
 
+配套阅读：
+
+- [ARM-pKVM-MMIO_GUARD与stage-2-abort路径讲解.md](/home/mrgeek/pkvm-x86/DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/参考实现/ARM-pKVM-MMIO_GUARD与stage-2-abort路径讲解.md)
+
 ## 当前参考版本
 
 - Android common kernel

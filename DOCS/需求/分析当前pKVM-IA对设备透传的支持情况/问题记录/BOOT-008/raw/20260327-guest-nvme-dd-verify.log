@@ -1,0 +1,24 @@
+ubuntu@localhost:~$ readlink -f /sys/block/nvme0n1/device
+/sys/devices/pci0000:00/0000:00:05.0/0000:01:00.0/nvme/nvme0
+
+ubuntu@localhost:~$ lsblk
+NAME    MAJ:MIN RM SIZE RO TYPE MOUNTPOINTS
+vda     253:0    0  10G  0 disk
+└─vda1  253:1    0  10G  0 part /
+nvme0n1 259:0    0   8G  0 disk
+
+顺序读取整块盘。系统会输出吞吐量和总耗时。
+ubuntu@localhost:~$ sudo dd if=/dev/nvme0n1 of=/dev/null bs=4M iflag=direct status=progress
+1879048192 bytes (1.9 GB, 1.8 GiB) copied, 2 s, 938 MB/s
+7751073792 bytes (7.8 GB, 7.2 GiB) copied, 7 s, 1.1 GB/s
+2048+0 records in
+2048+0 records out
+8589934592 bytes (8.6 GB, 8.0 GiB) copied, 7.67083 s, 1.1 GB/s
+
+向盘头连续写入零。
+ubuntu@localhost:~$ sudo dd if=/dev/zero of=/dev/nvme0n1 bs=4M count=256 oflag=direct conv=fdatasync status=progress
+968884224 bytes (969 MB, 924 MiB) copied, 1 s, 968 MB/s
+1073741824 bytes (1.1 GB, 1.0 GiB) copied, 1.09483 s, 981 MB/s
+256+0 records in
+256+0 records out
+1073741824 bytes (1.1 GB, 1.0 GiB) copied, 1.68674 s, 637 MB/s
