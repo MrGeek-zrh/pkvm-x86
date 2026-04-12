@@ -34,6 +34,12 @@ GitHub Issue / PR 现在作为状态真相来源；本目录主要保存较长�
   - 细化第一阶段所需的 x86 `ptdev metadata` 最小字段集、ownership 和 guest 可见 allowlist。
 - `01D-B4-protected-pVM-allowlist-guest-gpa回写路径修复.md`
   - 单独收敛 `BOOT-009`：修正 hyp 对 protected guest allowlist 缓冲区的 GPA 回写语义。
+- `01E-B5-protected-pVM-运行期Host不可信设备校验方案设计.md`
+  - 单独收敛“启动阶段可信、运行期 Host 不可信”前提下的设备校验 trust model 与 attach 边界。
+- `01E-1-B5-1-启动期platform-manifest可信设备名单方案.md`
+  - 单独细化 `B5` 的第一个问题：如何冻结并 enforce 启动期可信设备名单，拦住运行期新设备注入。
+- `01E-2-T9-B5-1-platform-manifest与checked-ptdev创建实现.md`
+  - 承接 `B5-1` 的实现阶段，记录 manifest 冻结、checked helper 和 legacy attach 接入顺序。
 - `02-P0-pgstate_pgt语义收敛为DMA-mirror.md`
   - 把 `pgstate_pgt` 从“页状态 + teardown 回收”收敛为“纯 DMA mirror”。
 - `03-P0-donate后同步runtime-DMA-mirror.md`

@@ -90,3 +90,4 @@
 
 - `ARM-pKVM-到-x86-设计映射表.md`
 - `ARM-pKVM-MMIO_GUARD与stage-2-abort路径讲解.md`
+- `ARM-pKVM-设备身份校验方案（从抽象到具体）.md`

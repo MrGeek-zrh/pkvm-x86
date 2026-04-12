@@ -172,6 +172,12 @@ pkvm-x86 Issue
   - `pkvm-x86#9` `TASK`: T5 prepopulate 与首次 attach 路径
   - `pkvm-x86#10` `TASK`: T6 VFIO remove-path 与失败回滚
   - `pkvm-x86#11` `TASK`: T7 端到端验证矩阵与回归
+- 后续新增 issues
+  - `pkvm-x86#15` `BUG`: BOOT-008 protected pVM NoIommu VFIO host DMAR PTE Read access is not set
+  - `pkvm-x86#17` `TASK`: T8 当前 T2/T3 patch review follow-up：首次 attach 覆盖与 mirror sync 失败语义
+  - `pkvm-x86#18` `BUG`: BOOT-009 protected pVM NoIommu VFIO copy_gpa exception 14 / soft lockup
+  - `pkvm-x86#19` `TASK`: B4 protected pVM allowlist guest-GPA 回写路径修复
+  - `pkvm-x86#20` `TASK`: B5 protected pVM 运行期 Host 不可信前提下的设备校验方案设计
 
 ## 当前流程边界
 

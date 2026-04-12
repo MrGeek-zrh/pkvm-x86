@@ -1,0 +1,106 @@
+# N2 host dmesg filtered
+# date_utc=2026-04-12T12:44:45+00:00
+# kernel=Linux ubuntu-vm 6.12.0-pkvm-ia #5 SMP PREEMPT_DYNAMIC Sat Apr 11 08:16:26 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux
+[Sun Apr 12 12:16:55 2026] Linux version 6.12.0-pkvm-ia (mrgeek@ubuntu-vm) (gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, GNU ld (GNU Binutils for Ubuntu) 2.42) #5 SMP PREEMPT_DYNAMIC Sat Apr 11 08:16:26 UTC 2026
+[Sun Apr 12 12:16:55 2026] Command line: BOOT_IMAGE=/vmlinuz-6.12.0-pkvm-ia root=UUID=0905329d-4022-4692-bb5d-b614c117dd8c ro console=tty1 console=ttyS0 kvm-intel.pkvm=1 intel_iommu=on,sm_off clearcpuid=amx_tile
+[Sun Apr 12 12:16:55 2026] ACPI: DMAR 0x000000007FFE3019 0000A0 (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[Sun Apr 12 12:16:55 2026] ACPI: Reserving DMAR table memory at [mem 0x7ffe3019-0x7ffe30b8]
+[Sun Apr 12 12:16:55 2026] Kernel command line: BOOT_IMAGE=/vmlinuz-6.12.0-pkvm-ia root=UUID=0905329d-4022-4692-bb5d-b614c117dd8c ro console=tty1 console=ttyS0 kvm-intel.pkvm=1 intel_iommu=on,sm_off clearcpuid=amx_tile
+[Sun Apr 12 12:16:55 2026] DMAR: IOMMU enabled
+[Sun Apr 12 12:16:55 2026] DMAR: Scalable mode is disallowed
+[Sun Apr 12 12:16:55 2026] Unknown kernel command line parameters "BOOT_IMAGE=/vmlinuz-6.12.0-pkvm-ia", will be passed to user space.
+[Sun Apr 12 12:16:55 2026] DMAR: Host address width 48
+[Sun Apr 12 12:16:55 2026] DMAR: DRHD base: 0x000000fed90000 flags: 0x0
+[Sun Apr 12 12:16:55 2026] DMAR: dmar0: reg_base_addr fed90000 ver 1:0 cap d2008c222f0686 ecap f00f5e
+[Sun Apr 12 12:16:55 2026] DMAR: ATSR flags: 0x1
+[Sun Apr 12 12:16:55 2026] DMAR-IR: IOAPIC id 0 under DRHD base  0xfed90000 IOMMU 0
+[Sun Apr 12 12:16:55 2026] DMAR-IR: Queued invalidation will be enabled to support x2apic and Intr-remapping.
+[Sun Apr 12 12:16:55 2026] DMAR-IR: Enabled IRQ remapping in x2apic mode
+[Sun Apr 12 12:16:56 2026] pkvm: mitigated CPU bug spectre_v1
+[Sun Apr 12 12:16:56 2026] pkvm: cannot mitigate CPU bug spectre_v2
+[Sun Apr 12 12:16:56 2026] pkvm: mitigated CPU bug spec_store_bypass
+[Sun Apr 12 12:16:56 2026] pkvm: mitigated CPU bug swapgs
+[Sun Apr 12 12:16:56 2026] pkvm: cannot mitigate CPU bug bhi
+[Sun Apr 12 12:16:56 2026] pkvm: unmitigated cpu bug spectre_v2
+[Sun Apr 12 12:16:56 2026] pkvm: unmitigated cpu bug taa
+[Sun Apr 12 12:16:56 2026] pkvm: unmitigated cpu bug eibrs_pbrsb
+[Sun Apr 12 12:16:56 2026] pkvm: unmitigated cpu bug bhi
+[Sun Apr 12 12:16:56 2026] pkvm: unmitigated cpu bug ibpb_no_ret
+[Sun Apr 12 12:16:56 2026] pkvm: unmitigated cpu bug its
+[Sun Apr 12 12:16:56 2026] pkvm: in total has 6 unmitigated cpu bugs
+[Sun Apr 12 12:16:56 2026] pkvm: allow pkvm to run with unmitigated CPU bugs
+[Sun Apr 12 12:16:56 2026] pkvm: to prevent pkvm running on such CPU, reboot with kvm-intel.pkvm_relax_cpu_bugs=false
+[Sun Apr 12 12:16:56 2026] pkvm_host_deprivilege_cpu: CPU0 in guest mode
+[Sun Apr 12 12:16:56 2026] pkvm_host_deprivilege_cpu: CPU5 in guest mode
+[Sun Apr 12 12:16:56 2026] pkvm_host_deprivilege_cpu: CPU6 in guest mode
+[Sun Apr 12 12:16:56 2026] pkvm_host_deprivilege_cpu: CPU4 in guest mode
+[Sun Apr 12 12:16:56 2026] pkvm_host_deprivilege_cpu: CPU16 in guest mode
+[Sun Apr 12 12:16:56 2026] pkvm_host_deprivilege_cpu: CPU3 in guest mode
+[Sun Apr 12 12:16:56 2026] pkvm_host_deprivilege_cpu: CPU7 in guest mode
+[Sun Apr 12 12:16:56 2026] pkvm_host_deprivilege_cpu: CPU1 in guest mode
+[Sun Apr 12 12:16:56 2026] pkvm_host_deprivilege_cpu: CPU2 in guest mode
+[Sun Apr 12 12:16:56 2026] pkvm_host_deprivilege_cpu: CPU11 in guest mode
+[Sun Apr 12 12:16:56 2026] pkvm_host_deprivilege_cpu: CPU10 in guest mode
+[Sun Apr 12 12:16:56 2026] pkvm_host_deprivilege_cpu: CPU17 in guest mode
+[Sun Apr 12 12:16:56 2026] pkvm_host_deprivilege_cpu: CPU15 in guest mode
+[Sun Apr 12 12:16:56 2026] pkvm_host_deprivilege_cpu: CPU12 in guest mode
+[Sun Apr 12 12:16:56 2026] pkvm_host_deprivilege_cpu: CPU18 in guest mode
+[Sun Apr 12 12:16:56 2026] pkvm_host_deprivilege_cpu: CPU19 in guest mode
+[Sun Apr 12 12:16:56 2026] pkvm_host_deprivilege_cpu: CPU14 in guest mode
+[Sun Apr 12 12:16:56 2026] pkvm_host_deprivilege_cpu: CPU13 in guest mode
+[Sun Apr 12 12:16:56 2026] pkvm_host_deprivilege_cpu: CPU9 in guest mode
+[Sun Apr 12 12:16:56 2026] pkvm_host_deprivilege_cpu: CPU21 in guest mode
+[Sun Apr 12 12:16:56 2026] pkvm_host_deprivilege_cpu: CPU22 in guest mode
+[Sun Apr 12 12:16:56 2026] pkvm_host_deprivilege_cpu: CPU20 in guest mode
+[Sun Apr 12 12:16:56 2026] pkvm_host_deprivilege_cpu: CPU23 in guest mode
+[Sun Apr 12 12:16:56 2026] pkvm_host_deprivilege_cpu: CPU25 in guest mode
+[Sun Apr 12 12:16:56 2026] pkvm_host_deprivilege_cpu: CPU24 in guest mode
+[Sun Apr 12 12:16:56 2026] pkvm_host_deprivilege_cpu: CPU29 in guest mode
+[Sun Apr 12 12:16:56 2026] pkvm_host_deprivilege_cpu: CPU31 in guest mode
+[Sun Apr 12 12:16:56 2026] pkvm_host_deprivilege_cpu: CPU27 in guest mode
+[Sun Apr 12 12:16:56 2026] pkvm_host_deprivilege_cpu: CPU28 in guest mode
+[Sun Apr 12 12:16:56 2026] pkvm_host_deprivilege_cpu: CPU8 in guest mode
+[Sun Apr 12 12:16:56 2026] pkvm_host_deprivilege_cpu: CPU26 in guest mode
+[Sun Apr 12 12:16:56 2026] pkvm_host_deprivilege_cpu: CPU30 in guest mode
+[Sun Apr 12 12:16:56 2026] pkvm_host_deprivilege_cpus: all cpus are in guest mode!
+[Sun Apr 12 12:16:56 2026] pkvm: pkvm_init_iommu: iommu_pool init mem_base=0x561d14000 nr_pages=18144
+[Sun Apr 12 12:16:57 2026] pkvm: about to init IOMMU: enable_pkvm=1 pkvm_enabled=1 ret=0
+[Sun Apr 12 12:16:57 2026] DMAR: No RMRR found
+[Sun Apr 12 12:16:57 2026] DMAR: No SATC found
+[Sun Apr 12 12:16:57 2026] DMAR: dmar0: Using Queued invalidation
+[Sun Apr 12 12:16:57 2026] DMAR: pkvm-debug: iommu0 set_root_entry: pkvm_enabled=1 enable_pkvm=1 tsc_khz=2800000 timeout_cycles=28000000000
+[Sun Apr 12 12:16:57 2026] pkvm: iommu0: RTADDR write 0x102af9000
+[Sun Apr 12 12:16:57 2026] pkvm: iommu0: GCMD write 0x46000000 (gsts=0x7000000 rta=0x102af9000)
+[Sun Apr 12 12:16:57 2026] pkvm: iommu0: SRTP request (gsts=0x7000000 rta=0x102af9000)
+[Sun Apr 12 12:16:57 2026] pkvm: activate_iommu: iommu0 enter (reg_phys=0xfed90000 reg_size=0x1000 cap=0xd2008c222f0606 ecap=0xf00f5e sm=0 coherent=0 activated=0)
+[Sun Apr 12 12:16:57 2026] pkvm: initialize_qi: iommu0 enter (qi_desc=0000000000000000 qies=1 iqa(v)=0x0 iqa(hw)=0x10034d000 head=0xa0 tail=0xa0)
+[Sun Apr 12 12:16:57 2026] pkvm: initialize_qi: iommu0 done (qi_desc=0000000011523916 qi_desc_status=000000000747416b)
+[Sun Apr 12 12:16:57 2026] pkvm: activate_iommu: iommu0 initialize_qi ret=0
+[Sun Apr 12 12:16:57 2026] pkvm: activate_iommu: iommu0 initialize_iommu_pgt ret=0 (root_pa=0x561d17000)
+[Sun Apr 12 12:16:57 2026] pkvm: activate_iommu: iommu0 sync_shadow_id ret=0
+[Sun Apr 12 12:16:57 2026] pkvm: activate_iommu: iommu0 set_root_table done
+[Sun Apr 12 12:16:57 2026] pkvm: activate_iommu: iommu0 host_ept_unmap reg_phys=[0xfed90000-0xfed90fff] size=0x1000
+[Sun Apr 12 12:16:57 2026] pkvm: activate_iommu: iommu0 host_ept_unmap ret=0
+[Sun Apr 12 12:16:57 2026] pkvm: activate_iommu: iommu0 activated
+[Sun Apr 12 12:16:57 2026] pkvm: iommu0: SRTP done, set RTPS (gsts=0x47000000)
+[Sun Apr 12 12:16:57 2026] DMAR: IOMMU batching disallowed due to virtualization
+[Sun Apr 12 12:16:57 2026] pkvm: iommu0: GCMD write 0x86000000 (gsts=0x47000000 rta=0x102af9000)
+[Sun Apr 12 12:16:57 2026] DMAR: Intel(R) Virtualization Technology for Directed I/O
+[Sun Apr 12 12:16:57 2026]     BOOT_IMAGE=/vmlinuz-6.12.0-pkvm-ia
+[Sun Apr 12 12:17:26 2026] pci 0000:02:00.0: [1b36:0010] type 00 class 0x010802 PCIe Endpoint
+[Sun Apr 12 12:17:26 2026] pci 0000:02:00.0: BAR 0 [mem 0x00000000-0x00003fff 64bit]
+[Sun Apr 12 12:17:26 2026] pci 0000:02:00.0: Adding to iommu group 9
+[Sun Apr 12 12:17:26 2026] pkvm_get_or_create_ptdev_checked: reject bdf 0x200 pasid 0x0 outside boot manifest
+[Sun Apr 12 12:17:26 2026] pci 0000:02:00.0: BAR 0 [mem 0xfe600000-0xfe603fff 64bit]: assigned
+[Sun Apr 12 12:17:26 2026] nvme nvme1: pci function 0000:02:00.0
+[Sun Apr 12 12:17:26 2026] nvme 0000:02:00.0: enabling device (0000 -> 0002)
+[Sun Apr 12 12:17:26 2026] DMAR: DRHD: handling fault status reg 2
+[Sun Apr 12 12:17:26 2026] DMAR: [DMA Read NO_PASID] Request device [02:00.0] fault addr 0xffffe000 [fault reason 0x02] Present bit in context entry is clear
+[Sun Apr 12 12:18:27 2026] nvme 0000:02:00.0: probe with driver nvme failed with error -5
+[Sun Apr 12 12:38:15 2026] pkvm_get_or_create_ptdev_checked: reject bdf 0x200 pasid 0x0 outside boot manifest
+[Sun Apr 12 12:38:17 2026] pkvm_get_or_create_ptdev_checked: reject bdf 0x200 pasid 0x0 outside boot manifest
+[Sun Apr 12 12:42:53 2026] pkvm_get_or_create_ptdev_checked: reject bdf 0x200 pasid 0x0 outside boot manifest
+[Sun Apr 12 12:43:40 2026] pkvm_get_or_create_ptdev_checked: reject bdf 0x200 pasid 0x0 outside boot manifest
+[Sun Apr 12 12:43:42 2026] pkvm-debug: first-owner table full; suppressing further overflow logs
+[Sun Apr 12 12:43:51 2026] DMAR: DRHD: handling fault status reg 2
+[Sun Apr 12 12:43:51 2026] DMAR: [DMA Read NO_PASID] Request device [02:00.0] fault addr 0x105bc0000 [fault reason 0x02] Present bit in context entry is clear

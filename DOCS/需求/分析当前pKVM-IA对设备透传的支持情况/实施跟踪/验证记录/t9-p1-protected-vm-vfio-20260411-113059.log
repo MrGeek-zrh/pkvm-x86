@@ -1,0 +1,16 @@
+# P1 protected VM VFIO passthrough
+# date_utc=2026-04-11T11:30:59+00:00
+# kernel=Linux ubuntu-vm 6.12.0-pkvm-ia #5 SMP PREEMPT_DYNAMIC Sat Apr 11 08:16:26 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux
+# command=timeout --foreground 120s sudo -n PROTECTED=1 SETUP_NET=0 VFIO_DEV=0000:01:00.0 ./scripts/run-crosvm.sh
+run-crosvm: SETUP_NET=0: skipping tap/iptables/sysctl network setup; guest will have no network device
+run-crosvm: enabling VFIO passthrough: 0000:01:00.0 (no virtual iommu, mapping all guest ram)
+[2026-04-11T11:30:59.210884133+00:00 DEBUG crosvm::crosvm::sys::linux] creating hypervisor: Kvm { device: Some("/dev/kvm") }
+[2026-04-11T11:30:59.211096428+00:00 DEBUG x86_64] 0x0000000000000000-0x000000000009ffff GuestMemoryRegion
+[2026-04-11T11:30:59.211124450+00:00 DEBUG x86_64] 0x00000000000a0000-0x00000000000fffff ReservedMemory
+[2026-04-11T11:30:59.211138303+00:00 DEBUG x86_64] 0x0000000000100000-0x00000000cfffffff GuestMemoryRegion
+[2026-04-11T11:30:59.211152071+00:00 DEBUG x86_64] 0x0000000100000000-0x000000012fffffff GuestMemoryRegion
+[2026-04-11T11:30:59.220133737+00:00 ERROR crosvm] exiting with error 1: failed to create vfio device
+
+Caused by:
+    failed to open /dev/vfio/7 group: Device or resource busy (os error 16)
+# exit_code=1

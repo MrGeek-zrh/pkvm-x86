@@ -1,0 +1,13 @@
+# reset vfio-pci bind for 0000:02:00.0 before N2 rerun
+# date_utc=2026-04-12T12:42:52+00:00
+02:00.0 Non-Volatile memory controller [0108]: Red Hat, Inc. QEMU NVM Express Controller [1b36:0010] (rev 02)
+	Subsystem: Red Hat, Inc. QEMU NVM Express Controller [1af4:1100]
+	Kernel driver in use: vfio-pci
+	Kernel modules: nvme
+0000:02:00.0
+0000:02:00.0
+/sys/bus/pci/drivers/vfio-pci
+02:00.0 Non-Volatile memory controller [0108]: Red Hat, Inc. QEMU NVM Express Controller [1b36:0010] (rev 02)
+	Subsystem: Red Hat, Inc. QEMU NVM Express Controller [1af4:1100]
+	Kernel driver in use: vfio-pci
+	Kernel modules: nvme

@@ -1,0 +1,45 @@
+# T9 N1/N2 precheck: hotplug source discovery
+# date_utc=2026-04-11T14:31:58+00:00
+# kernel=Linux ubuntu-vm 6.12.0-pkvm-ia #5 SMP PREEMPT_DYNAMIC Sat Apr 11 08:16:26 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux
+# cmdline=BOOT_IMAGE=/vmlinuz-6.12.0-pkvm-ia root=UUID=0905329d-4022-4692-bb5d-b614c117dd8c ro console=tty1 console=ttyS0 kvm-intel.pkvm=1 intel_iommu=on,sm_off clearcpuid=amx_tile
+
+## sriov_totalvfs
+no sriov_totalvfs files
+
+## pci before rescan
+0000:00:00.0
+0000:00:01.0
+0000:00:02.0
+0000:00:03.0
+0000:00:04.0
+0000:00:05.0
+0000:00:1f.0
+0000:00:1f.2
+0000:00:1f.3
+0000:01:00.0
+
+## qmp/socket hints
+
+## acpi hotplug
+/sys/firmware/acpi/hotplug/processor/enabled
+  1
+/sys/firmware/acpi/hotplug/force_remove
+  0
+/sys/firmware/acpi/hotplug/pci_root/enabled
+  1
+/sys/firmware/acpi/hotplug/memory/enabled
+  1
+
+## rescan
+
+## pci after rescan
+0000:00:00.0
+0000:00:01.0
+0000:00:02.0
+0000:00:03.0
+0000:00:04.0
+0000:00:05.0
+0000:00:1f.0
+0000:00:1f.2
+0000:00:1f.3
+0000:01:00.0
