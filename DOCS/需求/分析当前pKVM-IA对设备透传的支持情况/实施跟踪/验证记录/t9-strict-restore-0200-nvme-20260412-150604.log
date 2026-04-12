@@ -1,0 +1,4 @@
+# restore 0000:02:00.0 back to nvme
+# date_utc=2026-04-12T15:06:04+00:00
+# before=/sys/bus/pci/drivers/vfio-pci
+# after=/sys/bus/pci/drivers/nvme
