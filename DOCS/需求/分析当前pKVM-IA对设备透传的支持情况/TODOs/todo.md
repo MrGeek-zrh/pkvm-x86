@@ -15,9 +15,14 @@
 - [X] 明确 `check_donation()` / page-state / ownership 检查当前已经防住了什么，哪些约束已经在 hyp 里成立。
 - [X] 明确 Host 仍能控制的输入：`hpa`、`gpa`、`size`、`prot` 以及调用时机。
 - [X] 区分 Guest EPT 主建图与 `pgstate_pgt` DMA mirror，避免继续混写。
-- [ ] 判断是否仍存在可把错误 HPA 重绑进 protected guest GPA 的运行期路径。
+- [X] 列全 protected Guest EPT 的相关入口，并区分 Host runtime 建图、teardown 回收、guest 自发 share/unshare 与 DMA mirror / allowlist 路径。
+- [X] 确认 `vm_mmu_unmap` / `vm_mmu_age` / `SET_PTDEV_MMIO_METADATA` 不是 protected Guest 主 EPT 的额外运行期改图入口。
+- [X] 修正 `SW_PROTECTED_VM` / `PKVM_PROTECTED_VM` 混淆，重新压实真正的 `fault->pfn` 来源链。
+- [X] 分离透传 MMIO 的"访问处理路径"和 "Guest EPT 首次建图路径"。
+- [ ] 判断 B5 真正在意的 Guest EPT leaf 里，哪些是普通 RAM memslot，哪些是 `VM_IO | VM_PFNMAP` 的 BAR memslot，以及 hyp 当前分别校验到哪一级语义。
 
-- 第一轮梳理文档：`DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/实施跟踪/01E-3-B5-2-protected-pVM-Guest-EPT-建图边界初步梳理.md`
+- 设计文档：`DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/实施跟踪/01E-B5-2-protected-pVM-Guest-EPT建图边界设计.md`
+- 实现跟踪：`DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/实施跟踪/01E-T10-B5-2-protected-pVM-Guest-EPT建图边界实现.md`
 
 * [ ] manifest reject 后 vfio group busy 导致后续普通 VM 打开 /dev/vfio/9 失败
 

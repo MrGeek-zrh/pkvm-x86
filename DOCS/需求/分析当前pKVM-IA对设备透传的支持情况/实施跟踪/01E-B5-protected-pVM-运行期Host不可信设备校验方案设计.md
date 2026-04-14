@@ -51,64 +51,24 @@ ARM 参考仍然有价值，但它现在只作为更强威胁模型的参考，�
 
 ## 问题 2：Guest EPT 建图边界
 
-### 现在真正要问的是什么
+### 设计文档
 
-当前更准确的问题不是“BAR 是不是真设备”，而是：
+`DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/实施跟踪/01E-B5-2-protected-pVM-Guest-EPT建图边界设计.md`
 
-- protected pVM 的 Guest EPT `GPA -> HPA` 映射是谁在建；
-- Host 在运行期提交的 `hpa/gpa/prot` 等输入，会被 hyp 约束到什么程度；
-- Host 是否还能借由 donate/share/undonate 或其它映射更新路径，把 guest 原本不该看到的 HPA 重新绑到某个 GPA 上。
+### 实现跟踪
 
-### 必须先和 DMA mirror 区分开
+`DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/实施跟踪/01E-T10-B5-2-protected-pVM-Guest-EPT建图边界实现.md`
 
-这个问题首先讨论的是 **Guest EPT 本身**，不是 `pgstate_pgt`。
+### 四轮源码梳理后的核心结论
 
-- `pgstate_pgt` 在当前代码里的语义已经明确为 **DMA mirror**：
-  - `pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/pkvm_hyp_types.h`
-  - `pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/ept.c`
-- `__pkvm_host_donate_guest()` 成功后会额外同步 `pgstate_pgt`：
-  - `pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/mem_protect.c`
+1. **Host 运行期真正参与建图的主入口只有 `page fault -> vm_mmu_map -> __pkvm_host_donate_guest()` 这一条**
+2. **`vm_mmu_unmap()` / `vm_mmu_age()` 对 protected VM 已直接拒绝，不是额外运行期改图入口**
+3. **`pkvm_vm_mmu_destroy()` 里的 `__pkvm_host_undonate_guest()` 属于 teardown 回收，不是运行期改图**
+4. **`PKVM_GHC_SHARE_MEM / UNSHARE_MEM` 属于 guest 自发状态变换，复用的是当前 Guest EPT 已有 HPA**
+5. **MMIO allowlist / ptdev metadata / `pgstate_pgt` 只影响访问 contract 或 DMA mirror，不直接改主 Guest EPT**
+6. **candidate HPA 在进入 hyp 前就由 Host memslot/HVA 路径解析完成；hyp 只验证 donation 合法性，不验证语义绑定正确性**
 
-也就是说，下面两件事必须分开看：
-
-- Guest CPU 访问看到的主 Guest EPT 建图；
-- 设备 DMA 侧消费的 `pgstate_pgt` mirror。
-
-后续文档不再把它们混写成一条“BAR backing 真相源”问题。
-
-### 当前源码已经明确保证的点
-
-当前代码并不是“Host 可完全无约束随意篡改 Guest EPT”。至少已经有这几层限制：
-
-- `__pkvm_host_donate_guest()` 走 `do_donate()` 前，会先经过 `check_donation()`：
-  - `host_request_donation()` 要求源 HPA 仍是 Host owned
-  - `guest_ack_donation()` 要求目标 GPA 在 guest EPT 中当前是 `PKVM_NOPAGE`
-- 也就是说，旧映射不是随便覆盖；源页也不是随便拿一页就能塞给 guest。
-- protected guest 的 `read_gpa()` / `write_gpa()` 会先查 `pkvm_vm->mmu`，并拒绝把非 RAM HPA 当作普通内存访问：
-  - `pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/memory.c`
-
-对应当前最关键的建图链路是：
-
-```text
-Host runtime donate request
-    -> __pkvm_host_donate_guest(hpa, guest_pgt, gpa, size, prot, ...)
-        -> do_donate(...)
-            -> check_donation(...)
-                -> host_request_donation(...)
-                -> guest_ack_donation(...)
-            -> __do_donate(...)
-        -> protected VM only:
-            -> pkvm_shadow_vm_sync_dma_mirror(guest_pgt, gpa, size)
-```
-
-### 当前仍未收敛清楚的点
-
-但这还不等于问题 2 已经结束。当前仍需继续回答：
-
-- 运行期 Host 还能通过哪些入口参与 Guest EPT 建图或更新？
-- 除 `__pkvm_host_donate_guest()` / `__pkvm_host_undonate_guest()` 外，是否还存在其它会改动 protected guest `GPA -> HPA` 的路径？
-- 现有 ownership / page-state 检查是否已经足以覆盖“Host 不能把错误 HPA 绑进 guest”这个目标？
-- `SET_PTDEV_MMIO_METADATA`、MMIO allowlist、`ptdev` attach 这些路径，究竟和 Guest EPT 建图有没有直接关系，哪些只是访问 contract，哪些真的会改映射？
+**当前真正未收敛的问题**：对普通 RAM leaf，Host 在首次 page-fault 建图时仍通过 memslot/HVA 路径掌握 candidate HPA 选择权；hyp 只验证 ownership/page-state，不验证"HPA 在 guest 语义上就该对应这个 GPA"。这个问题应优先表述为**首次建图完整性缺口**，而不是"已有 leaf 重绑问题"。direct BAR / remapped PFNMAP leaf 是否进入 protected donate 语义，应继续单独核实。
 
 ## 当前结论
 
@@ -131,6 +91,7 @@ Host runtime donate request
 
 - 问题 1 设计：`DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/实施跟踪/01E-1-B5-1-启动期platform-manifest可信设备名单方案.md`
 - 问题 1 实现：`DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/实施跟踪/01E-2-T9-B5-1-platform-manifest与checked-ptdev创建实现.md`
-- 问题 2 第一轮源码梳理：`DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/实施跟踪/01E-3-B5-2-protected-pVM-Guest-EPT-建图边界初步梳理.md`
+- 问题 2 设计：`DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/实施跟踪/01E-B5-2-protected-pVM-Guest-EPT建图边界设计.md`
+- 问题 2 实现跟踪：`DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/实施跟踪/01E-T10-B5-2-protected-pVM-Guest-EPT建图边界实现.md`
 - DMA mirror 主线：`DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/实施跟踪/02-P0-pgstate_pgt语义收敛为DMA-mirror.md`
 - runtime mirror：`DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/实施跟踪/03-P0-donate后同步runtime-DMA-mirror.md`

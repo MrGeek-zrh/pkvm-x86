@@ -63,10 +63,12 @@
 - 来自 pKVM-IA 官方 issue `#46` 的维护者答复（用户提供）进一步确认：
   - 当前 `pKVM-IA` 尚不支持把设备分配给 protected pVM
   - 旧 PoC 曾有过部分支持，但在不再使用 `#VE` 做 pVM MMIO emulation、转而要求 pVM 直接使用 hypercall 后，这条路径已不再工作
-- 本地源码与该结论一致：
+- 这段旧判断现已需要按源码修正：
   - `/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/coco/pkvm/pkvm.c`
-  - `pv_ops.mmio.raw_read* / raw_write* / pci_mmcfg_*` 全部改成了 `PKVM_GHC_IOREAD/IOWRITE`
-  - 这意味着 pVM guest 目前并不会直接访问 passthrough 设备的物理 MMIO，而是把这些访问一律当成“由 host 模拟的 MMIO”
+  - `pv_ops.mmio.raw_read* / raw_write* / pci_mmcfg_*` 当前会先汇聚到 `pkvm_virt_mmio()`
+  - 命中 allowlist 的 `DIRECT_BAR` 时会 direct `raw_read*/raw_write*`
+  - 未命中时才退回 `PKVM_GHC_IOREAD/IOWRITE`
+  - 因而更准确的说法是：当时真正没建立起来的是 passthrough BAR 的 metadata/allowlist/direct-map 语义，而不是“所有 MMIO 永远一律由 host 模拟”
 - crosvm 的通用能力判断本意是：在 pKVM 场景下关闭 `ReadOnlyMemoryRegion`：
   - `/home/mrgeek/pkvm-x86/crosvm/hypervisor/src/kvm/mod.rs`
   - `VmCap::ReadOnlyMemoryRegion => !self.is_pkvm()`

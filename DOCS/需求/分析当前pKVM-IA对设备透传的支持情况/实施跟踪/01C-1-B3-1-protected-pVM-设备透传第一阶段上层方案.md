@@ -21,7 +21,7 @@
 ## 为什么先做这一层
 
 - 当前更深的 blocker 已经不是单纯的 crosvm fallback，而是 protected pVM 自身还没有成立的 passthrough MMIO 语义：
-  - guest 当前把 `pv_ops.mmio.raw_*` 和 `pv_ops.mmio.pci_mmcfg_*` 都改写成了 `PKVM_GHC_IOREAD/IOWRITE`，见 [pkvm.c](/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/coco/pkvm/pkvm.c)。
+  - guest 当前会先把 `pv_ops.mmio.raw_*` 和 `pv_ops.mmio.pci_mmcfg_*` 汇聚到 `pkvm_virt_mmio()`；命中 allowlist 的 `DIRECT_BAR` 时 direct `raw_read*/raw_write*`，未命中时才退回 `PKVM_GHC_IOREAD/IOWRITE`，见 [pkvm.c](/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/coco/pkvm/pkvm.c)。
   - host -> pKVM 的透传接口当前只传 `BDF/PASID`，没有 BAR/resource 元数据，见 [pkvm_host.c](/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/vmx/pkvm/pkvm_host.c) 和 [ptdev.c](/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/ptdev.c)。
 - 如果不先限定第一阶段目标，底层实现会同时牵扯：
   - config path
