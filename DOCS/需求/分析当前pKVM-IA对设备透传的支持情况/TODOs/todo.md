@@ -27,3 +27,17 @@
 * [ ] manifest reject 后 vfio group busy 导致后续普通 VM 打开 /dev/vfio/9 失败
 
 - 这个确定是bug吗？
+
+Host在初始化设备结果，通过VFIO框架给crossvm提供虚假的设备空间地址信息吧
+
+
+[ ] MMIO 直通情况下的fault处理：
+    Host hpa bdf
+
+    expected hpa region:
+        找到BDF对应的BAR空间
+        进一步把传来的hpa和设备的BAR空间的region地址范围进行比较，判断是否位于这些合法region内
+
+
+
+[ ] pVM启动时，启动的虚拟固件和启动镜像当前都是由Host用户态传递的，后续应该进行拦截检查。
