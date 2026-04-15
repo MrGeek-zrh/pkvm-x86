@@ -5,8 +5,7 @@
 - 当前状态: `pKVM-IA` 已补 boot-time BAR manifest、按当前 VM 已 attach 设备做 BAR 建图约束、direct BAR leaf 建图、VM destroy 跳过 BAR undonate，以及 BAR miss 提前 reject 日志；2026-04-15 复测确认旧 `BOOT-012` donation 签名已前移，但新阻塞落在 host-high `pkvm_pin_page()` 误 pin BAR/MMIO PFN
 - 所属主任务: `pkvm-x86#20`
 - 关联设计文档:
-  - `DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/实施跟踪/01E-B5-protected-pVM-运行期Host不可信设备校验方案设计.md`
-  - `DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/实施跟踪/01E-B5-2-protected-pVM-Guest-EPT建图边界设计.md`
+  - `DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/实施跟踪/01E-B5-protected-pVM-运行期Host不可信设备校验方案设计.md`（其中“问题 2：Guest EPT 建图边界”一节为当前设计入口）
 
 ## 当前阻塞
 

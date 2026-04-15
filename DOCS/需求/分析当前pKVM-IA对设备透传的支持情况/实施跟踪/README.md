@@ -35,13 +35,11 @@ GitHub Issue / PR 现在作为状态真相来源；本目录主要保存较长�
 - `01D-B4-protected-pVM-allowlist-guest-gpa回写路径修复.md`
   - 单独收敛 `BOOT-009`：修正 hyp 对 protected guest allowlist 缓冲区的 GPA 回写语义。
 - `01E-B5-protected-pVM-运行期Host不可信设备校验方案设计.md`
-  - 单独收敛"启动阶段可信、运行期 Host 不可信"前提下的两个问题：boot-time manifest 设备名单边界，以及 protected pVM Guest EPT `GPA -> HPA` 建图边界。
+  - 单独收敛"启动阶段可信、运行期 Host 不可信"前提下的两个问题：boot-time manifest 设备名单边界，以及 protected pVM Guest EPT `GPA -> HPA` 建图边界；当前也承载 `B5-2` 的设计结论。
 - `01E-1-B5-1-启动期platform-manifest可信设备名单方案.md`
   - 单独细化 `B5` 的问题 1：如何冻结并 enforce 启动期可信设备名单，拦住运行期新设备注入。
 - `01E-2-T9-B5-1-platform-manifest与checked-ptdev创建实现.md`
   - 承接 `B5-1` 的实现阶段，记录 manifest 冻结、checked helper 和 legacy attach 接入顺序；不覆盖 Guest EPT 建图边界问题。
-- `01E-B5-2-protected-pVM-Guest-EPT建图边界设计.md`
-  - 合并四轮源码梳理，统一整理 `B5` 问题 2 的入口分类、candidate HPA 来源链分析、语义约束缺口结论和独立边界说明。
 - `01E-T10-B5-2-protected-pVM-Guest-EPT建图边界实现.md`
   - 承接 `B5-2` 设计阶段的实现跟踪；待确定普通 RAM leaf 首次建图完整性缺口的修复方向。
 - `02-P0-pgstate_pgt语义收敛为DMA-mirror.md`
