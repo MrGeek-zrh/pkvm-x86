@@ -65,10 +65,11 @@ ARM 参考仍然有价值，但它现在只作为更强威胁模型的参考，�
 2. **`vm_mmu_unmap()` / `vm_mmu_age()` 对 protected VM 已直接拒绝，不是额外运行期改图入口**
 3. **`pkvm_vm_mmu_destroy()` 里的 `__pkvm_host_undonate_guest()` 属于 teardown 回收，不是运行期改图**
 4. **`PKVM_GHC_SHARE_MEM / UNSHARE_MEM` 属于 guest 自发状态变换，复用的是当前 Guest EPT 已有 HPA**
-5. **MMIO allowlist / ptdev metadata / `pgstate_pgt` 只影响访问 contract 或 DMA mirror，不直接改主 Guest EPT**
+5. **MMIO allowlist / ptdev metadata 只在 VM exit 时校验 GPA 合法性，不直接参与 page-fault 建图路径的 HPA 校验**
 6. **candidate HPA 在进入 hyp 前就由 Host memslot/HVA 路径解析完成；hyp 只验证 donation 合法性，不验证语义绑定正确性**
+7. **对 MMIO BAR 场景，现有 donation 校验体系（`find_mem_range()`/`hyp_page_count()`）语义是针对 host RAM page 的，不适用于 PCI 物理地址；hyp 缺少 device BAR 范围约束**
 
-**当前真正未收敛的问题**：对普通 RAM leaf，Host 在首次 page-fault 建图时仍通过 memslot/HVA 路径掌握 candidate HPA 选择权；hyp 只验证 ownership/page-state，不验证"HPA 在 guest 语义上就该对应这个 GPA"。这个问题应优先表述为**首次建图完整性缺口**，而不是"已有 leaf 重绑问题"。direct BAR / remapped PFNMAP leaf 是否进入 protected donate 语义，应继续单独核实。
+**当前真正未收敛的问题**：MMIO BAR 直通场景下，Host 在 page-fault 建图时传进来的是 PCI 物理地址（而非 host RAM page），`__pkvm_host_donate_guest` 的现有校验不覆盖 PCI BAR 地址空间，hyp 也没有手段判断这个 PCI 物理地址是否落在该设备 BAR 的正确范围内。普通 RAM 的首次建图完整性缺口（Host 通过 memslot/HVA 控制候选 HPA）应与 MMIO BAR 场景分开描述，两者的攻击面和缺失的校验不同。
 
 ## 当前结论
 
