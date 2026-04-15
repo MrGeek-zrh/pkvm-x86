@@ -43,8 +43,10 @@
 - `/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/coco/pkvm/pkvm.c` 中：
   - `pv_ops.mmio.raw_read* / raw_write*`
   - `pv_ops.mmio.pci_mmcfg_*`
-  - 都被统一接到了 `PKVM_GHC_IOREAD/IOWRITE`
-- 因而当前 protected pVM guest 连 passthrough 设备 BAR 的物理 MMIO 也不会直接访问。
+  - 先统一汇聚到 `pkvm_virt_mmio()`
+  - 命中 allowlist 的 `DIRECT_BAR` 时会 direct `raw_read*/raw_write*`
+  - 未命中时才退回 `PKVM_GHC_IOREAD/IOWRITE`
+- 因而当前更准确的问题不是“所有 BAR MMIO 一律不直接访问”，而是“若没有正确的 allowlist 和对应 Guest EPT 建图，passthrough BAR MMIO 仍会退回 host emulated path，不能形成可信 direct path”。
 - 这使得 B2 最多只能作为“把早期症状往后推”的实验性 workaround，而不是主线修复。
 
 ## 当前实施进展

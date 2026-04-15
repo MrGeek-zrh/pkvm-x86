@@ -1,0 +1,25 @@
+# date_utc=2026-04-15T10:49:29+00:00
+# kernel=Linux ubuntu-vm 6.12.0-pkvm-ia #8 SMP PREEMPT_DYNAMIC Wed Apr 15 09:37:32 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux
+# before_driver=/sys/bus/pci/drivers/nvme
+# after_driver=/sys/bus/pci/drivers/vfio-pci
+01:00.0 Non-Volatile memory controller [0108]: Red Hat, Inc. QEMU NVM Express Controller [1b36:0010] (rev 02) (prog-if 02 [NVM Express])
+	Subsystem: Red Hat, Inc. QEMU NVM Express Controller [1af4:1100]
+	Physical Slot: 0
+	Control: I/O+ Mem+ BusMaster- SpecCycle- MemWINV- VGASnoop- ParErr- Stepping- SERR+ FastB2B- DisINTx-
+	Status: Cap+ 66MHz- UDF- FastB2B- ParErr- DEVSEL=fast >TAbort- <TAbort- <MAbort- >SERR- <PERR- INTx-
+	Interrupt: pin A routed to IRQ 22
+	IOMMU group: 8
+	Region 0: Memory at fe800000 (64-bit, non-prefetchable) [size=16K]
+	Capabilities: [40] MSI-X: Enable- Count=65 Masked-
+		Vector table: BAR=0 offset=00002000
+		PBA: BAR=0 offset=00003000
+	Capabilities: [80] Express (v2) Endpoint, MSI 00
+		DevCap:	MaxPayload 128 bytes, PhantFunc 0, Latency L0s <64ns, L1 <1us
+			ExtTag- AttnBtn- AttnInd- PwrInd- RBE+ FLReset+ SlotPowerLimit 0W
+		DevCtl:	CorrErr- NonFatalErr- FatalErr- UnsupReq-
+			RlxdOrd- ExtTag- PhantFunc- AuxPwr- NoSnoop- FLReset-
+			MaxPayload 128 bytes, MaxReadReq 128 bytes
+		DevSta:	CorrErr- NonFatalErr- FatalErr- UnsupReq- AuxPwr- TransPend-
+		LnkCap:	Port #0, Speed 2.5GT/s, Width x1, ASPM L0s, Exit Latency L0s <64ns
+			ClockPM- Surprise- LLActRep- BwNot- ASPMOptComp-
+# host_trace=enabled

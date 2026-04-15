@@ -1,0 +1,14 @@
+# tracer: nop
+#
+# entries-in-buffer/entries-written: 2/2   #P:32
+#
+#                                _-----=> irqs-off/BH-disabled
+#                               / _----=> need-resched
+#                              | / _---=> hardirq/softirq
+#                              || / _--=> preempt-depth
+#                              ||| / _-=> migrate-disable
+#                              |||| /     delay
+#           TASK-PID     CPU#  |||||  TIMESTAMP  FUNCTION
+#              | |         |   |||||     |         |
+          crosvm-3104388 [011] ..... 232632.574887: enable_cap: (pkvm_vm_ioctl_enable_cap+0x0/0x170)
+          crosvm-3104388 [011] ..... 232632.583161: enable_cap: (pkvm_vm_ioctl_enable_cap+0x0/0x170)

@@ -1,0 +1,8 @@
+278:[Sun Apr 12 14:43:57 2026] pci 0000:00:02.0:   bridge window [mem 0xfe800000-0xfe9fffff]
+306:[Sun Apr 12 14:43:57 2026] pci 0000:01:00.0: BAR 0 [mem 0xfe800000-0xfe803fff 64bit]
+380:[Sun Apr 12 14:43:57 2026] pci 0000:00:02.0:   bridge window [mem 0xfe800000-0xfe9fffff]
+393:[Sun Apr 12 14:43:57 2026] pci_bus 0000:01: resource 1 [mem 0xfe800000-0xfe9fffff]
+832:[Wed Apr 15 08:31:12 2026] pkvm: host_initiate_donation: addr not in mem_range addr=0xfe800000 size=0x1000 owner_id=1
+833:[Wed Apr 15 08:31:12 2026] pkvm: do_donate: __do_donate failed ret=-1 size=0x1000 init=1 addr=0xfe800000 phys=0x0 comp=2 addr=0xd0000000 phys=0xfe800000 prot=0x77
+834:[Wed Apr 15 08:31:12 2026] pkvm: __pkvm_host_donate_guest failed ret=-1 hpa=0xfe800000 gpa=0xd0000000 size=0x1000 prot=0x77
+835:[Wed Apr 15 08:31:12 2026] kvm: pkvm: vm_mmu_map failed ret=-1 gpa=0xd0000000 hpa=0xfe800000 size=0x1000 writable=1 goal_level=1 pfn=0xfe800

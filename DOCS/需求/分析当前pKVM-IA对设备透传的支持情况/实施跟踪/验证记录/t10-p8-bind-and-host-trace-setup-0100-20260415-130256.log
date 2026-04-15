@@ -1,0 +1,9 @@
+# date_utc=2026-04-15T13:03:15Z
+# kernel=Linux ubuntu-vm 6.12.0-pkvm-ia #9 SMP PREEMPT_DYNAMIC Wed Apr 15 12:46:27 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux
+# before_driver=nvme
+# after_driver=vfio-pci
+01:00.0 Non-Volatile memory controller [0108]: Red Hat, Inc. QEMU NVM Express Controller [1b36:0010] (rev 02)
+	Subsystem: Red Hat, Inc. QEMU NVM Express Controller [1af4:1100]
+	Kernel driver in use: vfio-pci
+	Kernel modules: nvme
+# host_trace=enabled

@@ -1,0 +1,22 @@
+Script started on 2026-04-15 08:27:56+00:00 [COMMAND="cd /home/mrgeek/pkvm-x86 && env -u DEBUG PROTECTED=1 SETUP_NET=0 VFIO_DEV=0000:01:00.0 ./scripts/run-crosvm.sh" <not executed on terminal>]
+run-crosvm: SETUP_NET=0: skipping tap/iptables/sysctl network setup; guest will have no network device
+run-crosvm: enabling VFIO passthrough: 0000:01:00.0 (no virtual iommu, mapping all guest ram)
+[2026-04-15T08:27:56.199399706+00:00 DEBUG crosvm::crosvm::sys::linux] creating hypervisor: Kvm { device: Some("/dev/kvm") }
+[2026-04-15T08:27:56.199611291+00:00 DEBUG x86_64] 0x0000000000000000-0x000000000009ffff GuestMemoryRegion
+[2026-04-15T08:27:56.199647989+00:00 DEBUG x86_64] 0x00000000000a0000-0x00000000000fffff ReservedMemory
+[2026-04-15T08:27:56.199687275+00:00 DEBUG x86_64] 0x0000000000100000-0x00000000cfffffff GuestMemoryRegion
+[2026-04-15T08:27:56.199716314+00:00 DEBUG x86_64] 0x0000000100000000-0x000000012fffffff GuestMemoryRegion
+[2026-04-15T08:28:15.223790522+00:00 DEBUG devices::pci::vfio_pci] parsed device PCI address 0000:01:00.0
+[2026-04-15T08:28:15.224314344+00:00 INFO  crosvm::crosvm::sys::linux::device_helpers] Trying to attach block device: /home/mrgeek/pkvm-x86/images/guest/ubuntuguest.qcow2
+[2026-04-15T08:28:15.224424306+00:00 INFO  disk] disk size 8552644608
+[2026-04-15T08:28:15.280959204+00:00 DEBUG devices::pci::vfio_pci] set_gpe: gpe-nr 0 addr Some(PciAddress { bus: 1, dev: 0, func: 0 })
+[2026-04-15T08:28:15.282208841+00:00 DEBUG x86_64] 0x0000000000000000-0x000000000009ffff GuestMemoryRegion
+[2026-04-15T08:28:15.282391108+00:00 DEBUG x86_64] 0x00000000000a0000-0x00000000000fffff ReservedMemory
+[2026-04-15T08:28:15.282480367+00:00 DEBUG x86_64] 0x0000000000100000-0x00000000cfffffff GuestMemoryRegion
+[2026-04-15T08:28:15.282549141+00:00 DEBUG x86_64] 0x0000000100000000-0x000000012fffffff GuestMemoryRegion
+[2026-04-15T08:28:15.283740996+00:00 INFO  devices::sys::linux::acpi] Listening on acpi_mc_group of acpi_event family
+[2026-04-15T08:28:15.283968160+00:00 DEBUG x86_64::bzimage] setup_header file offset range: 0x01f1..0x026c
+[2026-04-15T08:28:15.289328902+00:00 INFO  x86_64] Loaded bzImage kernel
+[2026-04-15T08:28:15.289398039+00:00 DEBUG x86_64] kernel_max_cmdline_len=2047
+
+Script done on 2026-04-15 08:29:08+00:00 [COMMAND_EXIT_CODE="0"]

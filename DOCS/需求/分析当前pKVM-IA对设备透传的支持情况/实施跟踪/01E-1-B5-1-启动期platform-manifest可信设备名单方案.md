@@ -2,14 +2,14 @@
 
 ## 状态
 
-- 当前状态: 进行中（第一阶段实现已启动）
+- 当前状态: 已完成（实现与主验证已收口；B5 剩余问题已前移到 Guest EPT 建图边界）
 - 所属主任务: `pkvm-x86#20`
 - 关联任务: `B5`
 - 实现任务: `pkvm-x86#21`
 
 ## 要解决的问题
 
-这份文档只解决 `B5` 里的第一个问题：
+这份文档只解决 `B5` 的问题 1：
 
 - **如何阻止运行期不在启动期可信名单里的设备，被 attach 给 pVM**
 
@@ -21,7 +21,7 @@
 
 这份文档**不**解决：
 
-- Host 从“启动时已存在”的设备里挑错一个 attach 给 pVM
+- protected pVM Guest EPT `GPA -> HPA` 建图在运行期 Host 不可信前提下是否仍可被影响或篡改
 
 那个问题继续留在 `B5` 主文档讨论。
 
@@ -41,7 +41,7 @@
 
 ## 方案结论
 
-对于第一个问题，当前最合适的实现方式是：
+对于问题 1，当前最合适的实现方式是：
 
 1. 启动阶段基于 host kernel 已完成的 PCI 枚举，生成一份 `platform manifest`
 2. 在 `check_and_init_iommu(pkvm)` 阶段把这份 manifest 冻结到 `struct pkvm_hyp`
@@ -107,7 +107,7 @@ Host 修改 legacy context entry
 
 ## 为什么 enforcement 应卡在 `pkvm_attach_ptdev()` 边界
 
-第一个问题真正要钉住的不是“某个 ioctl 要不要报错”，而是：
+问题 1 真正要钉住的不是“某个 ioctl 要不要报错”，而是：
 
 - **manifest 外设备不能通过显式 attach 成功进入 pVM**
 
@@ -346,9 +346,8 @@ flowchart TD
 
 这份文档当前**不**讨论：
 
-- boot-known 设备里 attach 错设备
+- protected pVM Guest EPT `GPA -> HPA` 建图边界，以及运行期 Host 是否仍可影响建图
 - per-pVM 授权
-- BAR/MMIO 身份真相
 - scalable mode / `pasid != 0`
 - 运行期 remove-path / revoke
 

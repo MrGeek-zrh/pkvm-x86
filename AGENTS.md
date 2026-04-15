@@ -22,10 +22,12 @@
 - 若任务明确涉及 ARM pKVM 参考实现、ARM 对照分析或 ARM 文档校对，默认分析 `/home/mrgeek/pkvm-x86/refs/android-kernel-common` 下的相关代码与文档（优先看 `arch/arm64/`、`drivers/virt/coco/pkvm-guest/`、`Documentation/virt/kvm/arm/`、`drivers/iommu/pkvm-pviommu.c`）。
 - 代码调用关系的临时展示使用 4 空格缩进来表示不同函数间的调用层级。
 - 若调用栈/调用链需要发布到 GitHub issue / PR / comment 中，必须放在 fenced code block 里（例如 ```text```），不要依赖普通段落中的前导空格缩进；否则 GitHub 会折叠缩进，导致层级难以阅读。
+- 若调用栈/调用链需要写入仓库内的 Markdown 文档（尤其 `DOCS/...`）并希望后续可直接复用到 GitHub 或其它 Markdown 渲染环境，默认也应放在 fenced code block 里（例如 ```text```）；不要依赖普通段落中的前导空格缩进来维持层级。
 - 对复杂任务进行分阶段推进时，必须同步维护对应的任务管理文件；当任务状态、阶段结论、当前阻塞或下一步发生实质变化后，应及时更新跟踪文档，而不是等到任务结束后一次性补写。
 - `pkvm-x86` 默认作为总控仓库使用：GitHub Issue、Project、文档、复现脚本、自动化和任务状态以该仓库为主。
 - `pKVM-IA` 默认作为内核实现仓库使用：内核代码改动应在 `pKVM-IA` 中提交并通过独立 PR 管理。
 - commit message 默认采用“两行写法”：
+  - `git commit` 信息默认使用中文；若涉及固定术语，可在中文语句中保留必要英文关键词。
   - 第一行只写单一目标的简短概括。
   - 第二行补一行展开说明，交代这次提交主要同步了什么、为什么要做这一步。
   - 若需要更多细节，从第三行起继续补充；不要默认只写单行标题式 commit message。
@@ -36,6 +38,12 @@
   - 若只改 `pkvm-x86` 文档、脚本、自动化，只提交 `pkvm-x86 PR`。
   - 若 `pKVM-IA` 改动已经通过一轮验证，或需要把 superproject 固定到某个已验证的内核 commit，再提交 `pkvm-x86 PR` 更新 submodule 指针和相关文档。
   - `pkvm-x86 PR` 默认作为“集成快照 PR”使用，而不是要求每个内核提交都立即跟一个 superproject PR。
+- Git 分支管理默认采用“长期基线 + 短命题分支”：
+  - `pkvm-x86` 默认只保留 `main` 作为长期基线分支；`pKVM-IA` 默认只保留当前内核集成基线分支（如 `pvVMCS-POC-v6.12`）作为长期基线。
+  - 新任务必须从最新基线分支新开 topic branch，不要继续复用旧的 `snapshot-*`、`b3-*` 等历史上下文分支叠加新任务。
+  - 一个 PR 对应一个 topic branch；同一分支不要承载两个彼此独立的 PR 目标。
+  - PR 合并后，应先同步并快进本地基线分支，再删除已完成的本地/远端 topic branch，避免长期堆积。
+  - 删除分支前必须先确认没有未合并提交；应以提交祖先关系为准做检查，而不是只凭“改动看起来等价”就删除。
 - 一个 panic/报错签名对应一个独立 bug issue；如果修复旧签名后暴露出新签名，必须新建 issue，不能继续混在旧 issue 中追踪。
 - 同一技术问题如果同时包含“具体报错签名”和“实现修复动作”，应拆成 `Bug + Task` 两个 issue，而不是合并成一个：
   - `Bug` issue 负责记录唯一的 panic/报错签名、现象、日志和关闭条件。

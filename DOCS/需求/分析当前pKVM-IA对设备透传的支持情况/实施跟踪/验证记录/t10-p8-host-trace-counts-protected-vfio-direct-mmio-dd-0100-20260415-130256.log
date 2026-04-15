@@ -1,0 +1,46 @@
+# date_utc=2026-04-15T13:08:06Z
+HOST_SEV_MMIO_R=0
+HOST_SEV_MMIO_W=30
+--- trace tail ---
+# tracer: nop
+#
+# entries-in-buffer/entries-written: 30/30   #P:32
+#
+#                                _-----=> irqs-off/BH-disabled
+#                               / _----=> need-resched
+#                              | / _---=> hardirq/softirq
+#                              || / _--=> preempt-depth
+#                              ||| / _-=> migrate-disable
+#                              |||| /     delay
+#           TASK-PID     CPU#  |||||  TIMESTAMP  FUNCTION
+#              | |         |   |||||     |         |
+    crosvm_vcpu0-3066    [020] .....   499.983157: host_sev_mmio_w: (kvm_sev_es_mmio_write+0x0/0x190)
+    crosvm_vcpu0-3066    [020] .....   499.984680: host_sev_mmio_w: (kvm_sev_es_mmio_write+0x0/0x190)
+    crosvm_vcpu0-3066    [020] .....   499.999695: host_sev_mmio_w: (kvm_sev_es_mmio_write+0x0/0x190)
+    crosvm_vcpu0-3066    [020] .....   500.000092: host_sev_mmio_w: (kvm_sev_es_mmio_write+0x0/0x190)
+    crosvm_vcpu0-3066    [020] .....   504.060659: host_sev_mmio_w: (kvm_sev_es_mmio_write+0x0/0x190)
+    crosvm_vcpu0-3066    [020] .....   504.060831: host_sev_mmio_w: (kvm_sev_es_mmio_write+0x0/0x190)
+    crosvm_vcpu0-3066    [020] .....   504.060978: host_sev_mmio_w: (kvm_sev_es_mmio_write+0x0/0x190)
+    crosvm_vcpu0-3066    [020] .....   504.144016: host_sev_mmio_w: (kvm_sev_es_mmio_write+0x0/0x190)
+    crosvm_vcpu0-3066    [020] .....   504.148410: host_sev_mmio_w: (kvm_sev_es_mmio_write+0x0/0x190)
+    crosvm_vcpu1-3067    [031] .....   504.167267: host_sev_mmio_w: (kvm_sev_es_mmio_write+0x0/0x190)
+    crosvm_vcpu1-3067    [031] .....   504.167520: host_sev_mmio_w: (kvm_sev_es_mmio_write+0x0/0x190)
+    crosvm_vcpu1-3067    [031] .....   504.168861: host_sev_mmio_w: (kvm_sev_es_mmio_write+0x0/0x190)
+    crosvm_vcpu1-3067    [031] .....   504.169025: host_sev_mmio_w: (kvm_sev_es_mmio_write+0x0/0x190)
+    crosvm_vcpu0-3066    [020] .....   510.225194: host_sev_mmio_w: (kvm_sev_es_mmio_write+0x0/0x190)
+    crosvm_vcpu0-3066    [020] .....   510.226230: host_sev_mmio_w: (kvm_sev_es_mmio_write+0x0/0x190)
+    crosvm_vcpu0-3066    [020] .....   510.229493: host_sev_mmio_w: (kvm_sev_es_mmio_write+0x0/0x190)
+    crosvm_vcpu0-3066    [020] .....   510.230175: host_sev_mmio_w: (kvm_sev_es_mmio_write+0x0/0x190)
+    crosvm_vcpu0-3066    [020] .....   515.345215: host_sev_mmio_w: (kvm_sev_es_mmio_write+0x0/0x190)
+    crosvm_vcpu0-3066    [020] .....   525.075268: host_sev_mmio_w: (kvm_sev_es_mmio_write+0x0/0x190)
+    crosvm_vcpu0-3066    [020] .....   525.076244: host_sev_mmio_w: (kvm_sev_es_mmio_write+0x0/0x190)
+    crosvm_vcpu0-3066    [020] .....   525.078514: host_sev_mmio_w: (kvm_sev_es_mmio_write+0x0/0x190)
+    crosvm_vcpu0-3066    [020] .....   525.079137: host_sev_mmio_w: (kvm_sev_es_mmio_write+0x0/0x190)
+    crosvm_vcpu1-3067    [031] .....   530.195452: host_sev_mmio_w: (kvm_sev_es_mmio_write+0x0/0x190)
+    crosvm_vcpu1-3067    [031] .....   534.803883: host_sev_mmio_w: (kvm_sev_es_mmio_write+0x0/0x190)
+    crosvm_vcpu1-3067    [031] .....   534.805219: host_sev_mmio_w: (kvm_sev_es_mmio_write+0x0/0x190)
+    crosvm_vcpu0-3066    [020] .....   539.925343: host_sev_mmio_w: (kvm_sev_es_mmio_write+0x0/0x190)
+    crosvm_vcpu0-3066    [020] .....   539.926391: host_sev_mmio_w: (kvm_sev_es_mmio_write+0x0/0x190)
+    crosvm_vcpu0-3066    [020] .....   539.929318: host_sev_mmio_w: (kvm_sev_es_mmio_write+0x0/0x190)
+    crosvm_vcpu0-3066    [020] .....   539.929954: host_sev_mmio_w: (kvm_sev_es_mmio_write+0x0/0x190)
+    crosvm_vcpu1-3067    [031] .....   545.045582: host_sev_mmio_w: (kvm_sev_es_mmio_write+0x0/0x190)

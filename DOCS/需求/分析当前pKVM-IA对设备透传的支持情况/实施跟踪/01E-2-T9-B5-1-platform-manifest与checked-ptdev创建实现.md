@@ -33,6 +33,7 @@
 
 - 启动期构造并冻结 `boot-time platform manifest`
 - 运行期只在 hyp 的 pVM attach 边界执行 manifest 校验
+- 当前只覆盖 `B5` 的问题 1：设备对象入口控制
 - 使 manifest 外设备：
   - 不能走显式 attach 成功
   - 不能因为普通 VM / legacy shadow IOMMU 共享路径而被错误拦截
@@ -90,7 +91,7 @@
 
 ## 非目标
 
-- 不解决“启动期已知全集里 attach 错设备”的第二层授权问题
+- 不解决 protected pVM Guest EPT `GPA -> HPA` 建图边界问题，也不判断运行期 Host 是否仍可影响该建图路径
 - 不覆盖 scalable mode / `pasid != 0`
 - 不覆盖 Host fail-fast / userspace 预检查
 - 不覆盖 hot-remove / slot reuse / revoke / remove-path
@@ -470,7 +471,7 @@
 - `pasid != 0`
 - scalable mode / mixed mode
 - hot-remove / slot reuse
-- “启动期已知全集里 attach 错设备”的第二层授权问题
+- protected pVM Guest EPT `GPA -> HPA` 建图边界问题，以及运行期 Host 是否仍可影响该建图路径
 
 ### 后续探索性验证（不计入 T9 当前主验收）
 
