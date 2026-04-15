@@ -1,0 +1,16 @@
+# date_utc=2026-04-15T10:52:08+00:00
+# before_driver=/sys/bus/pci/drivers/vfio-pci
+# after_driver=/sys/bus/pci/drivers/nvme
+01:00.0 Non-Volatile memory controller [0108]: Red Hat, Inc. QEMU NVM Express Controller [1b36:0010] (rev 02) (prog-if 02 [NVM Express])
+	Subsystem: Red Hat, Inc. QEMU NVM Express Controller [1af4:1100]
+	Physical Slot: 0
+	Control: I/O+ Mem+ BusMaster+ SpecCycle- MemWINV- VGASnoop- ParErr- Stepping- SERR+ FastB2B- DisINTx+
+	Status: Cap+ 66MHz- UDF- FastB2B- ParErr- DEVSEL=fast >TAbort- <TAbort- <MAbort- >SERR- <PERR- INTx-
+	Latency: 0
+	Interrupt: pin A routed to IRQ 22
+	IOMMU group: 8
+	Region 0: Memory at fe800000 (64-bit, non-prefetchable) [size=16K]
+	Capabilities: <access denied>
+	Kernel driver in use: nvme
+	Kernel modules: nvme
+

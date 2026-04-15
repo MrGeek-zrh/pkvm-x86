@@ -1,0 +1,8 @@
+# date_utc=2026-04-15T13:12:21Z
+# before_driver=driver
+# driver_override_hex=286e756c6c290a
+# after_driver=nvme
+01:00.0 Non-Volatile memory controller [0108]: Red Hat, Inc. QEMU NVM Express Controller [1b36:0010] (rev 02)
+	Subsystem: Red Hat, Inc. QEMU NVM Express Controller [1af4:1100]
+	Kernel driver in use: nvme
+	Kernel modules: nvme

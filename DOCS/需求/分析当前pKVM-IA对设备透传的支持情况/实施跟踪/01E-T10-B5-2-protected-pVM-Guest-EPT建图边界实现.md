@@ -2,7 +2,7 @@
 
 ## 状态
 
-- 当前状态: `crosvm` 侧 boot-time metadata 提交链路已补齐并完成 ABI 对齐；运行时已稳定复现 kernel / hyp 侧 BAR HPA donation reject，下一步进入 `pKVM-IA` 实现
+- 当前状态: `pKVM-IA` 已补 boot-time BAR manifest、按当前 VM 已 attach 设备做 BAR 建图约束、direct BAR leaf 建图、VM destroy 跳过 BAR undonate，以及 BAR miss 提前 reject 日志；2026-04-15 复测确认旧 `BOOT-012` donation 签名已前移，但新阻塞落在 host-high `pkvm_pin_page()` 误 pin BAR/MMIO PFN
 - 所属主任务: `pkvm-x86#20`
 - 关联设计文档:
   - `DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/实施跟踪/01E-B5-protected-pVM-运行期Host不可信设备校验方案设计.md`
@@ -18,15 +18,27 @@
 - hyp 缺少 device BAR 范围约束，无法判断收到的 PCI 物理地址是否落在正确的 BAR 范围内
 - 当前 `vm_mmu_map` hypercall 参数已占满，本轮不新增 `bdf` 参数
 - 本轮不依赖 `MMIO metadata` 做 HPA 校验
-- 本轮只校验 `[hpa, hpa + size)` 是否完整落在 boot-time manifest 记录的某个 memory BAR 内
+- 本轮只校验 `[hpa, hpa + size)` 是否完整落在“当前 VM 已 attach 且 boot-time manifest 记录的某个 memory BAR”内
 - 命中 BAR 的 leaf 不再走 `__pkvm_host_donate_guest()`，而是按 direct BAR leaf 直接装入 Guest EPT
+- 对既非当前 VM attached BAR 又非 host RAM 的 HPA，在 `vm_mmu_map` 提前 reject 并打印明确日志
 - VM teardown 时，BAR leaf 不再走 `__pkvm_host_undonate_guest()` / `__pkvm_host_unshare_guest()`
 
 仍保留的已知边界：
 
 - 本轮不检查 BAR 内 offset 是否正确
 - 本轮不证明某个 `gpa` 一定“应该”是 passthrough MMIO GPA
-- 本轮不证明命中的 BAR 就是 guest 期待的那块 BAR / 那个设备
+- 本轮不检查 guest GPA 与具体 BAR offset 的精确一致性
+
+## 待处理风险
+
+- `pkvm_vm_mmu_map()` 当前已经允许 direct BAR leaf 建图，但 `gpa_range_overlaps_pvmfw()` / `load_pvmfw()` 路径还没有排除 direct BAR HPA：
+  - `pKVM-IA/arch/x86/kvm/pkvm/mmu.c`
+    - `load_pvmfw()`
+    - `pkvm_vm_mmu_map()`
+- 因此若 host 把某个 attached BAR 映到 `pvmfw` GPA，当前实现存在把 `pvmfw` 内容写入 BAR/MMIO 的风险。
+- 这条风险本轮先记录，不在当前提交里改行为；后续需要单独决定是：
+  - 拒绝 `direct_mmio && gpa_range_overlaps_pvmfw()`
+  - 还是把 `load_pvmfw()` 明确限制为 host RAM 路径
 
 ## 2026-04-15 运行验证补充
 
@@ -162,6 +174,117 @@ kvm: pkvm: vm_mmu_map failed ret=-1 gpa=0xd0000000 hpa=0xfe800000 size=0x1000 wr
 
 - 命中合法 BAR 的 HPA 需要从 normal memory donation 路径分流出去
 - 直接走 direct BAR leaf 建图
+
+## 2026-04-15 安装新 Host 内核后的复测补充
+
+在安装并重启到包含当前 B5-2 改动的 Host 内核后，重新运行 protected pVM + VFIO NVMe `0000:01:00.0` 样例：
+
+- Host 内核：`Linux ubuntu-vm 6.12.0-pkvm-ia #8 SMP PREEMPT_DYNAMIC Wed Apr 15 09:37:32 UTC 2026`
+- 启动命令：
+
+```text
+sudo -n env -u DEBUG PROTECTED=1 SETUP_NET=0 VFIO_DEV=0000:01:00.0 ./scripts/run-crosvm.sh
+```
+
+原始记录：
+
+- 汇总记录：`DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/实施跟踪/验证记录/t10-p6-protected-vfio-direct-mmio-dd-rerun-0100-20260415.md`
+- crosvm 串口/PTTY：`DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/实施跟踪/验证记录/t10-p6-crosvm-protected-vfio-direct-mmio-dd-0100-20260415-104859.pty.log`
+- host dmesg：`DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/实施跟踪/验证记录/t10-p6-host-dmesg-protected-vfio-direct-mmio-dd-0100-20260415-104859.log`
+- host fallback trace 计数：`DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/实施跟踪/验证记录/t10-p6-host-trace-counts-protected-vfio-direct-mmio-dd-0100-20260415-104859.log`
+- 新问题记录：`DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/问题记录/BOOT-013/BOOT-013-protected-pVM-BAR直建图后pkvm_pin_page误pin-MMIO-PFN.md`
+
+本轮结果：
+
+- protected pVM 未到达 `login:`
+- 因此 guest 内 `dd` 未执行，也还不能给出“MMIO 已稳定走 direct path”的正向结论
+- 旧 `BOOT-012` 签名没有再出现：
+  - 未见 `host_initiate_donation: addr not in mem_range`
+  - 未见 `__pkvm_host_donate_guest failed`
+  - 未见 `vm_mmu_map failed`
+- 新签名是 host-high `pkvm_pin_page()` 对 BAR/MMIO PFN 执行普通 RAM pin：
+
+```text
+[2026-04-15T10:50:32.365903391+00:00 ERROR crosvm::crosvm::sys::linux::vcpu] vcpu hit unknown error: Bad address (os error 14)
+[Wed Apr 15 10:50:32 2026] WARNING: CPU: 18 PID: 4255 at arch/x86/kvm/mmu/mmu.c:4775 kvm_tdp_page_fault+0x3f0/0x420
+```
+
+对应源码路径：
+
+```text
+pkvm_page_fault()                                             (pKVM-IA/arch/x86/kvm/mmu/mmu.c)
+    pkvm_hypercall(vm_mmu_map, gpa, hpa, size, ...)
+        pkvm_vm_mmu_map(...)                                  (pKVM-IA/arch/x86/kvm/pkvm/mmu.c)
+            // B5-2 后，命中 attached BAR 可直接建 Guest EPT leaf
+    pkvm_pin_page(vcpu->kvm, fault)
+        kvm_pfn_to_refcounted_page(fault->pfn)
+            // BAR/MMIO PFN 不是普通 RAM refcounted page
+        WARN_ON_ONCE(!page)
+        return -EFAULT
+```
+
+本轮 host fallback 计数仍然很多：
+
+```text
+HOST_SEV_MMIO_R=279
+HOST_SEV_MMIO_W=2885
+```
+
+当前判断：
+
+- B5-2 的 hyp 侧 BAR HPA direct leaf 分流已让 `BOOT-012` 的 BAR HPA donation 签名前移
+- 但 host-high 侧 `pkvm_page_fault()` 仍沿用“建图成功后一定 pin 普通 RAM page”的旧假设
+- 对 direct BAR / MMIO PFN，不能再走普通 RAM pin 语义
+- 下一步修复点应落在 host-high `pkvm_page_fault()` / `pkvm_pin_page()` 这条后处理路径
+
+## 2026-04-15 安装修复后 Host 内核的再次复测
+
+在本地补上 `BOOT-013` 对应的 host-high 修复后，重新编译、安装并重启到新的 Host 内核，再次运行同一条 protected pVM + VFIO NVMe `0000:01:00.0` 样例。
+
+原始记录：
+
+- 汇总记录：
+  - `DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/实施跟踪/验证记录/t10-p8-protected-vfio-direct-mmio-dd-rerun-after-boot013-fix-0100-20260415.md`
+- crosvm 串口/PTTY：
+  - `DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/实施跟踪/验证记录/t10-p8-crosvm-protected-vfio-direct-mmio-dd-0100-20260415-130256.pty.log`
+- host dmesg：
+  - `DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/实施跟踪/验证记录/t10-p8-host-dmesg-final-0100-20260415-130256.log`
+- host fallback trace：
+  - `DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/实施跟踪/验证记录/t10-p8-host-trace-counts-protected-vfio-direct-mmio-dd-0100-20260415-130256.log`
+  - `DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/实施跟踪/验证记录/t10-p8-host-trace-counts-guest-kprobe-window-0100-20260415-130256.log`
+
+本轮结果已经和 `t10-p6` 明显不同：
+
+- protected pVM 成功启动到 `localhost login:`
+- guest 登录成功，`/dev/nvme0n1` 已正常出现
+- guest 内两轮 `dd` 都成功：
+
+```text
+DD_RC=0
+DD_BIG_RC=0
+```
+
+- 对 `pkvm_virt_mmio()` direct / fallback 分支打点后，`dd` 对应窗口里得到：
+
+```text
+GUEST_DIRECT=128
+GUEST_FALLBACK=2
+```
+
+- 且 trace 尾部显示：
+  - `dd-*` 命中 `direct_hit`
+  - 两条 `fallback_hit` 来自 `sleep-*`
+
+这说明：
+
+- `BOOT-013` 的主阻塞已经被当前本地修复消掉
+- 对这条 NVMe `dd` 正向样例，guest 侧已经出现明确的 direct MMIO 正向证据
+
+同时本轮也保留了一个新的观察点：
+
+- host `kvm_sev_es_mmio_write` 计数仍然还能看到写事件
+- 但 guest 侧 `pkvm_virt_mmio()` trace 已经把 `dd` 的 MMIO 窗口钉在 direct 分支
+- 因此这部分 host write 更像是“剩余 host MMIO 事件来源待分类”，而不是 `BOOT-013` 的旧失败签名仍在复现
 
 ## 关键源码锚点
 
