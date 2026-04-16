@@ -58,3 +58,5 @@ GitHub Issue / PR 现在作为状态真相来源；本目录主要保存较长�
   - 汇总阶段性验证项和回归检查项。
 - `08-GitHub-Issue-PR-协作流.md`
   - 说明 Issue / PR / submodule 的协作边界和闭环流程。
+- `09-run-crosvm-交互式使用方式.md`
+  - 记录当前 `run-crosvm.sh` 的直接交互方式，以及 host/guest 联动验证的最小操作套路。
