@@ -2,10 +2,12 @@
 
 ## 状态
 
-- 当前状态: 已完成 `Case A/B/C` 各 10 轮，未稳定复现
+- 当前状态: 已完成旧版 `Case A/B/C` 各 10 轮；2026-04-16 又在包含 T4 第一版实现的 Host 内核上完成推荐矩阵 `Case A 20 轮 + Case B/C 各 5 轮`，未观测到目标签名
 - 所属主任务: T4
 - 关联验证任务: T7
-- 当前定位: validation-first 子任务，不作为已确认 bug 处理
+- GitHub Task: `pkvm-x86#8`
+- 关联 Bug: `pkvm-x86#32`
+- 当前定位: validation-first 子任务；`BOOT-014` 已补独立 Bug 归档，但当前仍不按“稳定复现 blocker”处理
 
 ## 当前表现 / 当前阻塞
 
@@ -17,7 +19,7 @@
 ```
 
 - 但同日补做的 `Case A/B/C` 各 10 轮矩阵里，没有任何一轮再次命中该签名。
-- 当前风险已不再只是纯源码推导，但也还没有达到“稳定复现 bug”的程度。
+- 当前风险已不再只是纯源码推导，但也还没有达到“稳定复现 blocker”的程度。
 - T2/T3 首轮运行里“guest 关机退出后 host `dmesg` 未见新 fault”只能算负例观察，不能直接证明 teardown 前 DMA 已真正 quiesce。
 
 ## 最新执行结果（2026-04-15）
@@ -47,14 +49,68 @@
 - 当前本地问题记录：
   - `../问题记录/BOOT-014/BOOT-014-protected-pVM-活跃DMA时host强杀crosvm后单次出现DMAR-NO_PASID-fault.md`
 
+## 最新执行结果（2026-04-16）
+
+- 在包含当前 T4 第一版实现的 Host 内核上，运行推荐矩阵：
+  - `Case A`: `20/20 completed`
+  - `Case B`: `5/5 completed`
+  - `Case C`: `5/5 completed`
+- 本轮 `30/30` 都未观测到以下目标签名：
+  - `DMAR [DMA Read NO_PASID]`
+  - `PTE Read access is not set`
+  - `Present bit in context entry is clear`
+  - `Present bit in PASID entry is clear`
+  - `nvme timeout`
+  - `probe with driver nvme failed`
+- 本轮汇总文件：
+  - `../问题记录/BOOT-014/raw/20260416-t4a-recommended-matrix-summary.tsv`
+  - `../问题记录/BOOT-014/raw/20260416-t4a-recommended-matrix-summary.json`
+- 本轮完整逐轮日志目录（本地）：
+  - `/tmp/t4-matrix-20260416-060858`
+
 ## 当前阶段结论
 
 - 从当前 30 轮矩阵结果看，`Case A` 虽然仍是理论上更强的路径，但也没有再次打出同类 DMAR fault。
 - `Case B` 和 `Case C` 同样没有暴露新的 teardown 相关签名。
 - 因此当前更合理的结论是：
-  - `BOOT-014` 保留为“单次命中的候选 teardown 签名”；
+  - `BOOT-014` 保留为“已归档但仍待继续 soak 的 teardown 签名”；
   - `T4` 继续保持 validation-first；
   - 下一步不应只靠重复相同 case 堆样本，而应增加更细的触发条件控制或 trace，去定位那次正例依赖的隐藏前提。
+- 结合 2026-04-16 推荐矩阵结果，当前可以进一步收紧为：
+  - 在第一版 T4 实现 + 当前推荐触发矩阵下，尚未再次命中 `BOOT-014` 或其邻近 blocked-DMA 签名；
+  - 这说明第一版实现至少通过了当前 `30` 轮推荐样例；
+  - 但因为全为负例，仍不足以单靠这轮结果直接宣称 teardown correctness 已被完全证明。
+
+## 重启后执行入口（2026-04-16 新增）
+
+- 已新增自动化脚本：
+  - `../问题记录/BOOT-014/auto-repro-boot014-t4a-matrix.py`
+- 当前默认推荐矩阵：
+  - `Case A`: `0s / 1s / 3s / 10s` 四个 host kill 时机各 `5` 轮，共 `20` 轮
+  - `Case B`: `5` 轮
+  - `Case C`: `5` 轮
+- 直接运行：
+
+```bash
+sudo ./DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/问题记录/BOOT-014/auto-repro-boot014-t4a-matrix.py matrix
+```
+
+- 若希望把 `B/C` 也补回到旧矩阵强度，可改为：
+
+```bash
+sudo ./DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/问题记录/BOOT-014/auto-repro-boot014-t4a-matrix.py matrix --iterations-b 10 --iterations-c 10
+```
+
+- 脚本会为每轮保存：
+  - `summary.log`
+  - `crosvm-console.log`
+  - `host-dmesg-after-exit.log` / `host-dmesg-after-kill.log`
+  - `host-dmesg-after-restore.log`
+  - `result.json`
+  - 顶层 `summary.json` / `summary.tsv`
+- 新矩阵除继续关注旧签名 `PTE Read access is not set` 外，也要关注更接近“前置硬 quiesce 后 DMA 被明确拦截”的邻近签名：
+  - `Present bit in context entry is clear`
+  - `Present bit in PASID entry is clear`
 
 ## 本轮提交信息
 
@@ -159,6 +215,7 @@
 
 - 失败:
   - 出现新的 DMAR / IOMMU fault、`pkvm: exception`、stall、跨轮残留或 teardown 卡死。
+  - 对当前 T4 第一版实现而言，若旧签名消失但新出现 `Present bit in context entry is clear` / `Present bit in PASID entry is clear`，也应先按“仍有 teardown 相关异常”处理，而不是直接判定通过。
   - 新签名按 `Bug + Task` 方式拆分记录。
 - 未定:
   - 没有 fault，但证据只停留在“本轮未见报错”。
