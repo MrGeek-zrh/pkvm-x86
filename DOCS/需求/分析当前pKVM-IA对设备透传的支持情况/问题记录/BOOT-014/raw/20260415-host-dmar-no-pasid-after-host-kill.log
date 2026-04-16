@@ -1,0 +1,22 @@
+[Wed Apr 15 12:58:50 2026] DMAR: IOMMU enabled
+[Wed Apr 15 12:58:50 2026] DMAR: Scalable mode is disallowed
+[Wed Apr 15 12:58:50 2026] DMAR: Host address width 48
+[Wed Apr 15 12:58:50 2026] DMAR: DRHD base: 0x000000fed90000 flags: 0x0
+[Wed Apr 15 12:58:50 2026] DMAR: dmar0: reg_base_addr fed90000 ver 1:0 cap d2008c222f0686 ecap f00f5e
+[Wed Apr 15 12:58:50 2026] DMAR: ATSR flags: 0x1
+[Wed Apr 15 12:58:51 2026] DMAR: No RMRR found
+[Wed Apr 15 12:58:51 2026] DMAR: No SATC found
+[Wed Apr 15 12:58:51 2026] DMAR: dmar0: Using Queued invalidation
+[Wed Apr 15 12:58:51 2026] DMAR: pkvm-debug: iommu0 set_root_entry: pkvm_enabled=1 enable_pkvm=1 tsc_khz=2800000 timeout_cycles=28000000000
+[Wed Apr 15 12:58:51 2026] DMAR: IOMMU batching disallowed due to virtualization
+[Wed Apr 15 12:58:51 2026] DMAR: Intel(R) Virtualization Technology for Directed I/O
+[Wed Apr 15 14:36:19 2026] vfio-pci 0000:01:00.0: Relaying device request to user (#0)
+[Wed Apr 15 14:36:19 2026] nvme nvme0: pci function 0000:01:00.0
+[Wed Apr 15 14:36:20 2026] DMAR: DRHD: handling fault status reg 2
+[Wed Apr 15 14:36:20 2026] DMAR: [DMA Read NO_PASID] Request device [01:00.0] fault addr 0xff0f0000 [fault reason 0x06] PTE Read access is not set
+[Wed Apr 15 14:37:22 2026] nvme nvme0: I/O tag 16 (0010) QID 0 timeout, disable controller
+[Wed Apr 15 14:37:22 2026] nvme nvme0: Identify Controller failed (-4)
+[Wed Apr 15 14:37:22 2026] nvme 0000:01:00.0: probe with driver nvme failed with error -5
+[Wed Apr 15 14:37:22 2026] nvme nvme0: pci function 0000:01:00.0
+[Wed Apr 15 14:37:22 2026] nvme nvme0: 32/0/0 default/read/poll queues
+[Wed Apr 15 14:37:22 2026] nvme nvme0: Ignoring bogus Namespace Identifiers

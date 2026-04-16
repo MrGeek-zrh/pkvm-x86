@@ -2,7 +2,7 @@
 
 ## 状态
 
-- 当前状态: 验证优先（T4A 已建样例，待执行）
+- 当前状态: 验证中（3 个 case × 10 轮矩阵已跑完，未稳定复现）
 - 优先级: P0
 
 ## 目标
@@ -38,7 +38,21 @@
 - `pkvm_teardown_shadow_vm()` 当前先 `pkvm_pgstate_pgt_deinit()`，再 `pkvm_detach_ptdev()`。
 - `kvm_destroy_vm()` 当前是先 `kvm_arch_destroy_vm()`，再 `kvm_destroy_devices()`，因此 VFIO 设备释放晚于 pKVM VM 销毁。
 - 现有 `pkvm_detach_ptdev()` 会把 `ptdev->pgt` 直接切回 `host_vm.ept` 并调用 `pkvm_iommu_sync()`，这更像“恢复 host 视图”，不是“立即阻断 DMA”。
-- 截至 2026-04-07，上述结论仍然属于源码推导出的 correctness 风险，尚未对应到独立复现的 teardown panic / DMAR fault 签名。
+- 截至 2026-04-15，`Case A: 活跃 DMA + host 强制销毁` 已单次观测到新的 teardown 相关 DMAR fault 签名：
+
+```text
+[Wed Apr 15 14:36:20 2026] DMAR: DRHD: handling fault status reg 2
+[Wed Apr 15 14:36:20 2026] DMAR: [DMA Read NO_PASID] Request device [01:00.0] fault addr 0xff0f0000 [fault reason 0x06] PTE Read access is not set
+```
+
+- 同一轮后续还能看到 host 侧 NVMe 重新 probe 时出现 timeout / `probe ... failed`，说明 teardown 后设备状态也受到影响。
+- 但在 2026-04-15 补做的 `Case A/B/C` 各 10 轮矩阵里：
+  - `Case A`：`10/10` 全负例
+  - `Case B`：`10/10` 全负例
+  - `Case C`：`10/10` 全负例
+- 当前结论更新为：
+  - 单次正例仍然值得保留，但它不是当前步骤下的稳定可复现签名；
+  - 现阶段更像“存在低概率 teardown 风险窗口或隐藏触发条件”，还不能直接把 `T4` 从 validation-first 切到最终修复定稿。
 
 ## 建议实施方向
 
@@ -52,7 +66,8 @@
 ## 当前验证入口
 
 - 触发样例与证据采集规则见 `04A-P0-teardown-DMA生命周期风险验证与触发样例.md`。
-- 在 T4A 跑出独立签名前，当前文档继续作为“风险归因 + 修复方向”入口使用。
+- 当前本地问题记录见 `../问题记录/BOOT-014/BOOT-014-protected-pVM-活跃DMA时host强杀crosvm后单次出现DMAR-NO_PASID-fault.md`。
+- 当前文档继续作为“风险归因 + 修复方向”入口使用；是否升级为独立 GitHub `Bug + Task`，取决于后续是否在更细粒度触发条件下再次稳定复现同签名。
 
 ## 验收标准
 

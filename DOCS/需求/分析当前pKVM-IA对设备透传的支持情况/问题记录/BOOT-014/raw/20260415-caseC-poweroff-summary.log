@@ -1,0 +1,35 @@
+[caseC] logdir=/tmp/t4-repro-caseC-poweroff-20260415-150031
+[caseC] run: sudo -n true
+[caseC] current driver before vfio bind: nvme
+[caseC] run: sudo -n modprobe vfio-pci
+[caseC] run: sudo -n sh -c 'echo 0000:01:00.0 > /sys/bus/pci/devices/0000:01:00.0/driver/unbind'
+[caseC] run: sudo -n sh -c 'echo vfio-pci > /sys/bus/pci/devices/0000:01:00.0/driver_override'
+[caseC] run: sudo -n sh -c 'echo 0000:01:00.0 > /sys/bus/pci/drivers_probe'
+[caseC] current driver after vfio bind: vfio-pci
+[caseC] dmesg since timestamp: 2026-04-15 15:00:32 UTC
+[caseC] spawn: sudo -n env -u DEBUG PROTECTED=1 SETUP_NET=0 VFIO_DEV=0000:01:00.0 ./scripts/run-crosvm.sh
+[caseC] guest login prompt reached
+[caseC] guest nvme visible
+[caseC] guest dma loop started: T4_BG=266
+[caseC] run: ps -eo pid,ppid,pgid,cmd --cols 240
+[caseC] requesting guest poweroff -f
+[caseC] crosvm console reached EOF after guest poweroff -f
+[caseC] run: sudo -n dmesg -T --since '2026-04-15 15:00:32'
+[caseC] filtered dmesg lines after guest exit:
+[caseC] run: ps -eo pid,ppid,pgid,cmd --cols 240
+[caseC] current driver before restore: vfio-pci
+[caseC] run: sudo -n sh -c 'echo 0000:01:00.0 > /sys/bus/pci/drivers/vfio-pci/unbind'
+[caseC] run: sudo -n sh -c 'echo > /sys/bus/pci/devices/0000:01:00.0/driver_override'
+[caseC] run: sudo -n sh -c 'echo 0000:01:00.0 > /sys/bus/pci/drivers_probe'
+[caseC] current driver after restore: nvme
+[caseC] run: sudo -n dmesg -T --since '2026-04-15 15:00:32'
+[caseC] filtered dmesg lines after restore:
+[caseC]   [Wed Apr 15 15:01:50 2026] nvme nvme0: pci function 0000:01:00.0
+[caseC]   [Wed Apr 15 15:01:50 2026] nvme nvme0: 32/0/0 default/read/poll queues
+[caseC]   [Wed Apr 15 15:01:50 2026] nvme nvme0: Ignoring bogus Namespace Identifiers
+[caseC] done
+[caseC] console=/tmp/t4-repro-caseC-poweroff-20260415-150031/crosvm-console.log
+[caseC] dmesg_after_exit=/tmp/t4-repro-caseC-poweroff-20260415-150031/host-dmesg-after-exit.log
+[caseC] dmesg_after_restore=/tmp/t4-repro-caseC-poweroff-20260415-150031/host-dmesg-after-restore.log
+[caseC] ps_before=/tmp/t4-repro-caseC-poweroff-20260415-150031/host-ps-before-exit.log
+[caseC] ps_after=/tmp/t4-repro-caseC-poweroff-20260415-150031/host-ps-after-exit.log

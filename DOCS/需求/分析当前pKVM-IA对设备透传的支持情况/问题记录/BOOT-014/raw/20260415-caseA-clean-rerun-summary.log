@@ -1,0 +1,38 @@
+[repro] logdir=/tmp/t4-repro-caseA-clean-20260415-144905
+[repro] run: sudo -n true
+[repro] current driver before vfio bind: nvme
+[repro] run: sudo -n modprobe vfio-pci
+[repro] run: sudo -n sh -c 'echo 0000:01:00.0 > /sys/bus/pci/devices/0000:01:00.0/driver/unbind'
+[repro] run: sudo -n sh -c 'echo vfio-pci > /sys/bus/pci/devices/0000:01:00.0/driver_override'
+[repro] run: sudo -n sh -c 'echo 0000:01:00.0 > /sys/bus/pci/drivers_probe'
+[repro] current driver after vfio bind: vfio-pci
+[repro] dmesg since timestamp: 2026-04-15 14:49:06 UTC
+[repro] spawn: sudo -n env -u DEBUG PROTECTED=1 SETUP_NET=0 VFIO_DEV=0000:01:00.0 ./scripts/run-crosvm.sh
+[repro] guest login prompt reached
+[repro] guest nvme visible
+[repro] guest dma loop started: T4_BG=267
+[repro] run: ps -eo pid,ppid,pgid,cmd --cols 240
+[repro] process hits before kill:
+[repro]     44379   44374   44374 /home/mrgeek/pkvm-x86/crosvm/target/debug/crosvm --log-level=debug run /home/mrgeek/pkvm-x86/build-guest/arch/x86/boot/bzImage --cpus num-cores=2 --mem size=4096 --block path=/home/mrgeek/pkvm-x86/images/guest/ubuntu
+[repro] killing crosvm pid=44379 with SIGKILL
+[repro] run: sudo -n kill -9 44379
+[repro] crosvm console reached EOF after kill
+[repro] run: sudo -n dmesg -T --since '2026-04-15 14:49:06'
+[repro] filtered dmesg lines after kill:
+[repro] run: ps -eo pid,ppid,pgid,cmd --cols 240
+[repro] current driver before restore: vfio-pci
+[repro] run: sudo -n sh -c 'echo 0000:01:00.0 > /sys/bus/pci/drivers/vfio-pci/unbind'
+[repro] run: sudo -n sh -c 'echo > /sys/bus/pci/devices/0000:01:00.0/driver_override'
+[repro] run: sudo -n sh -c 'echo 0000:01:00.0 > /sys/bus/pci/drivers_probe'
+[repro] current driver after restore: nvme
+[repro] run: sudo -n dmesg -T --since '2026-04-15 14:49:06'
+[repro] filtered dmesg lines after restore:
+[repro]   [Wed Apr 15 14:50:24 2026] nvme nvme0: pci function 0000:01:00.0
+[repro]   [Wed Apr 15 14:50:24 2026] nvme nvme0: 32/0/0 default/read/poll queues
+[repro]   [Wed Apr 15 14:50:24 2026] nvme nvme0: Ignoring bogus Namespace Identifiers
+[repro] done
+[repro] console=/tmp/t4-repro-caseA-clean-20260415-144905/crosvm-console.log
+[repro] dmesg_after_kill=/tmp/t4-repro-caseA-clean-20260415-144905/host-dmesg-after-kill.log
+[repro] dmesg_after_restore=/tmp/t4-repro-caseA-clean-20260415-144905/host-dmesg-after-restore.log
+[repro] ps_before=/tmp/t4-repro-caseA-clean-20260415-144905/host-ps-before-kill.log
+[repro] ps_after=/tmp/t4-repro-caseA-clean-20260415-144905/host-ps-after-kill.log

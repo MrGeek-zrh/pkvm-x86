@@ -2,16 +2,65 @@
 
 ## 状态
 
-- 当前状态: 已建样例，待执行
+- 当前状态: 已完成 `Case A/B/C` 各 10 轮，未稳定复现
 - 所属主任务: T4
 - 关联验证任务: T7
 - 当前定位: validation-first 子任务，不作为已确认 bug 处理
 
 ## 当前表现 / 当前阻塞
 
-- 截至 2026-04-07，当前还没有独立观测到“teardown 期间 DMA 继续命中已回收页”对应的 panic / DMAR fault / pKVM exception 签名。
-- 当前风险主要来自源码生命周期顺序推导，而不是已经稳定复现的报错。
+- 截至 2026-04-15，`Case A` 已单次观测到新的 teardown 相关 DMAR fault：
+
+```text
+[Wed Apr 15 14:36:20 2026] DMAR: DRHD: handling fault status reg 2
+[Wed Apr 15 14:36:20 2026] DMAR: [DMA Read NO_PASID] Request device [01:00.0] fault addr 0xff0f0000 [fault reason 0x06] PTE Read access is not set
+```
+
+- 但同日补做的 `Case A/B/C` 各 10 轮矩阵里，没有任何一轮再次命中该签名。
+- 当前风险已不再只是纯源码推导，但也还没有达到“稳定复现 bug”的程度。
 - T2/T3 首轮运行里“guest 关机退出后 host `dmesg` 未见新 fault”只能算负例观察，不能直接证明 teardown 前 DMA 已真正 quiesce。
+
+## 最新执行结果（2026-04-15）
+
+- `Case A` 首轮：
+  - guest 内持续 direct I/O；
+  - host 侧直接 `kill -9 crosvm`；
+  - 命中 `DMAR [DMA Read NO_PASID] ... PTE Read access is not set`；
+  - 同轮后续可见 `nvme` timeout 与重新 probe 异常。
+- `Case A` 干净重跑：
+  - guest 再次成功登录；
+  - `/dev/nvme0n1` 在 guest 内可见；
+  - 持续 direct I/O 成功启动；
+  - host 侧再次 `kill -9 crosvm`；
+  - 但 host `dmesg` 增量里只看到 NVMe 重新 probe，没有再次命中同一条 DMAR fault。
+- `Case C` (`poweroff -f`)：
+  - guest 再次成功登录；
+  - `/dev/nvme0n1` 在 guest 内可见；
+  - 持续 direct I/O 成功启动；
+  - guest 内执行 `poweroff -f` 后，`crosvm` 正常退出；
+  - host `dmesg` 增量里未见新的 DMAR / IOMMU fault，仅看到 host 侧 NVMe 重新 probe。
+- 三 case × 10 轮矩阵汇总：
+  - `Case A`: `10/10 completed`, `0` 次 `DMAR/IOMMU fault`
+  - `Case B`: `10/10 completed`, `0` 次 `DMAR/IOMMU fault`
+  - `Case C`: `10/10 completed`, `0` 次 `DMAR/IOMMU fault`
+  - 汇总文件见 `../问题记录/BOOT-014/raw/20260415-t4a-case-matrix-3x10-summary.tsv`
+- 当前本地问题记录：
+  - `../问题记录/BOOT-014/BOOT-014-protected-pVM-活跃DMA时host强杀crosvm后单次出现DMAR-NO_PASID-fault.md`
+
+## 当前阶段结论
+
+- 从当前 30 轮矩阵结果看，`Case A` 虽然仍是理论上更强的路径，但也没有再次打出同类 DMAR fault。
+- `Case B` 和 `Case C` 同样没有暴露新的 teardown 相关签名。
+- 因此当前更合理的结论是：
+  - `BOOT-014` 保留为“单次命中的候选 teardown 签名”；
+  - `T4` 继续保持 validation-first；
+  - 下一步不应只靠重复相同 case 堆样本，而应增加更细的触发条件控制或 trace，去定位那次正例依赖的隐藏前提。
+
+## 本轮提交信息
+
+- `pkvm-x86` 本轮文档提交信息：
+  - 标题：`固化T4A三类样例十轮矩阵结论`
+  - 展开：`记录BOOT-014单次正例与A/B/C各十轮负例结果，并将T4继续保留为validation-first`
 
 ## 目标
 
@@ -44,8 +93,8 @@
 
 ## 建议 GitHub issue 形态
 
-- 当前先作为 `T4` / `T7` 下的验证子步骤记录，不单独宣称为 bug。
-- 若样例跑出新的独立签名，再新建对应 `Bug` issue，保留唯一签名和原始日志。
+- 当前先作为 `T4` / `T7` 下的验证子步骤记录，并在本地用 `BOOT-014` 保留独立签名和原始日志。
+- 若后续在增强触发条件/trace 后再次稳定跑出相同签名，再新建对应 `Bug` issue，保留唯一签名和原始日志。
 - 若多轮样例都未触发，也只说明“当前样例未观测到异常”，不能直接关闭 T4。
 
 ## 适用范围
