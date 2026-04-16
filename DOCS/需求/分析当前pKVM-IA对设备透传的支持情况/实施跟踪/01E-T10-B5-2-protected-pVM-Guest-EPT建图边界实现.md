@@ -27,6 +27,7 @@
 - 本轮不检查 BAR 内 offset 是否正确
 - 本轮不证明某个 `gpa` 一定“应该”是 passthrough MMIO GPA
 - 本轮不检查 guest GPA 与具体 BAR offset 的精确一致性
+- 本轮不显式撤销 Host 对 assigned BAR 的 CPU 访问权；当前实现收敛的是“Guest EPT 建图边界 + guest 侧 direct/fallback MMIO 分流”，不是“Host CPU 后续无法再碰 BAR”
 
 ## 待处理风险
 
@@ -38,6 +39,58 @@
 - 这条风险本轮先记录，不在当前提交里改行为；后续需要单独决定是：
   - 拒绝 `direct_mmio && gpa_range_overlaps_pvmfw()`
   - 还是把 `load_pvmfw()` 明确限制为 host RAM 路径
+
+### 风险：Host 对 assigned BAR 的 CPU 访问权尚未显式收口
+
+这个问题和 `B5-2` 当前已完成的“Guest EPT 建图边界校验”不是同一件事，但同样重要，先在这里固定口径，后续待 `T4` 处理完成后再单独回到这条线继续展开。
+
+当前源码能确认的事实是：
+
+- `B5-2` 当前在 `pkvm_vm_mmu_map()` / `guest_mmu_map_leaf()` 中做的是“命中当前 VM attached boot BAR 时允许 direct BAR leaf 建图；未命中则 reject 或走普通 RAM donation/share 语义”：
+  - `pKVM-IA/arch/x86/kvm/pkvm/mmu.c`
+    - `pkvm_vm_mmu_map()`
+    - `guest_mmu_map_leaf()`
+- BAR 合法性判断本质上只是“boot manifest + 当前 VM attached ptdev”范围包含关系：
+  - `pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/ptdev.c`
+    - `pkvm_boot_ptdev_bar_contains()`
+    - `pkvm_host_hpa_hits_boot_ptdev_bar()`
+    - `pkvm_vm_hpa_hits_attached_boot_ptdev_bar()`
+- guest 侧 `DIRECT_BAR` allowlist 只影响 guest MMIO 访问是走 `raw_read*/raw_write*` 还是回退 `PKVM_GHC_IOREAD/IOWRITE`，不等价于“撤销 Host CPU 对 BAR 的直访能力”：
+  - `pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/ptdev.c`
+    - `pkvm_update_vm_mmio_allowlist()`
+  - `pKVM-IA/arch/x86/coco/pkvm/pkvm.c`
+    - `pkvm_mmio_allow_hit()`
+    - `pkvm_virt_mmio()`
+- 目前能看到显式 `pkvm_host_ept_unmap()` 收口的是 IOMMU MMIO，而不是普通 assigned PCI BAR：
+  - `pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/iommu.c`
+    - `activate_iommu()`
+  - `pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/ept.c`
+    - `pkvm_host_ept_unmap()`
+- 在当前 `pkvm_attach_ptdev()` / `pkvm_detach_ptdev()` 路径里，也还没有看到“附加设备后顺手把 Host 对该 BAR 的 CPU 映射撤掉”的配套动作：
+  - `pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/ptdev.c`
+    - `pkvm_attach_ptdev()`
+    - `pkvm_detach_ptdev()`
+
+因此，当前更准确的结论应写成：
+
+- `B5-2` 当前已经收敛的是“Host 不能在 Guest EPT 首次建图时把任意 HPA 塞给 pVM”
+- 但 `B5-2` 还没有证明“Host CPU 在设备已经 assign 给 pVM 后，就一定无法再直接读写该 BAR”
+- 换句话说，当前实现更接近“建图边界校验 + DMA 侧隔离 + guest MMIO 分流”，还不是“assigned BAR 的 Host CPU authority revoke”
+
+这条缺口为什么重要：
+
+- DMA 隔离解决的是“设备 DMA 能不能越界”
+- Guest EPT 建图边界解决的是“Host 能不能把任意 HPA 塞进 Guest EPT”
+- 但如果 Host CPU 仍可直接 MMIO 到 assigned BAR，它依然可能修改 doorbell / control / reset 等设备状态，与 guest 竞争同一设备控制面
+
+后续处理边界先记为：
+
+- 这条问题先不并入当前 `B5-2` 已完成结论
+- 也先不和正在推进的 `T4` teardown DMA 生命周期问题混做
+- 等 `T4` 当前处理完成后，再回到这里单独评估是否需要：
+  - BAR 级别的 Host EPT unmap / revoke
+  - 配套的 CPU fault / invalidate / shootdown 状态机
+  - attach / detach / remove-path 下的 generation 与回收语义
 
 ## 2026-04-15 运行验证补充
 
