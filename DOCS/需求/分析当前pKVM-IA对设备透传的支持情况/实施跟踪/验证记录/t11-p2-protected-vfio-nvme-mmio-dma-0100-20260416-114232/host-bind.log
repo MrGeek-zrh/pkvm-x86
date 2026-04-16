@@ -1,0 +1,2 @@
+BDF=0000:01:00.0 current_driver=nvme
+BDF=0000:01:00.0 new_driver=vfio-pci

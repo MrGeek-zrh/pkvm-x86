@@ -1,0 +1,20 @@
+== pre ==
+01:00.0 Non-Volatile memory controller [0108]: Red Hat, Inc. QEMU NVM Express Controller [1b36:0010] (rev 02)
+	Subsystem: Red Hat, Inc. QEMU NVM Express Controller [1af4:1100]
+	Kernel driver in use: vfio-pci
+	Kernel modules: nvme
+== unbind vfio ==
+== clear override ==
+== modprobe nvme ==
+== reprobe ==
+== post ==
+01:00.0 Non-Volatile memory controller [0108]: Red Hat, Inc. QEMU NVM Express Controller [1b36:0010] (rev 02)
+	Subsystem: Red Hat, Inc. QEMU NVM Express Controller [1af4:1100]
+	Kernel driver in use: nvme
+	Kernel modules: nvme
+== block ==
+total 0
+drwxr-xr-x 6 root root 0 Apr 16 11:51 nvme0
+NAME    MODEL           SIZE TYPE
+nvme1n1 QEMU NVMe Ctrl    8G disk
+nvme0n1 QEMU NVMe Ctrl    8G disk

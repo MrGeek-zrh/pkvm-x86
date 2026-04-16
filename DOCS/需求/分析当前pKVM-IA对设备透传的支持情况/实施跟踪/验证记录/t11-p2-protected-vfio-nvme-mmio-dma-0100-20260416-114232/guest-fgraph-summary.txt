@@ -1,0 +1,27 @@
+OUT_DIR=/tmp/t11-guest-fgraph-20260416-114948
+=== summary ===
+graph:nvme_queue_rq enabled
+graph:nvme_prep_rq skipped
+graph:dma_map_sgtable enabled
+graph:pkvm_virt_mmio enabled
+graph:pkvm_mmio_read* enabled
+graph:pkvm_mmio_write* enabled
+graph:mmio_read enabled
+
+runtime:
+OUT=/tmp/t11-guest-fgraph-20260416-114948
+DEV=/dev/nvme0n1
+BS=1048576
+COUNT=8
+DD_RC=0
+
+counts:
+nvme_queue_rq=0
+nvme_prep_rq=0
+dma_map_sgtable=16
+pkvm_virt_mmio=12
+pkvm_mmio_read=0
+pkvm_mmio_write=12
+mmio_read=0
+
+GUEST_FGRAPH_RC=0

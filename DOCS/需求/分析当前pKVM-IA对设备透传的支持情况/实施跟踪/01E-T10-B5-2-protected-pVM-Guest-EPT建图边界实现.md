@@ -87,6 +87,7 @@
 
 - 这条问题先不并入当前 `B5-2` 已完成结论
 - 也先不和正在推进的 `T4` teardown DMA 生命周期问题混做
+- 已单独拆成后续 Task：`pkvm-x86#34`
 - 等 `T4` 当前处理完成后，再回到这里单独评估是否需要：
   - BAR 级别的 Host EPT unmap / revoke
   - 配套的 CPU fault / invalidate / shootdown 状态机
@@ -121,6 +122,11 @@
 - 问题已经不是“allowlist 下发了，但和实际访问的 GPA 有偏差”
 - 而是 **这条样例里根本没有形成任何 guest MMIO allowlist**
 - 进一步说，`crosvm` 在当前这条路径里并没有真正发出 `SET_PTDEV_MMIO_METADATA` ioctl
+- 并且这一阶段所谓“`host fallback`”也不只是停在 host kernel 的
+  `kvm_sev_es_mmio_*`；实际还会继续走 `KVM_EXIT_MMIO -> crosvm mmio_bus ->
+  VfioPciDevice::read_bar()/write_bar() -> VfioDevice::region_read()/region_write()`
+  去访问真实 NVMe BAR，所以这条样例能跑通，只能证明“host-mediated MMIO +
+  DMA 路径可工作”，不能证明 guest direct MMIO 已经成立
 
 最初我们一度怀疑是下面这条用户态路径里：
 

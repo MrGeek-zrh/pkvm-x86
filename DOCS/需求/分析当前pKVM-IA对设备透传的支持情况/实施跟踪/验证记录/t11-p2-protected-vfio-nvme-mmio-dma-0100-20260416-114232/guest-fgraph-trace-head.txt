@@ -1,0 +1,82 @@
+# tracer: function_graph
+#
+# CPU  DURATION                  FUNCTION CALLS
+# |     |   |                     |   |   |   |
+ 1)               |  pkvm_mmio_writew() {
+ 1)               |    pkvm_virt_mmio() {
+ 1)               |      lookup_address() {
+ 1)   0.000 us    |        lookup_address_in_pgd_attr();
+ 1)   0.000 us    |      }
+ 1)   0.000 us    |    }
+ 1)   0.000 us    |  }
+ 1)               |  pkvm_mmio_writew() {
+ 1)               |    pkvm_virt_mmio() {
+ 1)               |      lookup_address() {
+ 1)   0.000 us    |        lookup_address_in_pgd_attr();
+ 1)   0.000 us    |      }
+ 1)   0.000 us    |    }
+ 1)   0.000 us    |  }
+ 1)               |  dma_map_sgtable() {
+ 1)               |    __dma_map_sg_attrs() {
+ 1)               |      dma_direct_map_sg() {
+ 1)   0.000 us    |        swiotlb_map();
+ 1)   0.000 us    |        swiotlb_map();
+ 1)   0.000 us    |        swiotlb_map();
+ 1)   0.000 us    |        swiotlb_map();
+ 1)   0.000 us    |        swiotlb_map();
+ 1)   0.000 us    |        swiotlb_map();
+ 1)   0.000 us    |        swiotlb_map();
+ 1)   0.000 us    |        swiotlb_map();
+ 1)   0.000 us    |        swiotlb_map();
+ 1)   0.000 us    |        swiotlb_map();
+ 1)   0.000 us    |        swiotlb_map();
+ 1)   0.000 us    |        swiotlb_map();
+ 1)   0.000 us    |        swiotlb_map();
+ 1)   0.000 us    |        swiotlb_map();
+ 1)   0.000 us    |        swiotlb_map();
+ 1)   0.000 us    |        swiotlb_map();
+ 1)   0.000 us    |        swiotlb_map();
+ 1)   0.000 us    |      }
+ 1)   0.000 us    |    }
+ 1)   0.000 us    |  }
+ 1)               |  pkvm_mmio_writel() {
+ 1)               |    pkvm_virt_mmio() {
+ 1)               |      lookup_address() {
+ 1)   0.000 us    |        lookup_address_in_pgd_attr();
+ 1)   0.000 us    |      }
+ 1)   0.000 us    |    }
+ 1)   0.000 us    |  }
+ 1)               |  dma_map_sgtable() {
+ 1)               |    __dma_map_sg_attrs() {
+ 1)               |      dma_direct_map_sg() {
+ 1)   0.000 us    |        swiotlb_map();
+ 1)   0.000 us    |        swiotlb_map();
+ 1)   0.000 us    |      }
+ 1)   0.000 us    |    }
+ 1)   0.000 us    |  }
+ 1)               |  dma_map_sgtable() {
+ 1)               |    __dma_map_sg_attrs() {
+ 1)               |      dma_direct_map_sg() {
+ 1)   0.000 us    |        swiotlb_map();
+ 1)   0.000 us    |        swiotlb_map();
+ 1)   0.000 us    |        swiotlb_map();
+ 1)   0.000 us    |        swiotlb_map();
+ 1)   0.000 us    |        swiotlb_map();
+ 1)   0.000 us    |        swiotlb_map();
+ 1)   0.000 us    |        swiotlb_map();
+ 1)   0.000 us    |        swiotlb_map();
+ 1)   0.000 us    |        swiotlb_map();
+ 1)   0.000 us    |        swiotlb_map();
+ 1)   0.000 us    |        swiotlb_map();
+ 1)   0.000 us    |        swiotlb_map();
+ 1)   0.000 us    |        swiotlb_map();
+ 1)   0.000 us    |        swiotlb_map();
+ 1)   0.000 us    |        swiotlb_map();
+ 1)   0.000 us    |        swiotlb_map();
+ 1)   0.000 us    |        swiotlb_map();
+ 1)   0.000 us    |      }
+ 1)   0.000 us    |    }
+ 1)   0.000 us    |  }
+ 1)               |  pkvm_mmio_writel() {
+ 1)               |    pkvm_virt_mmio() {
+ 1)               |      lookup_address() {

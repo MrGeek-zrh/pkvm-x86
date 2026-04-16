@@ -1,0 +1,57 @@
+guest filter discovery on 2026-04-16
+
+command:
+printf '\n' | sudo -S sh -c 'for sym in nvme_queue_rq nvme_prep_rq nvme_map_data nvme_setup_prp_simple nvme_setup_sgl_simple dma_map_bvec dma_map_sgtable nvme_write_sq_db pkvm_virt_mmio pkvm_direct_mmio_write pkvm_direct_mmio_read mmio_write mmio_read; do grep -w "$sym" /sys/kernel/tracing/available_filter_functions >/dev/null && echo HAVE:$sym || echo MISS:$sym; done'
+
+result:
+HAVE:nvme_queue_rq
+HAVE:nvme_prep_rq
+MISS:nvme_map_data
+MISS:nvme_setup_prp_simple
+MISS:nvme_setup_sgl_simple
+MISS:dma_map_bvec
+HAVE:dma_map_sgtable
+MISS:nvme_write_sq_db
+HAVE:pkvm_virt_mmio
+MISS:pkvm_direct_mmio_write
+MISS:pkvm_direct_mmio_read
+MISS:mmio_write
+HAVE:mmio_read
+
+extra substring checks from available_filter_functions:
+
+=== nvme_map_data ===
+(no match)
+
+=== nvme_write_sq_db ===
+(no match)
+
+=== dma_map_bvec ===
+(no match)
+
+=== pkvm_direct_mmio ===
+(no match)
+
+=== mmio_write ===
+pkvm_mmio_writeq
+pkvm_mmio_writel
+pkvm_mmio_writew
+pkvm_mmio_writeb
+coalesced_mmio_write
+kvm_sev_es_mmio_write
+apic_mmio_write
+ioapic_mmio_write
+__x64_sys_s390_pci_mmio_write
+__ia32_sys_s390_pci_mmio_write
+
+=== mmio_read ===
+mmio_read
+pkvm_mmio_readq
+pkvm_mmio_readl
+pkvm_mmio_readw
+pkvm_mmio_readb
+uncore_mmio_read_counter
+vcpu_mmio_read
+kvm_sev_es_mmio_read
+apic_mmio_read
+ioapic_mmio_read

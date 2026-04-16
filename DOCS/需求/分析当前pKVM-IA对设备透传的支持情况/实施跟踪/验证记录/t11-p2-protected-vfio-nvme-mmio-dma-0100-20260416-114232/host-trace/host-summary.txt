@@ -1,0 +1,14 @@
+pkvmdma_host_meta_enter pkvm_vm_ioctl_set_ptdev_mmio_metadata enabled
+pkvmdma_host_meta_sync pkvm_sync_ptdev_mmio_metadata skipped(symbol-missing)
+pkvmdma_host_enable_cap pkvm_vm_ioctl_enable_cap enabled
+pkvmdma_host_sev_mmio_read kvm_sev_es_mmio_read enabled
+pkvmdma_host_sev_mmio_write kvm_sev_es_mmio_write enabled
+
+STOP_TS=2026-04-16T11:50:51Z
+
+counts:
+pkvmdma_host_meta_enter=0
+pkvmdma_host_meta_sync=0
+pkvmdma_host_enable_cap=0
+pkvmdma_host_sev_mmio_read=0
+pkvmdma_host_sev_mmio_write=0

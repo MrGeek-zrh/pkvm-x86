@@ -630,6 +630,111 @@ arch/src/lib.rs
 
 这比“`build_protected_vm_ptdev_mmio_metadata()` 返回空 `ranges`”更前置，也更符合现有所有观测结果。
 
+## host fallback 继续落到哪里（源码补充）
+
+为避免把“`PKVM_GHC_IOREAD/IOWRITE -> host fallback`”理解成只到
+`kvm_sev_es_mmio_read()` / `kvm_sev_es_mmio_write()` 就结束，这里把 metadata
+缺失阶段的实际 host 处理链继续展开。
+
+更准确地说，这一轮 `dd if=/dev/nvme0n1 ...` 能成功，依赖的是：
+
+- guest 侧 NVMe BAR 寄存器访问没有命中 allowlist，于是走 host-mediated MMIO
+- host KVM 把这次 MMIO exit 继续交给 `crosvm`
+- `crosvm` 再通过 VFIO PCI BAR 读写真实设备寄存器
+- 设备的数据搬运仍走已 attach 的 ptdev/IOMMU DMA 路径，而不是依赖 allowlist
+
+对应调用栈可以收敛为：
+
+```text
+guest NVMe BAR MMIO
+    -> pKVM-IA/arch/x86/coco/pkvm/pkvm.c
+        pkvm_virt_mmio()
+            -> pkvm_mmio_allow_hit() == false
+            -> mmio_read()/mmio_write()
+            -> kvm_hypercall2/3(PKVM_GHC_IOREAD/IOWRITE)
+
+pKVM/hyp
+    -> pKVM-IA/arch/x86/kvm/pkvm/vmx/vmx.c
+        PKVM_GHC_IOREAD/IOWRITE
+            -> kvm_skip_emulated_instruction()
+            -> return 0
+    -> pKVM-IA/arch/x86/kvm/pkvm/x86.c
+        handle_exit() <= 0
+            -> pkvm_make_req_to_host(HOST_HANDLE_EXIT, vcpu)
+
+host KVM
+    -> pKVM-IA/arch/x86/kvm/x86.c
+        kvm_pkvm_hypercall()
+            -> kvm_sev_es_mmio_read()/kvm_sev_es_mmio_write()
+                -> vcpu_mmio_read()/vcpu_mmio_write()
+                -> kvm_io_bus_read()/kvm_io_bus_write()
+                -> 若内核内未完全处理
+                    -> run->exit_reason = KVM_EXIT_MMIO
+                    -> complete_userspace_io = complete_sev_es_emulated_mmio
+
+crosvm userspace
+    -> crosvm/hypervisor/src/kvm/mod.rs
+        vcpu.run() => VcpuExit::Mmio
+        vcpu.handle_mmio()
+    -> crosvm/src/crosvm/sys/linux/vcpu.rs
+        mmio_bus.read()/write()
+    -> crosvm/devices/src/bus.rs
+        Bus::read()/write()
+    -> crosvm/devices/src/pci/pci_device.rs
+        PciDevice::read()/write()
+            -> find_bar_and_offset()
+    -> crosvm/devices/src/pci/vfio_pci.rs
+        VfioPciDevice::read_bar()/write_bar()
+    -> crosvm/devices/src/vfio.rs
+        VfioDevice::region_read()/region_write()
+            -> 对 VFIO device fd 做 pread/pwrite
+            -> 命中真实 NVMe BAR
+```
+
+这条栈对应的关键源码位置：
+
+- guest miss allowlist 后回退超调用：
+  - `pKVM-IA/arch/x86/coco/pkvm/pkvm.c`
+    - `pkvm_virt_mmio()`
+- hyp 把 `PKVM_GHC_IOREAD/IOWRITE` 转发给 host：
+  - `pKVM-IA/arch/x86/kvm/pkvm/vmx/vmx.c`
+  - `pKVM-IA/arch/x86/kvm/pkvm/x86.c`
+- host KVM 复用 SEV-ES MMIO 处理并在必要时抛出 `KVM_EXIT_MMIO`：
+  - `pKVM-IA/arch/x86/kvm/x86.c`
+    - `kvm_pkvm_hypercall()`
+    - `kvm_sev_es_mmio_read()`
+    - `kvm_sev_es_mmio_write()`
+- `crosvm` 接住 `KVM_EXIT_MMIO` 后把 GPA 路由到 VFIO PCI BAR：
+  - `crosvm/hypervisor/src/kvm/mod.rs`
+  - `crosvm/src/crosvm/sys/linux/vcpu.rs`
+  - `crosvm/devices/src/bus.rs`
+  - `crosvm/devices/src/pci/pci_device.rs`
+  - `crosvm/devices/src/pci/vfio_pci.rs`
+  - `crosvm/devices/src/vfio.rs`
+
+因此，这里所谓“转发给 host”的更准确语义不是“host kernel 自己模拟了整个 NVMe”，而是：
+
+- host KVM 先承接 guest 的 MMIO hypercall
+- 然后把未在内核内完成的 MMIO 继续抛给 `crosvm`
+- 最终由 `crosvm + VFIO` 对真实 NVMe BAR 做寄存器访问
+
+同时，这也解释了为什么在 allowlist 为空时 `dd` 仍可成功：
+
+- 控制面寄存器访问由 `host fallback + VFIO BAR` 补上
+- 数据面搬运仍由设备 DMA 完成
+
+DMA 侧与 MMIO allowlist 是两条独立机制；当前 ptdev attach 后，DMA 使用的是
+`pkvm_shadow_vm.pgstate_pgt` 这份 DMA mirror，并通过 `pkvm_iommu_sync()` 同步到
+IOMMU 上下文：
+
+- `pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/pkvm_hyp_types.h`
+  - `struct pkvm_shadow_vm`
+  - `pgstate_pgt`
+- `pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/ptdev.c`
+  - `pkvm_attach_ptdev()`
+- `pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/iommu.c`
+  - `pkvm_iommu_sync()`
+
 ## 结论
 
 2026-04-15 这轮验证可以直接得出下面这组结论：
