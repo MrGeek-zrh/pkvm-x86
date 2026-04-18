@@ -22,6 +22,93 @@
 - 对既非当前 VM attached BAR 又非 host RAM 的 HPA，在 `vm_mmu_map` 提前 reject 并打印明确日志
 - VM teardown 时，BAR leaf 不再走 `__pkvm_host_undonate_guest()` / `__pkvm_host_unshare_guest()`
 
+修复前的函数调用栈如下：
+```C
+Host-high：先通过 memslot/HVA 得到 candidate HPA，再发起 vm_mmu_map hypercall
+
+pkvm_page_fault(...)                                             (pKVM-IA/arch/x86/kvm/mmu/mmu.c)
+    kvm_faultin_pfn(...)
+        __kvm_faultin_pfn(...)
+            __gfn_to_pfn_memslot(...)                            (pKVM-IA/virt/kvm/kvm_main.c)
+                hva_to_pfn(...)
+                    hva_to_pfn_remapped(...)
+                        follow_pfnmap_start(...)
+    pkvm_hypercall(vm_mmu_map, vcpu, gpa, hpa, size, writable)
+        handle_kvm_call(__pkvm__vm_mmu_map, ...)                 (pKVM-IA/arch/x86/kvm/pkvm/pkvm.c)
+            pkvm_vm_mmu_map(...)
+
+hyp：直接使用Host传来的hpa进行Guest ept映射建立。并且hyp当前实际上只支持普通的Host RAM，因为当前建立ept映射涉及到Host donate内存给Guest，而这个donate函数当前只允许支持普通Host RAM
+
+pkvm_vm_mmu_map(...)                                             (pKVM-IA/arch/x86/kvm/pkvm/mmu.c)
+    pkvm_pgtable_map(..., guest_mmu_map_leaf, ...)
+        guest_mmu_map_leaf(...)                                  (pKVM-IA/arch/x86/kvm/pkvm/mmu.c)
+            pgtable_map_leaf(...)
+            // protected VM + host RAM：normal RAM donation/share 语义
+            __pkvm_host_donate_guest(...)                        (pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/mem_protect.c)
+                do_donate(...)
+                    check_donation(...)
+                    __do_donate(...)
+                        host_initiate_donation(...)
+                            find_mem_range(...)
+                            host_ept_set_owner_locked(...)
+
+VM teardown
+
+pkvm_vm_mmu_destroy(...)                                         (pKVM-IA/arch/x86/kvm/pkvm/mmu.c)
+    pkvm_pgtable_destroy(&pkvm_vm->mmu, guest_mmu_free_leaf)
+        guest_mmu_free_leaf(...)
+          __pkvm_host_undonate_guest(...)
+```
+
+修复后的对应函数调用栈如下，分成 host-high 取 HPA、hyp 侧建图分流、VM teardown 回收三段看会更直观：
+
+```C
+Host-high：先通过 memslot/HVA 得到 candidate HPA，再发起 vm_mmu_map hypercall
+
+pkvm_page_fault(...)                                             (pKVM-IA/arch/x86/kvm/mmu/mmu.c)
+    kvm_faultin_pfn(...)
+        __kvm_faultin_pfn(...)
+            __gfn_to_pfn_memslot(...)                            (pKVM-IA/virt/kvm/kvm_main.c)
+                hva_to_pfn(...)
+                    hva_to_pfn_remapped(...)
+                        follow_pfnmap_start(...)
+    pkvm_hypercall(vm_mmu_map, vcpu, gpa, hpa, size, writable)
+        handle_kvm_call(__pkvm__vm_mmu_map, ...)                 (pKVM-IA/arch/x86/kvm/pkvm/pkvm.c)
+            pkvm_vm_mmu_map(...)
+
+hyp：按 attached boot BAR / host RAM 做 Guest EPT leaf 分流
+
+pkvm_vm_mmu_map(...)                                             (pKVM-IA/arch/x86/kvm/pkvm/mmu.c)
+    guest_mmu_is_attached_boot_ptdev_bar_hpa(kvm, hpa, size)
+        pkvm_vm_hpa_hits_attached_boot_ptdev_bar(...)            (pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/ptdev.c)
+            pkvm_boot_ptdev_manifest_lookup(ptdev->bdf)
+            pkvm_boot_ptdev_bar_contains(entry, hpa, size)
+    guest_mmu_is_host_ram_hpa(hpa, size)
+        is_mem_range(hpa, size)
+    // direct_mmio=false 且不是 host RAM：在这里提前 reject
+    pkvm_pgtable_map(..., guest_mmu_map_leaf, ...)
+        guest_mmu_map_leaf(...)                                  (pKVM-IA/arch/x86/kvm/pkvm/mmu.c)
+            // protected VM + attached BAR：direct BAR leaf，不走 donation
+            pgtable_map_leaf(...)
+            // protected VM + host RAM：normal RAM donation/share 语义
+            __pkvm_host_donate_guest(...)                        (pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/mem_protect.c)
+                do_donate(...)
+                    check_donation(...)
+                    __do_donate(...)
+                        host_initiate_donation(...)
+                            find_mem_range(...)
+                            host_ept_set_owner_locked(...)
+
+VM teardown：BAR leaf 只随 Guest EPT 销毁，不按 RAM donation 回收
+
+pkvm_vm_mmu_destroy(...)                                         (pKVM-IA/arch/x86/kvm/pkvm/mmu.c)
+    pkvm_pgtable_destroy(&pkvm_vm->mmu, guest_mmu_free_leaf)
+        guest_mmu_free_leaf(...)
+            guest_mmu_is_attached_boot_ptdev_bar_hpa(kvm, phys, size)
+                // true：return 0，跳过 __pkvm_host_undonate_guest()
+                // false：__pkvm_host_undonate_guest(...)
+```
+
 仍保留的已知边界：
 
 - 本轮不检查 BAR 内 offset 是否正确

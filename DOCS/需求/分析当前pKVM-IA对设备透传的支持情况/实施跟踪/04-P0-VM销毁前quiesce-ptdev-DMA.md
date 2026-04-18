@@ -2,7 +2,7 @@
 
 ## 状态
 
-- 当前状态: 第一版实现已完成首轮重启后推荐矩阵验证；`Case A 20 轮 + Case B/C 各 5 轮` 全部负例
+- 当前状态: GitHub Task `pkvm-x86#8` 已关闭；第一版实现已完成首轮重启后推荐矩阵验证，`Case A 20 轮 + Case B/C 各 5 轮` 全部负例
 - 优先级: P0
 - GitHub Task: `pkvm-x86#8`
 - 关联 Bug: `pkvm-x86#32`
@@ -155,6 +155,19 @@ pkvm_vm_destroy(handle)
   - 先补一个独立的“前置切断 DMA”步骤；
   - 再做 `guest_mmu_free_leaf()` 的 undonate；
   - 最后沿用现有 detach 做收尾。
+
+### 与 `T12` / BAR ownership 的关系
+
+- 截至 2026-04-17，当前决定不把 `T4` 的第一版修复改写成“先等 BAR ownership 状态机落地，再统一实现”。
+- 当前原因是：
+  - `T4` 首先要解决的是“guest 页回到 Host 前，设备 DMA 通路必须先被切断”；
+  - `T12` / BAR ownership 首先要解决的是“Host CPU 是否还能通过 BAR / Host EPT 继续访问设备控制面”；
+  - 两者相关，但不是同一个 correctness 条件。
+- 因此当前阶段口径收敛为：
+  - `T4` 继续沿用现有主线：先做前置 `quiesce / block DMA`，不等待完整 BAR ownership 实现；
+  - `T12` 继续独立推进 `ptdev` 的 BAR `owner/state`、Host EPT invalid annotation 与 Host fault deny-remap；
+  - 待 `T12` 的 BAR ownership 功能完成后，再回头评估是否基于同一套 `ptdev owner/state` 把 `T4` 的 teardown 编排进一步收敛到统一状态机。
+- 也就是说，BAR ownership 是后续优化 `T4` 的候选骨架，而不是当前 `T4` 第一版修复的前置阻塞。
 
 ## 当前验证入口
 
