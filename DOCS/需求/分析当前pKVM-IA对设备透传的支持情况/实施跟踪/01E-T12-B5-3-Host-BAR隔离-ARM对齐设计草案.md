@@ -1,5 +1,10 @@
 # [T12] B5-3 Host BAR 隔离的 ARM 对齐设计草案
 
+> `2026-04-24` 状态说明：`B5-3 / T12` 当前已经把已收敛的 device MMIO donate 机制单独整理成总文档：
+> [`01E-T12-B5-3-protected-pVM-device-MMIO-donate-机制总设计.md`](01E-T12-B5-3-protected-pVM-device-MMIO-donate-机制总设计.md)
+>
+> 后续以总文档作为主入口；本文继续保留 ARM 对齐背景、BAR ownership 细节推导和分项展开，作为“分文档 / 背景说明”引用。
+
 ## 目的
 
 这份文档用于讨论 `pkvm-x86#34` 的下一轮设计：在 protected pVM 设备透传场景下，如何隔离 Host CPU 对已分配给 pVM 的设备 BAR / MMIO 区域的访问。
@@ -155,81 +160,98 @@ host_initiate_donation()
 - `shadow_vm->mmio_allow_ranges[]`：guest 查询和 `pkvm_virt_mmio()` 消费的 allowlist
 - `ptdev->pgt`：DMA mirror / IOMMU 二级页表根
 
-缺口是：没有一个 hyp 内部对象明确记录“这个 BAR resource 当前 owner 是 Host / Hyp / Guest”。
+缺口是：没有一个 hyp 内部对象同时记录：
+
+- 这台设备当前最终 authority 在 Host 还是 Hyp
+- 设备当前处于 attach / assigned / restore 的哪一阶段
+- 每个 managed BAR 当前走到 revoke / contract publish / restore 的哪一步
 
 建议补齐：
 
 ```c
-enum pkvm_ptdev_bar_owner {
-	PKVM_PTDEV_BAR_OWNER_HOST,
-	PKVM_PTDEV_BAR_OWNER_HYP,
-	PKVM_PTDEV_BAR_OWNER_GUEST,
+enum pkvm_ptdev_owner {
+	PKVM_PTDEV_OWNER_HOST,
+	PKVM_PTDEV_OWNER_HYP,
+	/* PKVM_PTDEV_OWNER_GUEST: reserved for a later stage */
 };
 
-enum pkvm_ptdev_bar_state {
+enum pkvm_ptdev_assignment_state {
+	PKVM_PTDEV_DETACHED,
+	PKVM_PTDEV_ATTACHING,
+	PKVM_PTDEV_HOST_REVOKED,
+	PKVM_PTDEV_GUEST_ASSIGNED,
+	PKVM_PTDEV_RESTORING,
+};
+
+enum pkvm_ptdev_bar_progress {
 	PKVM_PTDEV_BAR_HOST_VISIBLE,
-	PKVM_PTDEV_BAR_HOST_REVOKED,
-	PKVM_PTDEV_BAR_GUEST_ASSIGNED,
+	PKVM_PTDEV_BAR_REVOKED,
+	PKVM_PTDEV_BAR_CONTRACT_PUBLISHED,
 	PKVM_PTDEV_BAR_RESTORING,
 };
 ```
 
-这里的 `owner` 与 `state` 分工不同：
+这里的三层状态分工不同：
 
-- `owner`
-  - 回答“这段 BAR 当前逻辑上归谁裁决”
-  - 主要服务于 Host EPT fault、reclaim、restore
-- `state`
-  - 回答“这段 BAR 当前走到 assignment 生命周期的哪一步”
-  - 主要服务于 attach、guest assign、detach、rollback
+- `ptdev.owner`
+  - 回答“这台设备当前最终 authority 在谁手里”
+  - 第一阶段只锁定 `HOST | HYP`
+- `ptdev.assignment_state`
+  - 回答“设备生命周期走到哪一步”
+- `bar.progress`
+  - 回答“单个 managed BAR 在这一轮执行中走到哪一步”
 
-两者不是重复字段，也不是任意组合：
+三者不是重复字段，也不是任意组合：
 
-- `owner` 更像权限真相
-- `state` 更像流程位置
+- `ptdev.owner` 更像权限真相
+- `ptdev.assignment_state` 更像流程位置
+- `bar.progress` 更像执行进度
 - 第一阶段建议只允许少数合法组合，避免状态爆炸
 
 建议的合法组合如下：
 
 ```text
-HOST_VISIBLE   + OWNER_HOST
-    初始态 / restore 完成态
+DETACHED + OWNER_HOST
+    所有 managed BAR.progress = HOST_VISIBLE
 
-HOST_REVOKED   + OWNER_HYP
-    Host -> Hyp 已完成
-    guest 还没正式拿到 BAR
+ATTACHING + OWNER_HOST
+    managed BAR.progress = HOST_VISIBLE / REVOKED 可混合
+
+HOST_REVOKED + OWNER_HYP
+    所有 managed BAR.progress = REVOKED
+    guest contract 尚未发布
 
 GUEST_ASSIGNED + OWNER_HYP
+    所有 managed BAR.progress = CONTRACT_PUBLISHED
     第一阶段推荐形态
-    guest 已有 direct BAR 权限，但最终 authority 仍由 hyp 持有
 
-GUEST_ASSIGNED + OWNER_GUEST
-    更接近 ARM 的“Hyp -> Guest”显式移交形态
-    第一阶段可以先不采用
-
-RESTORING      + OWNER_HYP
-    正在从 guest/hyp 撤回给 Host
-    尚未完成 Host restore
+RESTORING + OWNER_HYP
+    所有 managed BAR.progress = RESTORING
+    Host restore 尚未 final commit
 ```
 
 不应出现的组合包括：
 
 ```text
-HOST_VISIBLE   + OWNER_HYP / OWNER_GUEST
+DETACHED       + OWNER_HYP
 HOST_REVOKED   + OWNER_HOST
 GUEST_ASSIGNED + OWNER_HOST
 RESTORING      + OWNER_HOST
 ```
 
-之所以需要同时保留 `owner` 和 `state`，是因为单靠其中一个都不够：
+之所以需要同时保留设备级 `owner/state` 和 BAR 级 `progress`，是因为单靠其中一个都不够：
 
-- 只靠 `owner` 不够：
+- 只靠 `ptdev.owner` 不够：
   - `OWNER_HYP` 既可能表示“Host 已被 revoke，但 guest 还没拿到 BAR”
   - 也可能表示“guest 已经在用 BAR，但最终 authority 仍在 hyp”
-  - 这两种情况必须由 `state` 区分
-- 只靠 `state` 也不够：
+  - 这两种情况必须由 `assignment_state` 区分
+- 只靠 `assignment_state` 也不够：
   - Host fault 路径最终更适合只回答“Host 还是不是 owner”
   - 这也是 ARM 参考实现的关键思路：设备 assignment 状态在 `pkvm_device.ctxt` 一侧，Host 能否 remap 则由 host stage-2 owner annotation 决定
+- 只靠设备级 `state` 也不够：
+  - `ATTACHING` 时需要允许“有些 BAR 已 revoke、有些还没动”
+  - `RESTORING` 时又要求“所有 managed BAR 对外都仍然是 restore 中，不能提前部分回到 Host”
+  - 这些都必须由 `bar.progress` 承担
 
 从 ARM 语义看，这两条轴大致对应：
 
@@ -256,41 +278,50 @@ Host fault / remap 轴
 
   - `__host_stage2_set_owner_locked()`
   - `host_stage2_adjust_range()`
-- HOST_VISIBLE
-
-  - Host 正常可见、可访问
-  - Host EPT 里有正常 UC 映射
-  - 这是 attach 前/完全 restore 后的稳态
-- HOST_REVOKED
-
-  - Host 访问权已被撤掉
-  - Host EPT 里应是 invalid owner annotation，不允许 fault 后 lazy remap
-  - 这是 “Host -> Hyp” 已完成、但 guest 还没真正拿到 BAR 的中间稳态
-- GUEST_ASSIGNED
-
-  - guest 已经拿到 direct BAR 权限/映射
-  - Host 仍然不能 remap 回来
-  - 这是设备真正被 pVM 使用时的稳态
-- RESTORING
-
-  - 正在从 guest/hyp 还回 Host
-  - guest 侧权限正在撤、DMA 应已 quiesce/block
-  - 这是 teardown / rollback 的过渡态
+- `DETACHED`
+  - `ptdev.owner = HOST`
+  - `ptdev.assignment_state = DETACHED`
+  - 所有 managed BAR.progress = `HOST_VISIBLE`
+- `ATTACHING`
+  - `ptdev.owner = HOST`
+  - `ptdev.assignment_state = ATTACHING`
+  - 允许部分 managed BAR 已经 `REVOKED`
+- `HOST_REVOKED`
+  - `ptdev.owner = HYP`
+  - `ptdev.assignment_state = HOST_REVOKED`
+  - 所有 managed BAR.progress = `REVOKED`
+- `GUEST_ASSIGNED`
+  - `ptdev.owner = HYP`
+  - `ptdev.assignment_state = GUEST_ASSIGNED`
+  - 所有 managed BAR.progress = `CONTRACT_PUBLISHED`
+- `RESTORING`
+  - `ptdev.owner = HYP`
+  - `ptdev.assignment_state = RESTORING`
+  - 所有 managed BAR.progress = `RESTORING`
+  - 在全部 restore 成功前，不能提前发布任何 `HOST_VISIBLE`
 
 并在 `struct pkvm_ptdev` 下挂 BAR resource snapshot：
 
 ```text
 struct pkvm_ptdev
+    -> owner
+    -> assignment_state
+    -> dma_view_ready           (internal only)
+    -> managed_bar_mask
+    -> touched_bar_mask
     -> struct pkvm_ptdev_bar bars[]
         -> base
         -> size
         -> flags
-        -> owner
-        -> state
-        -> generation
+        -> progress
 ```
 
 第一阶段可以只支持 boot-known memory BAR；MSI-X table / PBA 子区间、config space、hotplug 后续再扩展。
+
+但这里已经进一步收敛两条口径：
+
+- assigned 设备的 managed set 必须完整：不允许设备已经 `GUEST_ASSIGNED`，但某个 managed BAR 仍然 `HOST_VISIBLE`
+- MSI-X table / PBA 当前不进 guest direct subset，但对应 BAR 仍属于 managed set，Host 也不能因此保留 BAR 访问权
 
 这里几个术语在当前专题里的含义如下：
 
@@ -337,7 +368,8 @@ struct pkvm_ptdev
 pkvm_host_donate_ptdev_bar_to_hyp(ptdev, bar)
     -> validate bar resource belongs to boot manifest + ptdev metadata
     -> annotate Host EPT invalid leaf with OWNER_ID_HYP or device-owner id
-    -> record bar.owner = HYP
+    -> record bar.progress = REVOKED
+    -> record ptdev.owner = HYP (after final revoke commit)
     -> flush Host EPT
 ```
 
@@ -388,8 +420,8 @@ attach 阶段由 hyp 自己把 `bar_index + bar_offset` 解析成可信 HPA rang
 
 其中：
 
-- `record bar.owner = HYP`
-  - 指在 hyp 自己维护的 `ptdev BAR snapshot` 里，把这段 BAR 的软件状态记成“当前由 Hyp 裁决”
+- `record bar.progress = REVOKED` / `record ptdev.owner = HYP`
+  - 指在 hyp 自己维护的 `ptdev BAR snapshot` 和设备级状态里，把这轮 Host revoke 的结果记成“当前由 Hyp 裁决”
   - 不是往 Guest EPT 注入 annotation
   - 也不是替代 Host EPT annotation
 - 真正需要写入 annotation 的，是 Host EPT invalid leaf
@@ -515,10 +547,12 @@ EMPTY
 ```text
 guest wants direct BAR mapping/access
     -> 找到当前 VM attached ptdev
+    -> 要求 ptdev.owner == HYP
+    -> 要求 ptdev.assignment_state == HOST_REVOKED 或 GUEST_ASSIGNED
     -> 找到 BAR resource
-    -> 要求 bar.owner == HYP 或 bar.owner == GUEST
     -> install guest direct BAR / allowlist
-    -> bar.owner = GUEST
+    -> bar.progress = CONTRACT_PUBLISHED
+    -> ptdev.assignment_state = GUEST_ASSIGNED
 ```
 
 第一阶段可以继续复用现有 allowlist 作为 guest 查询面，但 hyp 内部应明确区分：
@@ -528,42 +562,120 @@ guest wants direct BAR mapping/access
 
 ### 能力 5：teardown / rollback 的资源状态恢复
 
-当前工作记录（2026-04-17）：
+当前讨论决议（2026-04-20）：
 
-- `T4` 第一版已按既定验收口径完成并关闭，不再作为当前进行中主任务
-- 当前主线前移到 `B5-3 / T12`
-- 下次继续讨论的入口就从本节开始，重点是：
-  - teardown / attach-fail / remove-path 下 BAR owner/state 如何收敛
-  - DMA quiesce、guest allowlist 撤销、Host EPT restore 三者的安全顺序
-  - 哪些能力应先作为第一阶段 contract 固化，哪些继续留给 `T6` / follow-up
-上一轮临时 patch 把 restore 放在 detach 里，但缺少 generation 与部分失败 rollback 语义。
+- 本节先收敛 `B5-3 / T12` 自己的第一阶段 restore contract，不把 `T4/T6` 整体吞并成一套统一 teardown 状态机。
+- `T4` 继续负责 VM destroy 主线里的 DMA quiesce / block 真相来源。
+- `T6` 继续负责 remove-path / VFIO release / attach-fail 的 caller coverage；本节只要求这些路径最终复用同一套 BAR restore contract。
+- 第一阶段优先解决“Host owner 能否无残留地回到 Host”，而不是一次性吞掉 reset / group / remove-path 的完整编排。
 
-下一轮应要求：
+结合当前 x86 源码，职责边界其实已经有一部分雏形：
+
+- `pKVM-IA/arch/x86/kvm/pkvm/pkvm.c`
+  - `pkvm_vm_destroy()` 已先调用 `pkvm_quiesce_shadow_vm_ptdevs()`，再进入 `pkvm_vm_mmu_destroy()`
+- `pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/pkvm.c`
+  - `pkvm_teardown_shadow_vm()` 当前会先遍历 `pkvm_detach_ptdev()`，再执行 `pkvm_pgstate_pgt_deinit()`
+- `pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/ptdev.c`
+  - `pkvm_detach_ptdev()` 当前只会清 `mmio_metadata` / allowlist、把 `ptdev->pgt` 切回 host EPT 并 `pkvm_iommu_sync()`
+  - 但它还没有 BAR snapshot / `managed_bar_mask` / `touched_bar_mask`、owner restore helper，以及 restore 失败后保留 `RESTORING` 的语义
+
+因此本节建议把 teardown / rollback 先写成一个“恢复 contract”，而不是继续把 `pkvm_detach_ptdev()` 直接膨胀成全局生命周期 orchestrator。
+
+第一阶段 contract 先固定四件事：
+
+1. **DMA-safe 前置条件**
+   - 任何进入 BAR restore 的 path，都必须先满足“设备 DMA 已经不可达”这个前置条件。
+   - VM teardown 主线默认复用 `T4` 已有入口：
+
+```text
+pkvm_vm_destroy()
+    -> pkvm_quiesce_shadow_vm_ptdevs()
+    -> pkvm_vm_mmu_destroy()
+```
+
+   - attach-fail / remove-path 不在本节强行规定谁来做 quiesce，但调用 restore helper 前必须证明：
+     - 要么 DMA 视角尚未真正切给 guest
+     - 要么调用者已经显式完成 block / quiesce
+
+2. **只回滚当前 `touched_bar_mask` 触碰过的 BAR**
+   - restore 目标必须来自 `ptdev->bars[]` 中“本轮 Host->Hyp revoke 成功”的资源快照。
+   - 不能在 rollback 时回扫“manifest 里所有 BAR”或“当前 metadata 里所有区间”。
+   - attach-fail 只回滚本轮 `touched_bar_mask` 已经成功 revoke 的 BAR，避免半成功路径把旧状态一起冲掉。
+
+   但这里的 `touched_bar_mask` 只定义 **BAR restore 的资源范围**，不应误解为“完整 rollback 只做 BAR restore”。
+
+   第一阶段的完整 rollback / restore，至少同时覆盖 4 个平面：
+
+```text
+guest contract 平面
+    -> 如果 allowlist / direct BAR contract 已发布
+        -> 先 withdraw
+
+DMA view 平面
+    -> 如果 DMA_VIEW_READY = 1
+        -> ptdev->pgt = host EPT
+        -> pkvm_iommu_sync()
+
+Host BAR visibility 平面
+    -> 只对 touched_bar_mask 内的 BAR
+        -> 清 owner annotation
+        -> 恢复 Host BAR visible leaf
+
+bookkeeping / device state 平面
+    -> ptdev.owner / assignment_state 回到稳定态
+    -> touched_bar_mask 清零
+```
+
+   所以这里更准确的表述应是：
+
+```text
+rollback 的 BAR 资源范围 = touched_bar_mask
+完整 rollback 动作 != 只恢复这些 BAR
+```
+
+3. **恢复顺序以“先撤 guest 视角，再恢复 Host owner”为准**
 
 ```text
 detach / teardown / attach-fail
-    -> quiesce or block DMA
+    -> require dma-safe precondition
+    -> ptdev.assignment_state = RESTORING
+    -> touched bars.progress = RESTORING
     -> withdraw guest BAR mapping / allowlist
-    -> reclaim BAR owner to HYP
-    -> restore Host EPT owner to HOST
-    -> bar.owner = HOST
-    -> clear ptdev assignment state
+    -> if ptdev DMA view already switched to vm->pgstate_pgt
+        -> ptdev->pgt = host EPT
+        -> pkvm_iommu_sync()
+        -> DMA_VIEW_READY = 0
+    -> restore Host EPT owner to HOST (internal prepare)
+    -> if all touched bars restore done
+        -> touched bars.progress = HOST_VISIBLE
+        -> ptdev.owner = HOST
+        -> ptdev.assignment_state = DETACHED
 ```
 
-这里必须和 `T4`、`T6` 对齐：
+   - 这里把 `pkvm_iommu_sync()` 放在 Host owner restore 之前，目的是让“DMA 视角回 Host / 被 block”先完成，再恢复 Host CPU 视角。
+   - 这样即便 restore 中途失败，系统仍更接近“Host 还拿不回 BAR，但不会出现 Host owner 已恢复、DMA 还悬空”的保守状态。
 
-- `T4`：VM 销毁前 quiesce ptdev DMA
-- `T6`：VFIO remove-path 与失败回滚
-- 截至 2026-04-17，当前阶段还进一步明确：
-  - 不让 `T12` / BAR ownership 反向阻塞已完成的 `T4` 第一版“前置 quiesce / block DMA”修复
-  - `T4` 当前第一版任务已按既定验收口径完成；后续如需继续提高 teardown 生命周期置信度或做状态机收敛，应作为 follow-up 承接
-  - 等 BAR ownership 相关能力完整落地后，再回头评估是否把 `T4` 的 teardown 编排统一到同一套 `ptdev owner/state` 状态机里
+4. **失败时保留可诊断的中间态，不做假成功清理**
+   - 若 `pkvm_iommu_sync()` 或 Host owner restore 中途失败，public state 必须继续保留 `RESTORING + OWNER_HYP`。
+   - 这时不能继续把 `ptdev` 当作“已完全 detach”处理，也不能提前 `pkvm_put_ptdev()`。
+   - 即便内部已经恢复了部分 BAR，也不能提前把这些 BAR 对外发布成 `HOST_VISIBLE`；`HOST_VISIBLE` 只能作为全部 restore 成功后的 final commit。
+   - 中途部分成功的结果只能保留在内部 bookkeeping 里，供后续 retry / debug / remove-path follow-up 使用。
 
-否则容易出现：
+这样和 `T4`、`T6` 的边界会更清楚：
+
+- `T12`
+  - 定义 `ptdev bars[] + ptdev.owner + assignment_state + bar.progress + touched_bar_mask`
+  - 定义统一的 BAR restore helper 与最终 invariant
+- `T4`
+  - 继续保证 VM teardown 进入 restore 前，DMA 已先不可达
+- `T6`
+  - 继续把 remove-path / attach-fail / VFIO release 接到同一套 restore contract
+
+否则仍容易出现：
 
 - Host EPT 已恢复，但设备还在 DMA
-- attach 失败后 BAR 半撤销
-- VM teardown 后 `ptdev` 清掉了，但 Host EPT invalid annotation 还在
+- attach 失败后 BAR 半撤销，却被误清成“已 detach”
+- VM teardown 后 `ptdev` 已清掉，但 Host EPT invalid annotation 还留着
 
 ### 能力 6：IOMMU group / reset / DMA block 的一致性扩展点
 
@@ -779,13 +891,17 @@ struct pkvm_ptdev
         pgt
         dma_blocked
         iommu_coherency
+        dma_view_ready
     mmio contract:
         mmio_metadata
         mmio_metadata_valid
+    bar authority:
+        owner
+        assignment_state
+        managed_bar_mask
+        touched_bar_mask
         bars[]
-        bar_owner
-        bar_state
-        generation
+            -> progress
 ```
 
 这样 `ptdev` 与 ARM `pkvm_device` 的职责对齐：
@@ -805,8 +921,47 @@ pkvm_prepare_ptdev_bar_resources(ptdev, vm)
     -> lookup boot manifest by bdf
     -> validate metadata ranges are inside manifest BAR
     -> copy boot-known memory BAR into ptdev->bars[]
-    -> mark bars owner=HOST state=HOST_VISIBLE
+    -> ptdev.owner = HOST
+    -> ptdev.assignment_state = DETACHED
+    -> managed bars.progress = HOST_VISIBLE
+    -> touched_bar_mask = 0
 ```
+
+这里的“BAR snapshot 已固化”指的是：在 attach 进入 Host->Hyp revoke 之前，
+hyp 先把当前 `ptdev` 本轮要管理的 BAR 资源收敛成一份内部 authoritative
+snapshot（例如 `ptdev->bars[]`），后续的 owner/state 转换、rollback 和
+restore 都只以这份 snapshot 为准。
+
+这一步的输入包括两部分：
+
+1. boot manifest 提供的启动期可信 BAR `base/size`
+2. `SET_PTDEV_MMIO_METADATA` 提供的本轮 guest direct BAR 意图
+   （`bar_index/bar_offset/size/guest_gpa/generation`）
+
+这一步的输出是：
+
+- hyp 自己确认后的 BAR resource 列表
+- 设备级初始状态（`ptdev.owner = HOST` / `ptdev.assignment_state = DETACHED`）
+- 每个 managed BAR 的初始 `progress = HOST_VISIBLE`
+- `managed_bar_mask` 与空的 `touched_bar_mask`
+
+这一步不等价于：
+
+- guest 已经拿到 direct BAR permission
+- Host EPT 已经完成 revoke
+- DMA 视角已经切给 guest
+- 仅仅把 metadata 原样缓存下来
+
+之所以需要先固化 snapshot，是因为 manifest、metadata 和 guest allowlist
+三者语义不同：
+
+- manifest 表示启动期可信设备资源
+- metadata 表示本轮 guest 想 direct 的 BAR 子区间
+- allowlist 表示 guest 运行期被允许访问的 GPA 区间
+
+如果不先把它们收敛成 hyp 自己的 BAR snapshot，后续 revoke / rollback /
+restore 就会缺少唯一真相来源，容易退化成扫描 manifest 全表，或者误把
+metadata 直接当作 BAR owner truth。
 
 注意：manifest 只说明“启动期可信地看见过这个设备和 BAR”，metadata / allowlist 只说明“guest 期望 direct 的 GPA/HPA 区间”。真正可被 Host revoke 的 resource 应由 hyp 固化为 `ptdev->bars[]`。
 
@@ -830,18 +985,30 @@ metadata range
             -> detach / rollback restore target
 ```
 
+这里还要再强调一点：第一阶段已经不再把 hyp 内部 rollback 范围绑定到 `generation`。
+
+- `metadata.generation`
+  - 只表示 guest MMIO contract 的版本
+  - 用于防止旧 metadata / stale publish
+- hyp 内部 restore 范围
+  - 只看 `touched_bar_mask`
+
 ### 建议三：新增 BAR MMIO Host -> Hyp donation
 
 建议新增一条 MMIO 专用路径，而不是改宽普通 RAM donate：
 
 ```text
 pkvm_revoke_ptdev_bar_from_host(ptdev)
-    -> for each bar in ptdev->bars
-        -> require bar.owner == HOST
+    -> ptdev.assignment_state = ATTACHING
+    -> for each bar in managed set
+        -> require bar.progress == HOST_VISIBLE
         -> pkvm_host_ept_annotate_owner(bar.base, bar.size, OWNER_ID_HYP or OWNER_ID_PTDEV)
-        -> bar.owner = HYP
-        -> bar.state = HOST_REVOKED
-    -> pkvm_flush_host_ept()
+        -> bar.progress = REVOKED
+        -> touched_bar_mask |= bar
+    -> if all managed bars revoked
+        -> ptdev.owner = HYP
+        -> ptdev.assignment_state = HOST_REVOKED
+        -> pkvm_flush_host_ept()
 ```
 
 这里的 `pkvm_host_ept_annotate_owner()` 可以复用 `pkvm_pgtable_annotate()` 的底层能力，但不能复用 `host_initiate_donation()` 的普通 RAM 前置检查。
@@ -882,42 +1049,122 @@ pkvm_attach_ptdev()
     -> get/create checked ptdev
     -> prepare BAR resources
     -> revoke BAR from Host: HOST -> HYP
+        -> ptdev.assignment_state = ATTACHING
+        -> all managed BAR.progress = REVOKED
+        -> ptdev.owner = HYP
+        -> ptdev.assignment_state = HOST_REVOKED
     -> switch DMA/IOMMU view to vm->pgstate_pgt
+        -> DMA_VIEW_READY = 1
     -> publish guest MMIO allowlist
-    -> bar.owner = GUEST or keep HYP-with-guest-mapping
+        -> all managed BAR.progress = CONTRACT_PUBLISHED
+        -> ptdev.assignment_state = GUEST_ASSIGNED
 ```
 
-关于 `bar.owner` 到底设置成 `GUEST` 还是保留为 `HYP-with-guest-mapping`，需要实现时再定。建议讨论时先保留两个选项：
+这里的当前收敛结论已经明确：
 
-- 选项 A：严格对齐 ARM，把最终 mapping 视为 `HYP -> GUEST`，owner 标成 `GUEST`。
-- 选项 B：第一阶段把 BAR owner 保留为 `HYP`，guest direct BAR 作为受 hyp 控制的映射许可；等 Guest EPT BAR install 语义更完整后再切到 `GUEST`。
+- 第一阶段不采用严格 `OWNER_GUEST`
+- guest 可以拥有 direct permission
+- 但最终 authority 仍由 hyp 持有
+- 因此 attach 完成态固定为 `GUEST_ASSIGNED + ptdev.owner = HYP`
 
-无论选哪种，Host 都不能再是 owner。
+### 建议六：detach / rollback 必须复用同一套 restore contract
 
-### 建议六：detach / rollback 必须按状态反向恢复
-
-推荐状态恢复顺序：
+推荐状态恢复顺序（前置条件：调用者已满足 DMA-safe）：
 
 ```text
 pkvm_detach_ptdev()
-    -> quiesce/block DMA
+    -> ptdev.assignment_state = RESTORING
+    -> touched bars.progress = RESTORING
     -> clear guest allowlist / guest BAR mapping
     -> switch ptdev->pgt back to host EPT
-    -> reclaim BAR owner to Host
+    -> pkvm_iommu_sync()
+    -> reclaim BAR owner to Host (internal prepare)
         -> owner annotation removed
         -> Host EPT UC RWX mapping restored
-    -> clear ptdev BAR state
-    -> pkvm_iommu_sync()
+    -> if all touched bars restore done
+        -> touched bars.progress = HOST_VISIBLE
+        -> ptdev.owner = HOST
+        -> ptdev.assignment_state = DETACHED
 ```
 
-attach 失败要以 generation 做部分 rollback：
+attach 失败要按 `touched_bar_mask` 做 BAR 资源范围内的 rollback，但还要按 `C commit` 之前 / 之后区分 DMA 前置条件。
+
+这里先把 `C` 定义为 **guest DMA view commit 成功**，而不是“代码曾经写过 `ptdev->pgt`”：
 
 ```text
-attach fail
-    -> if BAR revoke generation started
-        -> restore only bars revoked by this generation
-    -> detach ptdev
+C commit = ptdev->pgt 指向 vm->pgstate_pgt
+         + pkvm_iommu_sync() 成功
+         + DMA_VIEW_READY = 1
 ```
+
+因此 attach-fail 第一阶段只按两个大分叉处理：
+
+```text
+fail before C commit
+    guest DMA view 尚未真正生效
+    -> rollback 不需要先 quiesce
+    -> 直接按 rollback 四平面处理
+    -> DMA view 平面通常是 no-op
+
+fail after C commit
+    guest DMA view 已经真正生效
+    -> rollback 前必须先证明 DMA_UNREACHABLE
+    -> quiesce / block 成功后才能进入 RESTORING
+```
+
+before C 的 rollback 动作：
+
+```text
+guest contract 平面
+    -> 如果 B 尚未发布：no-op
+    -> 如果因异常顺序已经发布：仍必须 withdraw
+
+DMA view 平面
+    -> DMA_VIEW_READY = 0
+    -> 不需要 quiesce
+    -> 如果 ptdev->pgt 曾被临时改过但 sync 失败，应恢复为 host EPT
+
+Host BAR visibility 平面
+    -> 只 restore touched_bar_mask 内已 revoke 的 BAR
+    -> 清 owner annotation / 恢复 Host visible leaf
+
+bookkeeping 平面
+    -> ptdev.owner -> HOST
+    -> assignment_state -> DETACHED
+    -> touched_bar_mask = 0
+```
+
+after C 的 rollback 动作：
+
+```text
+前置
+    -> 必须先 quiesce / block DMA
+    -> 或等价证明 DMA_UNREACHABLE
+
+guest contract 平面
+    -> 如果 B 已发布：withdraw allowlist / direct BAR contract
+    -> 如果 B 未发布：no-op，但状态仍按 RESTORING 收口
+
+DMA view 平面
+    -> ptdev->pgt = host EPT
+    -> pkvm_iommu_sync()
+    -> DMA_VIEW_READY = 0
+
+Host BAR visibility 平面
+    -> restore touched_bar_mask 内 BAR
+    -> 不允许部分 BAR 提前 public HOST_VISIBLE
+
+bookkeeping 平面
+    -> 全部 restore 成功后：
+        -> ptdev.owner -> HOST
+        -> assignment_state -> DETACHED
+        -> touched_bar_mask = 0
+```
+
+这里要特别强调两点：
+
+- `pkvm_detach_ptdev()` 在第一阶段不应单独吞掉 `T4` 的 quiesce 职责；它只消费“DMA-safe 已成立”的前置条件。
+- `remove-path` 后续也不应再造一条独立 restore 逻辑，而应复用同一套 touched-mask-aware helper。
 
 ### 建议七：把 reset / group / token 作为后续扩展点
 
@@ -932,45 +1179,55 @@ attach fail
 
 ## 建议状态机
 
-### BAR owner/state 协同
+### 设备级 owner/state 与 BAR progress 协同
 
 ```text
-HOST_VISIBLE
-    Host EPT has UC RWX mapping
-    bar.owner = HOST
+DETACHED
+    ptdev.owner = HOST
+    ptdev.assignment_state = DETACHED
+    all managed BAR.progress = HOST_VISIBLE
+
+ATTACHING
+    ptdev.owner = HOST
+    ptdev.assignment_state = ATTACHING
+    managed BAR.progress = HOST_VISIBLE / REVOKED mixed
 
 HOST_REVOKED
-    Host EPT has invalid owner annotation
-    Host EPT fault sees owner != HOST and rejects lazy remap
-    bar.owner = HYP
+    ptdev.owner = HYP
+    ptdev.assignment_state = HOST_REVOKED
+    all managed BAR.progress = REVOKED
+    guest contract not published yet
 
 GUEST_ASSIGNED
-    guest has direct BAR permission or mapping
-    Host still cannot lazy remap
-    bar.owner = GUEST or HYP-with-guest-mapping
+    ptdev.owner = HYP
+    ptdev.assignment_state = GUEST_ASSIGNED
+    guest has direct BAR permission / contract
+    all managed BAR.progress = CONTRACT_PUBLISHED
 
 RESTORING
+    ptdev.owner = HYP
+    ptdev.assignment_state = RESTORING
     guest permission is being withdrawn
     DMA should already be blocked/quiesced
-    Host owner restore is in progress
+    all managed BAR.progress = RESTORING
 ```
 
 上面这组状态机建议按如下顺序流转：
 
 ```text
-HOST_VISIBLE/OWNER_HOST
-    -> attach revoke
-HOST_REVOKED/OWNER_HYP
-    -> publish guest BAR permission
-GUEST_ASSIGNED/OWNER_HYP
-    -> begin detach/rollback
-RESTORING/OWNER_HYP
-    -> host restore done
-HOST_VISIBLE/OWNER_HOST
+DETACHED / OWNER_HOST
+    -> ATTACHING
+ATTACHING / OWNER_HOST
+    -> HOST_REVOKED / OWNER_HYP
+HOST_REVOKED / OWNER_HYP
+    -> GUEST_ASSIGNED / OWNER_HYP
+GUEST_ASSIGNED / OWNER_HYP
+    -> RESTORING / OWNER_HYP
+RESTORING / OWNER_HYP
+    -> DETACHED / OWNER_HOST
 ```
 
-这里第一阶段更推荐 `GUEST_ASSIGNED + OWNER_HYP`，而不是立刻切到
-`GUEST_ASSIGNED + OWNER_GUEST`，原因是：
+这里第一阶段已经明确锁定 `GUEST_ASSIGNED + OWNER_HYP`，而不是 `OWNER_GUEST`，原因是：
 
 - 更接近当前 x86 现状：guest direct BAR 更像“由 hyp 授权的 direct access”，而不是 BAR 完全脱离 hyp
 - detach / rollback 更简单：Host restore 前不需要再做一次严格的 `Guest -> Hyp` owner 回收
@@ -985,11 +1242,16 @@ pkvm_attach_ptdev()
     -> pkvm_ptdev_bar_host_to_hyp()
         -> Host EPT owner annotation
         -> Host EPT flush
+        -> ptdev.owner = HYP
+        -> ptdev.assignment_state = HOST_REVOKED
     -> ptdev->shadow_vm_handle = vm_handle
     -> ptdev->pgt = &vm->pgstate_pgt
     -> pkvm_shadow_vm_link_ptdev()
     -> pkvm_iommu_sync()
+        -> DMA_VIEW_READY = 1
     -> publish guest MMIO allowlist
+        -> all managed BAR.progress = CONTRACT_PUBLISHED
+        -> ptdev.assignment_state = GUEST_ASSIGNED
 ```
 
 ### Host fault 主链
@@ -1008,22 +1270,30 @@ handle_host_ept_violation()
 
 ```text
 pkvm_detach_ptdev()
-    -> pkvm_quiesce_ptdev()
+    -> require dma-safe precondition
+    -> ptdev.assignment_state = RESTORING
+    -> touched bars.progress = RESTORING
     -> clear guest MMIO allowlist
     -> ptdev->pgt = host EPT
+    -> pkvm_iommu_sync()
     -> pkvm_ptdev_bar_hyp_to_host()
         -> restore Host EPT mapping
         -> Host EPT flush
+    -> if all touched bars restore done
+        -> update touched bars to HOST_VISIBLE
+        -> ptdev.owner = HOST
+        -> ptdev.assignment_state = DETACHED
     -> unlink ptdev
-    -> pkvm_iommu_sync()
     -> pkvm_put_ptdev()
 ```
+
+若 `pkvm_iommu_sync()` 或 `pkvm_ptdev_bar_hyp_to_host()` 中途失败，则不应继续 `unlink/put`，而应保留 public state 在 `RESTORING / OWNER_HYP`。即便内部已恢复部分 BAR，也不能提前把它们对外发布成 `HOST_VISIBLE`；这条路径应作为后续 retry / debug / remove-path follow-up 的输入。
 
 ## 分阶段实现建议
 
 ### P0：修正设计真相源
 
-- 在 `ptdev` 增加 BAR resource snapshot 与 owner/state 字段。
+- 在 `ptdev` 增加 BAR resource snapshot、`ptdev.owner`、`assignment_state`、`bar.progress`、`managed_bar_mask`、`touched_bar_mask` 字段。
 - attach 前由 manifest + metadata 固化 BAR resource。
 - 不改普通 RAM donate 主链，不把 MMIO 强塞进 `host_initiate_donation()`。
 
@@ -1038,13 +1308,13 @@ pkvm_detach_ptdev()
 ### P2：attach / detach 状态机接入
 
 - attach：Host -> Hyp revoke，再切 DMA/IOMMU view。
-- detach：先 quiesce/block DMA，再 restore Host owner。
-- attach-fail：按 generation rollback。
+- detach / rollback：接入统一的 BAR restore contract，但不在 `pkvm_detach_ptdev()` 内重新发明全局 quiesce policy。
+- attach-fail：按 `touched_bar_mask` rollback；失败时保留 `RESTORING` 中间态而不是假成功清空。
 
 ### P3：与 T4 / T6 合流
 
-- T4：明确 quiesce 与 BAR restore 的顺序。
-- T6：把 remove-path、失败回滚、多设备共享纳入状态机。
+- T4：继续作为 VM teardown 路径的 DMA-safe precondition 提供方。
+- T6：把 remove-path、失败回滚、多设备共享接到同一套 restore contract。
 - 对每条 teardown / remove / fail path 增加“Host EPT owner 最终回到 Host”的检查点。
 - 截至 2026-04-17，当前阶段计划进一步明确为：
   - `T12` 先独立把 BAR ownership 本身做完整：`ptdev` BAR snapshot、`owner/state`、Host EPT invalid owner annotation、Host fault deny-remap
@@ -1064,13 +1334,11 @@ pkvm_detach_ptdev()
 
 ## 待讨论问题
 
-1. x86 第一阶段是否把 BAR owner 标成 `GUEST`，还是先保留 `HYP-with-guest-mapping`？
-2. Host EPT invalid annotation 的 owner id 第一阶段是否直接统一使用 `OWNER_ID_HYP`，而把 `device-owner id` 留作后续 debug / rollback 增强项？
-3. BAR resource snapshot 应完全来自 boot manifest，还是 manifest 与 `SET_PTDEV_MMIO_METADATA` 做交集？
-4. `pkvm_iommu_sync()` 与 Host BAR revoke 的顺序是否必须是先 revoke 再切 DMA？
-5. detach 时是否强制调用 `pkvm_quiesce_ptdev()`，还是由 T4 的 teardown 主线统一保证？
-6. 第一阶段是否只 restore 整 BAR，还是预留 MSI-X table / PBA 子区间跳过逻辑？
-7. Host EPT annotation helper 是否应做成通用 `set_owner`，还是先只暴露给 `ptdev` BAR？
+1. Host EPT invalid annotation 的 owner id 第一阶段是否直接统一使用 `OWNER_ID_HYP`，还是预留更细的 device/resource owner id？
+2. `SET_PTDEV_MMIO_METADATA` 与 BAR snapshot 的具体校验粒度如何收口：只做“metadata range 落在 manifest BAR 内”，还是额外记录 direct subset 与 managed set 的映射关系？
+3. `pkvm_iommu_sync()` 与 Host BAR revoke 的顺序是否必须严格固定为“先 revoke，再切 DMA”？
+4. 除 VM teardown 外，attach-fail / remove-path 的 DMA-safe precondition 由哪个 caller 明确提供：复用现有 quiesce helper，还是由各自路径显式 block DMA 后再进入 restore helper？
+5. 第一阶段之后是否需要把 `OWNER_GUEST` 重新引入为下一阶段显式目标，还是继续维持 “guest direct permission + hyp authority” 模型？
 
 ## 与现有任务的关系
 
@@ -1080,9 +1348,9 @@ pkvm_detach_ptdev()
 - `pkvm-x86#20` / B5：
   - T12 是 B5-2 之后暴露出的 Host CPU BAR authority follow-up。
 - `T4`：
-  - 决定 teardown 前 DMA quiesce 与 BAR restore 的安全顺序。
+  - 继续作为 VM teardown 路径里 DMA-safe precondition 的真相来源。
 - `T6`：
-  - 决定 remove-path / attach-fail / rollback 的完整覆盖。
+  - 继续负责 remove-path / attach-fail / rollback 的 caller coverage，并最终复用 `T12` 的 restore contract。
 - ARM 参考总结：
   - `DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/参考实现/ARM-pKVM-设备BAR-MMIO-donate机制总结.md`
 

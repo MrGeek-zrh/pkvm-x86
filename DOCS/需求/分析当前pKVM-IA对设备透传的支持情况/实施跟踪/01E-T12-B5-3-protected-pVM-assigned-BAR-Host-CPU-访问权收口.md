@@ -2,11 +2,12 @@
 
 ## 状态
 
-- 当前状态: 已创建 GitHub Task `pkvm-x86#34`；上一轮未提交的“attach unmap + Host EPT fault 地址 deny-remap + detach remap”本地 patch 已丢弃，当前转向 ARM 对齐的 BAR ownership 状态机设计
+- 当前状态: 已创建 GitHub Task `pkvm-x86#34`；上一轮未提交的“attach unmap + Host EPT fault 地址 deny-remap + detach remap”本地 patch 已丢弃；当前已补齐第一阶段实现前置决策表，进入 implementation plan hardening，尚未标记为实现方案定稿
 - GitHub Task: `pkvm-x86#34`
 - 所属主任务: `pkvm-x86#20`
 - 当前定位: `B5-2` 已解决的是 Guest EPT 首次建图边界；T12 单独跟踪 Host CPU 对 assigned BAR 的访问权是否被 pKVM 收口
-- 设计草案: `DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/实施跟踪/01E-T12-B5-3-Host-BAR隔离-ARM对齐设计草案.md`
+- 总设计入口: `DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/实施跟踪/01E-T12-B5-3-protected-pVM-device-MMIO-donate-机制总设计.md`
+- ARM 对齐分文档: `DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/实施跟踪/01E-T12-B5-3-Host-BAR隔离-ARM对齐设计草案.md`
 
 ## 当前表现 / 当前阻塞
 
