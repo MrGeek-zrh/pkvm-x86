@@ -164,7 +164,13 @@ git log -1 --format=%s
 
 - [ ] **步骤 1：把 invalid-PTE owner 编码 helper 移到 header**
 
-在 `pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/mem_protect.h` 的 `OWNER_ID_INV` 后增加：
+在 `pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/mem_protect.h` 的 include 区增加 `FIELD_PREP()` / `FIELD_GET()` 所需头文件：
+
+```c
+#include <linux/bitfield.h>
+```
+
+再在 `OWNER_ID_INV` 后增加：
 
 ```c
 #define OWNER_ID_PTDEV_MMIO	FIELD_MAX(PKVM_INVALID_PTE_OWNER_MASK)
@@ -215,7 +221,13 @@ static u64 pkvm_init_invalid_leaf_owner(pkvm_id owner_id)
 
 - [ ] **步骤 4：声明 Host EPT annotation lookup 类型**
 
-在 `pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/ept.h` 的 `HOST_EPT_DEF_MMIO_PROT` 后增加：
+在 `pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/ept.h` 的 include 区增加 `pkvm_id` 和 owner tag 所需头文件：
+
+```c
+#include "mem_protect.h"
+```
+
+再在 `HOST_EPT_DEF_MMIO_PROT` 后增加：
 
 ```c
 enum pkvm_host_ept_lookup_kind {
@@ -242,8 +254,8 @@ int pkvm_host_ept_annotate_mmio_owner(unsigned long hpa, unsigned long size,
 					      pkvm_id owner_id);
 int pkvm_host_ept_restore_mmio_idmap(unsigned long hpa, unsigned long size,
 					    u64 prot);
-void pkvm_host_ept_lookup_mmio_annotation(unsigned long vaddr,
-						 struct pkvm_host_ept_lookup_result *res);
+int pkvm_host_ept_lookup_mmio_annotation_locked(unsigned long vaddr,
+							struct pkvm_host_ept_lookup_result *res);
 ```
 
 - [ ] **步骤 5：实现 raw Host EPT lookup walker**
@@ -309,8 +321,13 @@ static int host_ept_lookup_raw_cb(struct pkvm_pgtable *pgt,
 int pkvm_host_ept_annotate_mmio_owner(unsigned long hpa, unsigned long size,
 					      pkvm_id owner_id)
 {
-	u64 annotation = pkvm_init_invalid_leaf_owner(owner_id);
+	u64 annotation;
 	int ret;
+
+	if (!owner_id || owner_id == OWNER_ID_HOST)
+		return -EINVAL;
+
+	annotation = pkvm_init_invalid_leaf_owner(owner_id);
 
 	host_ept_lock();
 	ret = pkvm_pgtable_annotate(&host_ept, hpa, size, annotation);
@@ -335,8 +352,8 @@ int pkvm_host_ept_restore_mmio_idmap(unsigned long hpa, unsigned long size,
 	return ret;
 }
 
-void pkvm_host_ept_lookup_mmio_annotation(unsigned long vaddr,
-						 struct pkvm_host_ept_lookup_result *res)
+int pkvm_host_ept_lookup_mmio_annotation_locked(unsigned long vaddr,
+							struct pkvm_host_ept_lookup_result *res)
 {
 	struct host_ept_lookup_raw_data data = {
 		.vaddr = vaddr,
@@ -347,14 +364,28 @@ void pkvm_host_ept_lookup_mmio_annotation(unsigned long vaddr,
 		.arg = &data,
 		.flags = PKVM_PGTABLE_WALK_LEAF,
 	};
+	int ret, retry_cnt = 0;
 
+retry:
 	memset(res, 0, sizeof(*res));
 	res->kind = PKVM_HOST_EPT_LOOKUP_EMPTY;
 	res->hpa = INVALID_ADDR;
 	res->owner_id = OWNER_ID_INV;
-	pgtable_walk(&host_ept, vaddr, PAGE_SIZE, false, &walker);
+
+	ret = pgtable_walk(&host_ept, vaddr, PAGE_SIZE, true, &walker);
+	if (ret == -EAGAIN && retry_cnt++ < 5)
+		goto retry;
+
+	return ret == PGTABLE_WALK_DONE ? 0 : ret;
 }
 ```
+
+源码复核补充：
+
+- `ept.h` 新增结构体会直接使用 `pkvm_id`，因此必须显式包含 `mem_protect.h`；否则只在 `ept.c` 中包含 `mem_protect.h` 不足以让 header 自洽。
+- `pkvm_host_ept_lookup_mmio_annotation_locked()` 只允许在 `_host_ept_lock` 已持有时调用，避免和 `handle_host_ept_violation()` 的现有锁顺序冲突。
+- lookup walker 必须和 `pkvm_pgtable_lookup()` 一样使用 `page_aligned=true`，并对 `-EAGAIN` 做最多 5 次重试；否则 fault GPA 非页对齐或并发 PTE 变化时会产生不稳定结果。
+- `pkvm_host_ept_annotate_mmio_owner()` 明确拒绝 `OWNER_ID_HYP=0` 和 `OWNER_ID_HOST`，避免第一阶段 BAR 标注退化为空 invalid PTE 或 Host owner。
 
 - [ ] **步骤 7：运行窄范围静态检查**
 
@@ -400,7 +431,21 @@ git log -1 --format=%s
 
 - [ ] **步骤 1：替换 `handle_host_ept_violation()` 的首次 Host EPT lookup**
 
-在 `handle_host_ept_violation()` 中，把当前基于 `pkvm_pgtable_lookup()` 的检查：
+先把 `handle_host_ept_violation()` 的局部变量声明从：
+
+```c
+unsigned long hpa, gpa = vmcs_read64(GUEST_PHYSICAL_ADDRESS);
+```
+
+调整为：
+
+```c
+unsigned long gpa = vmcs_read64(GUEST_PHYSICAL_ADDRESS);
+```
+
+避免 annotation-aware lookup 接入后留下未使用的 `hpa`。
+
+然后把当前基于 `pkvm_pgtable_lookup()` 的检查：
 
 ```c
 pkvm_pgtable_lookup(&host_ept, gpa, &hpa, NULL, &level);
@@ -415,7 +460,10 @@ if (hpa != INVALID_ADDR) {
 ```c
 struct pkvm_host_ept_lookup_result lookup;
 
-pkvm_host_ept_lookup_mmio_annotation(gpa, &lookup);
+ret = pkvm_host_ept_lookup_mmio_annotation_locked(gpa, &lookup);
+if (ret)
+	goto out;
+
 level = lookup.level;
 if (lookup.kind == PKVM_HOST_EPT_LOOKUP_PRESENT) {
 	ret = -EAGAIN;
