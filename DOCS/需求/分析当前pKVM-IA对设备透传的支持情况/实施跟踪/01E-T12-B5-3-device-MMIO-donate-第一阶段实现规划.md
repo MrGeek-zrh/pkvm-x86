@@ -862,6 +862,11 @@ static void pkvm_withdraw_ptdev_mmio_contract_locked(struct pkvm_shadow_vm *vm,
 
 这样 metadata 早于 A/C 到达时仍可返回成功，但不会提前 publish guest allowlist。
 
+源码复核补充：
+
+- `pkvm_withdraw_ptdev_mmio_contract_locked()` 在任务 4 即接入 `pkvm_detach_ptdev()`，替代旧的 `had_metadata` 直接清 allowlist 路径；这样只有 guest 约定已发布时才清 guest allowlist。
+- 因为 `pkvm_detach_ptdev()` 位于 publish/withdraw 辅助函数 定义之前，需要在 detach 前增加 `pkvm_withdraw_ptdev_mmio_contract_locked()` 的静态声明。
+
 - [ ] **步骤 5：运行窄范围静态检查**
 
 运行：
@@ -878,7 +883,7 @@ git grep -n "pkvm_publish_ptdev_mmio_contract_locked\|pkvm_withdraw_ptdev_mmio_c
 ```text
 # git diff --check 无输出
 # 直接 pkvm_update_vm_mmio_allowlist(vm, metadata) grep 无输出
-# publish/withdraw helper grep 打印定义和调用点
+# publish/withdraw 辅助函数 grep 打印定义和调用点
 ```
 
 - [ ] **步骤 6：提交 metadata 拆分**
