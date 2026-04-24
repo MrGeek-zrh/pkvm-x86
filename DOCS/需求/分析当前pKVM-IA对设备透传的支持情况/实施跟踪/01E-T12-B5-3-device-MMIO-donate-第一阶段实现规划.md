@@ -1069,6 +1069,12 @@ git diff -- arch/x86/kvm/vmx/pkvm/hyp/ptdev.c | sed -n '/int pkvm_attach_ptdev/,
 # dma_view_ready 只在 pkvm_iommu_sync() 成功后置 true
 ```
 
+源码复核补充：
+
+- `ptdev.c` 需要显式包含 `ept.h`，以使用 `pkvm_host_ept_annotate_mmio_owner()`、`pkvm_host_ept_restore_mmio_idmap()`、`HOST_EPT_DEF_MMIO_PROT` 和 `OWNER_ID_PTDEV_MMIO`。
+- 因为 attach 主线会在 publish helper 定义之前调用 `pkvm_publish_ptdev_mmio_contract_locked()`，需要在 attach 前补静态声明。
+- `dma_view_ready` 的状态切换使用 `WRITE_ONCE()`，与 guest BAR predicate 中的 `READ_ONCE()` 配对。
+
 - [ ] **步骤 5：运行窄范围静态检查**
 
 运行：
