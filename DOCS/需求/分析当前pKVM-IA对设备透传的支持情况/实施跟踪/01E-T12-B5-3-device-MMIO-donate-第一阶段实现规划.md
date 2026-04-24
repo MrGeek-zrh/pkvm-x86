@@ -648,17 +648,21 @@ static bool pkvm_ptdev_bar_contains_range_locked(struct pkvm_ptdev *ptdev,
 }
 ```
 
-- [ ] **步骤 5：增加 guest mapping 前置状态 helper**
+- [ ] **步骤 5：增加 guest 映射前置状态辅助函数**
 
 在 `ptdev.c` 的 BAR helper 附近增加：
 
 ```c
 static bool pkvm_ptdev_allows_guest_bar_mapping_locked(struct pkvm_ptdev *ptdev)
 {
-	return ptdev->owner == PKVM_PTDEV_OWNER_HYP &&
-	       (ptdev->assignment_state == PKVM_PTDEV_HOST_REVOKED ||
-		ptdev->assignment_state == PKVM_PTDEV_GUEST_ASSIGNED) &&
-	       ptdev->dma_view_ready;
+	enum pkvm_ptdev_owner owner = READ_ONCE(ptdev->owner);
+	enum pkvm_ptdev_assignment_state state =
+		READ_ONCE(ptdev->assignment_state);
+
+	return owner == PKVM_PTDEV_OWNER_HYP &&
+	       (state == PKVM_PTDEV_HOST_REVOKED ||
+		state == PKVM_PTDEV_GUEST_ASSIGNED) &&
+	       READ_ONCE(ptdev->dma_view_ready);
 }
 ```
 
@@ -674,10 +678,10 @@ static bool pkvm_ptdev_allows_guest_bar_mapping_locked(struct pkvm_ptdev *ptdev)
 		for (idx = 0; idx < PCI_STD_NUM_BARS; idx++) {
 			struct pkvm_ptdev_bar_resource *bar = &ptdev->bars[idx];
 
-			if (!(ptdev->managed_bar_mask & BIT(idx)))
+			if (hpa < bar->hpa)
 				continue;
-			if (hpa >= bar->hpa && size <= bar->size &&
-			    hpa - bar->hpa <= bar->size - size) {
+			if (pkvm_ptdev_bar_contains_range_locked(ptdev, idx,
+						hpa - bar->hpa, size)) {
 				hit = true;
 				break;
 			}
@@ -691,6 +695,31 @@ static bool pkvm_ptdev_allows_guest_bar_mapping_locked(struct pkvm_ptdev *ptdev)
 ```c
 int idx;
 ```
+
+在入参校验处同时拒绝 `size == 0`：
+
+```c
+if (!kvm || !size)
+	return false;
+```
+
+在 `pkvm_attach_ptdev()` 中，`shadow_vm_handle` 的 `cmpxchg()` 成功后立即准备 BAR snapshot：
+
+```c
+	ret = pkvm_prepare_ptdev_bar_resources_locked(ptdev);
+	if (ret) {
+		ptdev->shadow_vm_handle = 0;
+		pkvm_spin_unlock(&ptdev->lock);
+		pkvm_put_ptdev(ptdev);
+		return ret;
+	}
+```
+
+源码复核补充：
+
+- `pkvm_prepare_ptdev_bar_resources_locked()` 必须在 attach 早期被实际调用，避免中间提交留下未使用静态函数，也确保后续 A/C/B 阶段复用同一份 BAR snapshot。
+- `pkvm_vm_hpa_hits_attached_boot_ptdev_bar()` 复用 `pkvm_ptdev_bar_contains_range_locked()` 做 offset/size 边界检查，避免 guest mapping predicate 和 metadata 校验出现两套范围判断。
+- guest 映射前置状态辅助函数 使用 `READ_ONCE()` 读取 `owner`、`assignment_state` 和 `dma_view_ready`，因为该 predicate 持有的是 `vm->lock`，而状态更新路径会在 `ptdev->lock` 下写入。
 
 - [ ] **步骤 7：运行窄范围静态检查**
 
