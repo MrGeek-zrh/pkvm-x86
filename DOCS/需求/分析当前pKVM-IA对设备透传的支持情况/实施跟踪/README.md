@@ -43,7 +43,9 @@ GitHub Issue / PR 现在作为状态真相来源；本目录主要保存较长�
 - `01E-T10-B5-2-protected-pVM-Guest-EPT建图边界实现.md`
   - 承接 `B5-2` 设计阶段的实现跟踪；待确定普通 RAM leaf 首次建图完整性缺口的修复方向。
 - [`01E-T12-B5-3-protected-pVM-device-MMIO-donate-机制总设计.md`](01E-T12-B5-3-protected-pVM-device-MMIO-donate-机制总设计.md)
-  - 作为 `B5-3 / T12` 的总入口，汇总已锁定的 device MMIO donate contract、状态机和 restore contract。
+  - 作为 `B5-3 / T12` 的总入口，汇总已锁定的 device MMIO donate contract、状态机和 restore 约定。
+- [`01E-T12-B5-3-device-MMIO-donate-第一阶段实现规划.md`](01E-T12-B5-3-device-MMIO-donate-第一阶段实现规划.md)
+  - 作为 `T12` 第一阶段实现规划，拆分 Host EPT annotation、`ptdev` BAR 状态、metadata 发布、A/C/B attach、restore 辅助函数和验证矩阵。
 - [`01E-T12-B5-3-Host-BAR隔离-ARM对齐设计草案.md`](01E-T12-B5-3-Host-BAR隔离-ARM对齐设计草案.md)
   - 作为 `B5-3 / T12` 的分文档，保留 ARM 对齐背景、BAR ownership 差距分析和细节推导。
 - `02-P0-pgstate_pgt语义收敛为DMA-mirror.md`
