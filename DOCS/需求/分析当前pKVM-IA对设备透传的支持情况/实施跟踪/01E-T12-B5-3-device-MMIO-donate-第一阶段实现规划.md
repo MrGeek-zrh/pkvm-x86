@@ -1142,6 +1142,11 @@ git log -1 --format=%s
 
 保留后面的 unlink / sync / put 收尾，但如果 allowlist 已由 `pkvm_restore_ptdev_bars_locked()` withdraw，则删除旧的 `had_metadata` allowlist 清理分支。
 
+源码复核补充：
+
+- `pkvm_detach_ptdev()` 位于 restore helper 定义之前，因此需要在 detach 前增加 `pkvm_restore_ptdev_bars_locked()` 静态声明。
+- detach 失败时保持 `ptdev` 原状态并直接返回，不执行 unlink / sync / put，避免 restore 失败后误释放仍处于 HYP owner 的 BAR 状态。
+
 - [ ] **步骤 2：保留 teardown caller 顺序**
 
 复核 `pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/pkvm.c` 中的：
