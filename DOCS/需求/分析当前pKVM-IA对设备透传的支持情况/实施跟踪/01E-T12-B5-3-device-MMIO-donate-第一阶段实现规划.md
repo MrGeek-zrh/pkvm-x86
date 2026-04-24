@@ -1,10 +1,12 @@
-# [T12] B5-3 设备 MMIO donate 第一阶段实现规划
+# [T12] B5-3 设备 MMIO 捐赠（donate）第一阶段实现规划
 
 > **给后续执行者的要求：** 实现本规划时按任务顺序推进；除非用户明确要求并确认范围，否则不要发起全量 Linux 内核编译。若需要执行计划，优先使用 `superpowers:executing-plans` 逐项执行和复核。
 
-**目标：** 为 protected pVM 的已透传 PCI memory BAR 建立第一阶段设备 MMIO donate 主线，使 Host CPU 对受管理 BAR 的直接访问被 Host EPT owner annotation 收口，guest 直通 BAR 约定只在 Host revoke 与 DMA 视图提交后发布，并通过统一 restore 辅助函数回滚/恢复。
+> **文档语言约定：** 默认使用中文描述设计、状态和结论；英文只保留代码符号、UAPI/ABI 名称、日志签名、命令输出和少量必须固定的技术术语。
 
-**总体架构：** x86 侧继续以 `struct pkvm_ptdev` 作为设备权威状态对象。实现按 `A -> C -> B` 拆分：A 阶段 revoke Host BAR 并写 Host EPT invalid owner 标注，C 阶段切换 DMA 视图，B 阶段发布 guest MMIO 约定。restore 阶段以 `touched_bar_mask` 作为 BAR 资源范围，同时收口 guest 约定、DMA 视图、Host BAR 可见性和内部记录四个平面。
+**目标：** 为 protected pVM 的已透传 PCI memory BAR 建立第一阶段设备 MMIO 捐赠（donate）主线，使 Host CPU 对受管理 BAR 的直接访问被 Host EPT owner 标注（annotation）收口，guest 直通 BAR 约定只在 Host BAR 可见性撤销与 DMA 视图提交后发布，并通过统一恢复（restore）辅助函数回滚/恢复。
+
+**总体架构：** x86 侧继续以 `struct pkvm_ptdev` 作为设备权威状态对象。实现按 `A -> C -> B` 拆分：A 阶段撤销（revoke）Host BAR 可见性并写入 Host EPT invalid owner 标注，C 阶段切换 DMA 视图，B 阶段发布 guest MMIO 约定。恢复（restore）阶段以 `touched_bar_mask` 作为 BAR 资源范围，同时收口 guest 约定、DMA 视图、Host BAR 可见性和内部记录四个平面。
 
 **技术栈：** `pKVM-IA` 内核 C 代码、pKVM hyp Host EPT、ptdev/IOMMU 状态机、`pkvm-x86` Markdown 跟踪文档和 GitHub issue 状态同步。
 
@@ -19,30 +21,30 @@
   + 单个启动期已知的 VFIO PCI device
   + 启动 manifest 中的 memory BAR 快照
   + Host EPT owner 标注拒绝重映射
-  + 现有 guest DIRECT_BAR allowlist 保持可用
-  + detach / teardown / attach 失败回滚统一进入 restore 辅助函数
+  + 现有 guest DIRECT_BAR 访问名单保持可用
+  + detach / teardown / attach 失败回滚统一进入恢复（restore）辅助函数
 ```
 
 第一阶段明确不覆盖：
 
-- 完整 VFIO `FILE_DEL` / group remove-path 编排；继续归 `T6`。
-- reset framework、hotplug、migration、多设备 group 原子切换。
-- MSI-X table / PBA 的 BAR 子区间 owner 切片。
-- config space direct access。
-- 严格 ARM-like `OWNER_GUEST`。
+- 完整 VFIO `FILE_DEL` / 设备组移除路径（group remove-path）编排；继续归 `T6`。
+- 复位框架、热插拔（hotplug）、迁移（migration）、多设备组（group）原子切换。
+- MSI-X 表（table）/ PBA 的 BAR 子区间 owner 切片。
+- 配置空间直接访问（config space direct access）。
+- 严格类 ARM（ARM-like） `OWNER_GUEST`。
 - 全量 Linux 内核构建；本规划只给出最小编译目标建议。
 
 ## D0-D9 决策覆盖表
 
 - D0 第一阶段边界：任务 0、任务 8、任务 9。
 - D1 `ptdev` 状态字段：任务 3。
-- D2 BAR 快照与 metadata 时序：任务 3、任务 4、任务 5。
+- D2 BAR 快照与元数据时序：任务 3、任务 4、任务 5。
 - D3 guest 约定发布拆分：任务 4、任务 5、任务 6。
-- D4 Host EPT annotation 编码：任务 1。
-- D5 Host EPT helper/API 粒度：任务 1。
-- D6 Host EPT fault deny-remap：任务 2。
+- D4 Host EPT 标注编码：任务 1。
+- D5 Host EPT 辅助函数/API 粒度：任务 1。
+- D6 Host EPT 缺页拒绝重映射（deny-remap）：任务 2。
 - D7 attach A/C/B 工程顺序：任务 5。
-- D8 restore 辅助函数约定：任务 5、任务 6。
+- D8 恢复（restore）辅助函数约定：任务 5、任务 6。
 - D9 最小验证边界：任务 8。
 
 ## 文件结构
@@ -55,20 +57,20 @@
 - 修改 `arch/x86/kvm/vmx/pkvm/hyp/ptdev.c`
   - 从 boot manifest 生成 BAR 快照。
   - 校验 metadata 范围是否落在 BAR 快照内。
-  - 拆分 metadata 缓存与 guest 约定发布。
-  - 实现 A/C/B attach 流程和 restore 辅助函数。
+  - 拆分 元数据（metadata）缓存与 guest 约定发布。
+  - 实现 A/C/B attach 流程和 恢复（restore）辅助函数。
 - 修改 `arch/x86/kvm/vmx/pkvm/hyp/ept.h`
   - 增加 Host EPT MMIO 标注查询的结果类型和辅助函数声明。
 - 修改 `arch/x86/kvm/vmx/pkvm/hyp/ept.c`
-  - 增加 Host EPT annotate / restore / lookup 包装函数。
-  - 让 `handle_host_ept_violation()` 根据 annotation 拒绝 Host 重映射。
+  - 增加 Host EPT 标注（annotate）/ 恢复（restore）/ 查询（lookup）包装函数。
+  - 让 `handle_host_ept_violation()` 根据标注（annotation）拒绝 Host 重映射。
 - 修改 `arch/x86/kvm/vmx/pkvm/hyp/mem_protect.h`
-  - 暴露 invalid-PTE owner annotation encode/decode 辅助函数。
-  - 增加非 0 的 reserved MMIO/BAR owner tag。
+  - 暴露 invalid-PTE owner 标注编解码（encode/decode） 辅助函数。
+  - 增加非 0 的 预留 MMIO/BAR owner 标记（tag）。
 - 修改 `arch/x86/kvm/vmx/pkvm/hyp/mem_protect.c`
-  - 删除本地重复的 invalid owner encoder，改用 header inline 辅助函数。
+  - 删除本地重复的 invalid owner 编码器（encoder），改用 头文件内联（header inline） 辅助函数。
 - 检查 `arch/x86/kvm/vmx/pkvm/hyp/pkvm.c`
-  - teardown 继续经由 `pkvm_detach_ptdev()`，由 detach 内部进入 restore-aware 路径。
+  - teardown 继续经由 `pkvm_detach_ptdev()`，由 detach 内部进入 感知恢复状态（restore-aware）的路径。
 - 仅在必要时修改 `arch/x86/kvm/pkvm/mmu.c`
   - 优先保持现有辅助函数名称不变，只强化 `pkvm_vm_hpa_hits_attached_boot_ptdev_bar()` 的内部判定。
 
@@ -106,7 +108,7 @@ git status --short
 
 若 superproject 只有本规划文档未提交，先提交或暂存，再进入 `pKVM-IA` 代码实现。
 
-- [ ] **步骤 2：创建短生命周期 kernel topic branch**
+- [ ] **步骤 2：创建短生命周期 内核短生命周期主题分支（topic branch）**
 
 运行：
 
@@ -154,7 +156,7 @@ git log -1 --format=%s
 记录 T12 第一阶段实现分支
 ```
 
-### 任务 1：增加 Host EPT MMIO annotation 基础设施
+### 任务 1：增加 Host EPT MMIO 标注（annotation）基础设施
 
 **文件：**
 - 修改 `pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/mem_protect.h`
@@ -162,7 +164,7 @@ git log -1 --format=%s
 - 修改 `pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/ept.h`
 - 修改 `pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/ept.c`
 
-- [ ] **步骤 1：把 invalid-PTE owner 编码 helper 移到 header**
+- [ ] **步骤 1：把 invalid-PTE owner 编码辅助函数（helper） 移到 header**
 
 在 `pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/mem_protect.h` 的 include 区增加 `FIELD_PREP()` / `FIELD_GET()` 所需头文件：
 
@@ -217,9 +219,9 @@ static u64 pkvm_init_invalid_leaf_owner(pkvm_id owner_id)
 }
 ```
 
-已有 `host_ept_set_owner_locked()` 继续使用同名 header inline 辅助函数。
+已有 `host_ept_set_owner_locked()` 继续使用同名 头文件内联（header inline） 辅助函数。
 
-- [ ] **步骤 4：声明 Host EPT annotation lookup 类型**
+- [ ] **步骤 4：声明 Host EPT 标注（annotation） lookup 类型**
 
 在 `pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/ept.h` 的 include 区增加 `pkvm_id` 和 owner tag 所需头文件：
 
@@ -313,7 +315,7 @@ static int host_ept_lookup_raw_cb(struct pkvm_pgtable *pgt,
 }
 ```
 
-- [ ] **步骤 6：实现 Host EPT annotation wrapper**
+- [ ] **步骤 6：实现 Host EPT 标注（annotation） wrapper**
 
 在 `pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/ept.c` 的 `pkvm_host_ept_lookup()` 后增加：
 
@@ -364,17 +366,17 @@ int pkvm_host_ept_lookup_mmio_annotation_locked(unsigned long vaddr,
 		.arg = &data,
 		.flags = PKVM_PGTABLE_WALK_LEAF,
 	};
-	int ret, retry_cnt = 0;
+	int ret, 重试（retry）_cnt = 0;
 
-retry:
+重试（retry）:
 	memset(res, 0, sizeof(*res));
 	res->kind = PKVM_HOST_EPT_LOOKUP_EMPTY;
 	res->hpa = INVALID_ADDR;
 	res->owner_id = OWNER_ID_INV;
 
 	ret = pgtable_walk(&host_ept, vaddr, PAGE_SIZE, true, &walker);
-	if (ret == -EAGAIN && retry_cnt++ < 5)
-		goto retry;
+	if (ret == -EAGAIN && 重试（retry）_cnt++ < 5)
+		goto 重试（retry）;
 
 	return ret == PGTABLE_WALK_DONE ? 0 : ret;
 }
@@ -404,7 +406,7 @@ git grep -n "static u64 pkvm_init_invalid_leaf_owner" -- arch/x86/kvm/vmx/pkvm/h
 # git grep 无输出
 ```
 
-- [ ] **步骤 8：提交 Host EPT annotation 基础设施**
+- [ ] **步骤 8：提交 Host EPT 标注（annotation） 基础设施**
 
 运行：
 
@@ -424,7 +426,7 @@ git log -1 --format=%s
 增加设备 MMIO 的 Host EPT 标注辅助函数
 ```
 
-### 任务 2：拒绝 Host fault 重新映射 annotated BAR
+### 任务 2：拒绝 Host 缺页重新映射已标注 BAR
 
 **文件：**
 - 修改 `pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/ept.c`
@@ -480,7 +482,7 @@ if (lookup.kind == PKVM_HOST_EPT_LOOKUP_ANNOTATED &&
 
 - [ ] **步骤 2：保留普通 MMIO lazy-map 行为**
 
-annotated deny 分支之后，保留现有 non-RAM hole range selection 和 `pkvm_host_ept_map()` 逻辑。普通 empty MMIO hole 仍应走原有 lazy map。
+annotated deny 分支之后，保留现有 non-RAM hole range selection 和 `pkvm_host_ept_map()` 逻辑。普通 empty MMIO 空洞（hole） 仍应走原有 lazy map。
 
 - [ ] **步骤 3：运行窄范围静态检查**
 
@@ -499,7 +501,7 @@ git grep -n "deny host BAR remap" -- arch/x86/kvm/vmx/pkvm/hyp/ept.c
 # git grep 在 ept.c 中找到 deny host BAR remap 日志
 ```
 
-- [ ] **步骤 4：提交 Host fault 拒绝重映射**
+- [ ] **步骤 4：提交 Host 缺页拒绝重映射**
 
 运行：
 
@@ -516,7 +518,7 @@ git log -1 --format=%s
 拒绝带 annotation 的 Host BAR remap
 ```
 
-### 任务 3：增加 `ptdev` authority state 与 BAR snapshot
+### 任务 3：增加 `ptdev` 权威状态（authority state）与 BAR 快照
 
 **文件：**
 - 修改 `pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/ptdev.h`
@@ -588,7 +590,7 @@ struct pkvm_ptdev_bar_resource {
 			ptdev->touched_bar_mask = 0;
 ```
 
-- [ ] **步骤 4：增加 BAR snapshot helper**
+- [ ] **步骤 4：增加 BAR 快照 helper**
 
 在 `ptdev.c` 的 `pkvm_boot_ptdev_manifest_lookup()` 后增加：
 
@@ -666,9 +668,9 @@ static bool pkvm_ptdev_allows_guest_bar_mapping_locked(struct pkvm_ptdev *ptdev)
 }
 ```
 
-- [ ] **步骤 6：强化 guest direct BAR map predicate**
+- [ ] **步骤 6：强化 guest 直通 BAR 映射判定条件（predicate）**
 
-修改 `pkvm_vm_hpa_hits_attached_boot_ptdev_bar()`，让它检查 BAR snapshot 与状态，而不是只看 boot manifest。
+修改 `pkvm_vm_hpa_hits_attached_boot_ptdev_bar()`，让它检查 BAR 快照 与状态，而不是只看 boot manifest。
 
 将内部 manifest lookup 替换为：
 
@@ -703,7 +705,7 @@ if (!kvm || !size)
 	return false;
 ```
 
-在 `pkvm_attach_ptdev()` 中，`shadow_vm_handle` 的 `cmpxchg()` 成功后立即准备 BAR snapshot：
+在 `pkvm_attach_ptdev()` 中，`shadow_vm_handle` 的 `cmpxchg()` 成功后立即准备 BAR 快照：
 
 ```c
 	ret = pkvm_prepare_ptdev_bar_resources_locked(ptdev);
@@ -717,8 +719,8 @@ if (!kvm || !size)
 
 源码复核补充：
 
-- `pkvm_prepare_ptdev_bar_resources_locked()` 必须在 attach 早期被实际调用，避免中间提交留下未使用静态函数，也确保后续 A/C/B 阶段复用同一份 BAR snapshot。
-- `pkvm_vm_hpa_hits_attached_boot_ptdev_bar()` 复用 `pkvm_ptdev_bar_contains_range_locked()` 做 offset/size 边界检查，避免 guest mapping predicate 和 metadata 校验出现两套范围判断。
+- `pkvm_prepare_ptdev_bar_resources_locked()` 必须在 attach 早期被实际调用，避免中间提交留下未使用静态函数，也确保后续 A/C/B 阶段复用同一份 BAR 快照。
+- `pkvm_vm_hpa_hits_attached_boot_ptdev_bar()` 复用 `pkvm_ptdev_bar_contains_range_locked()` 做 offset/size 边界检查，避免 guest 映射判定条件（predicate） 和 metadata 校验出现两套范围判断。
 - guest 映射前置状态辅助函数 使用 `READ_ONCE()` 读取 `owner`、`assignment_state` 和 `dma_view_ready`，因为该 predicate 持有的是 `vm->lock`，而状态更新路径会在 `ptdev->lock` 下写入。
 
 - [ ] **步骤 7：运行窄范围静态检查**
@@ -745,7 +747,7 @@ git grep -n "PKVM_PTDEV_OWNER_HYP\|managed_bar_mask\|dma_view_ready" -- arch/x86
 ```bash
 cd /home/mrgeek/pkvm-x86/pKVM-IA
 git add arch/x86/kvm/vmx/pkvm/hyp/ptdev.h arch/x86/kvm/vmx/pkvm/hyp/ptdev.c
-git commit -m '增加 ptdev BAR authority 状态' -m '为设备 MMIO donate 添加 owner/state/progress、BAR snapshot 和 guest BAR 映射前置状态检查。'
+git commit -m '增加 ptdev BAR authority 状态' -m '为设备 MMIO donate 添加 owner/state/progress、BAR 快照和 guest BAR 映射前置状态检查。'
 git log -1 --format=%s
 ```
 
@@ -755,12 +757,12 @@ git log -1 --format=%s
 增加 ptdev BAR authority 状态
 ```
 
-### 任务 4：拆分 metadata 缓存与 guest 约定发布
+### 任务 4：拆分元数据（metadata）缓存与 guest 约定发布
 
 **文件：**
 - 修改 `pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/ptdev.c`
 
-- [ ] **步骤 1：增加 metadata 校验 helper**
+- [ ] **步骤 1：增加元数据校验辅助函数（helper）**
 
 在 `pkvm_set_ptdev_mmio_metadata()` 前增加：
 
@@ -819,7 +821,7 @@ static int pkvm_publish_ptdev_mmio_contract_locked(struct pkvm_shadow_vm *vm,
 }
 ```
 
-- [ ] **步骤 3：增加 guest contract withdraw helper**
+- [ ] **步骤 3：增加 guest 约定 withdraw helper**
 
 在 publish helper 后增加：
 
@@ -860,12 +862,12 @@ static void pkvm_withdraw_ptdev_mmio_contract_locked(struct pkvm_shadow_vm *vm,
 		ret = 0;
 ```
 
-这样 metadata 早于 A/C 到达时仍可返回成功，但不会提前 publish guest allowlist。
+这样 metadata 早于 A/C 到达时仍可返回成功，但不会提前 publish guest 访问名单（allowlist）。
 
 源码复核补充：
 
-- `pkvm_withdraw_ptdev_mmio_contract_locked()` 在任务 4 即接入 `pkvm_detach_ptdev()`，替代旧的 `had_metadata` 直接清 allowlist 路径；这样只有 guest 约定已发布时才清 guest allowlist。
-- 因为 `pkvm_detach_ptdev()` 位于 publish/withdraw 辅助函数 定义之前，需要在 detach 前增加 `pkvm_withdraw_ptdev_mmio_contract_locked()` 的静态声明。
+- `pkvm_withdraw_ptdev_mmio_contract_locked()` 在任务 4 即接入 `pkvm_detach_ptdev()`，替代旧的 `had_metadata` 直接清 allowlist 路径；这样只有 guest 约定已发布时才清 guest 访问名单（allowlist）。
+- 因为 `pkvm_detach_ptdev()` 位于 发布/撤回辅助函数定义之前，需要在 detach 前增加 `pkvm_withdraw_ptdev_mmio_contract_locked()` 的静态声明。
 
 - [ ] **步骤 5：运行窄范围静态检查**
 
@@ -883,32 +885,32 @@ git grep -n "pkvm_publish_ptdev_mmio_contract_locked\|pkvm_withdraw_ptdev_mmio_c
 ```text
 # git diff --check 无输出
 # 直接 pkvm_update_vm_mmio_allowlist(vm, metadata) grep 无输出
-# publish/withdraw 辅助函数 grep 打印定义和调用点
+# 发布/撤回辅助函数 grep 打印定义和调用点
 ```
 
-- [ ] **步骤 6：提交 metadata 拆分**
+- [ ] **步骤 6：提交元数据（metadata）拆分**
 
 运行：
 
 ```bash
 cd /home/mrgeek/pkvm-x86/pKVM-IA
 git add arch/x86/kvm/vmx/pkvm/hyp/ptdev.c
-git commit -m '拆分 MMIO metadata 缓存与发布' -m '让 SET_PTDEV_MMIO_METADATA 只记录 guest direct BAR 意图，并在 Host revoke 与 DMA view commit 后再发布 allowlist。'
+git commit -m '拆分 MMIO 元数据（metadata）缓存与发布' -m '让 SET_PTDEV_MMIO_METADATA 只记录 guest 直通 BAR 意图，并在 Host 撤销访问权与 DMA 视图提交后再发布访问名单（allowlist）。'
 git log -1 --format=%s
 ```
 
 期望：
 
 ```text
-拆分 MMIO metadata 缓存与发布
+拆分 MMIO 元数据（metadata）缓存与发布
 ```
 
-### 任务 5：实现 A/C/B attach 主线和 C 前失败回滚
+### 任务 5：实现 A/C/B attach 主线和 C 阶段提交前失败回滚
 
 **文件：**
 - 修改 `pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/ptdev.c`
 
-- [ ] **步骤 1：增加 Host BAR revoke helper**
+- [ ] **步骤 1：增加 Host BAR 撤销辅助函数（revoke helper）**
 
 在 `pkvm_attach_ptdev()` 前增加：
 
@@ -945,7 +947,7 @@ static int pkvm_revoke_ptdev_bars_locked(struct pkvm_ptdev *ptdev)
 }
 ```
 
-- [ ] **步骤 2：增加 restore 辅助函数，覆盖 C 前失败回滚**
+- [ ] **步骤 2：增加恢复（restore）辅助函数，覆盖 C 阶段提交前失败回滚**
 
 在 `pkvm_revoke_ptdev_bars_locked()` 后增加：
 
@@ -1089,7 +1091,7 @@ git grep -n "dma_view_ready = true\|pkvm_revoke_ptdev_bars_locked\|pkvm_restore_
 
 ```text
 # git diff --check 无输出
-# grep 显示 A/C/B 和 restore 辅助函数 调用点
+# grep 显示 A/C/B 和恢复（restore）辅助函数调用点
 ```
 
 - [ ] **步骤 6：提交 A/C/B attach 流程**
@@ -1099,7 +1101,7 @@ git grep -n "dma_view_ready = true\|pkvm_revoke_ptdev_bars_locked\|pkvm_restore_
 ```bash
 cd /home/mrgeek/pkvm-x86/pKVM-IA
 git add arch/x86/kvm/vmx/pkvm/hyp/ptdev.c
-git commit -m '接入 ptdev BAR donate attach 主线' -m '按 A/C/B 顺序执行 Host BAR revoke、DMA view commit 和 guest MMIO contract publish，并补齐 C 前失败回滚。'
+git commit -m '接入 ptdev BAR donate attach 主线' -m '按 A/C/B 顺序执行 Host BAR 可见性撤销、DMA 视图提交和 guest MMIO 约定发布，并补齐 C 前失败回滚。'
 git log -1 --format=%s
 ```
 
@@ -1109,15 +1111,15 @@ git log -1 --format=%s
 接入 ptdev BAR donate attach 主线
 ```
 
-### 任务 6：通过 detach / teardown 进入 restore 辅助函数
+### 任务 6：通过 detach / teardown 进入恢复（restore）辅助函数
 
 **文件：**
 - 修改 `pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/ptdev.c`
 - 复核 `pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/pkvm.c`
 
-- [ ] **步骤 1：重构 `pkvm_detach_ptdev()` 使用 restore 辅助函数**
+- [ ] **步骤 1：重构 `pkvm_detach_ptdev()` 使用 恢复（restore）辅助函数**
 
-在 `pkvm_detach_ptdev()` 中，将早期状态重置改为 restore-aware 顺序：
+在 `pkvm_detach_ptdev()` 中，将早期状态重置改为 感知恢复状态（restore-aware）的顺序：
 
 ```c
 	pkvm_spin_lock(&ptdev->lock);
@@ -1140,14 +1142,14 @@ git log -1 --format=%s
 	pkvm_spin_unlock(&ptdev->lock);
 ```
 
-保留后面的 unlink / sync / put 收尾，但如果 allowlist 已由 `pkvm_restore_ptdev_bars_locked()` withdraw，则删除旧的 `had_metadata` allowlist 清理分支。
+保留后面的 解绑/同步/释放（解绑/同步/释放（unlink/sync/put）） 收尾，但如果 访问名单（allowlist）已由 `pkvm_restore_ptdev_bars_locked()` withdraw，则删除旧的 `had_metadata` allowlist 清理分支。
 
 源码复核补充：
 
-- `pkvm_detach_ptdev()` 位于 restore helper 定义之前，因此需要在 detach 前增加 `pkvm_restore_ptdev_bars_locked()` 静态声明。
-- detach 失败时保持 `ptdev` 原状态并直接返回，不执行 unlink / sync / put，避免 restore 失败后误释放仍处于 HYP owner 的 BAR 状态。
+- `pkvm_detach_ptdev()` 位于恢复（restore）辅助函数定义之前，因此需要在 detach 前增加 `pkvm_restore_ptdev_bars_locked()` 静态声明。
+- detach 失败时保持 `ptdev` 原状态并直接返回，不执行解绑/同步/释放（解绑/同步/释放（unlink/sync/put）），避免 恢复失败后误释放仍处于 HYP owner 的 BAR 状态。
 
-- [ ] **步骤 2：保留 teardown caller 顺序**
+- [ ] **步骤 2：保留 teardown 调用方顺序**
 
 复核 `pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/pkvm.c` 中的：
 
@@ -1156,9 +1158,9 @@ list_for_each_entry_safe(ptdev, tmp, &vm->ptdev_head, vm_node)
 	pkvm_detach_ptdev(ptdev, vm);
 ```
 
-如果 `pkvm_detach_ptdev()` 已经 restore-aware，这里无需修改。前置 DMA-safe 条件由高层 `pkvm_quiesce_shadow_vm_ptdevs()` 提供。
+如果 `pkvm_detach_ptdev()` 已经 restore-aware，这里无需修改。前置 DMA 安全（DMA-safe）条件由高层 `pkvm_quiesce_shadow_vm_ptdevs()` 提供。
 
-- [ ] **步骤 3：确认 C commit 前 detach 不需要 quiesce**
+- [ ] **步骤 3：确认 C 阶段提交前 detach 不需要静默 DMA（quiesce）**
 
 确认 `pkvm_restore_ptdev_bars_locked()` 在以下条件成立时允许 restore：
 
@@ -1166,7 +1168,7 @@ list_for_each_entry_safe(ptdev, tmp, &vm->ptdev_head, vm_node)
 ptdev->dma_view_ready == false
 ```
 
-这覆盖 attach-fail before C commit 的路径。
+这覆盖 C 阶段提交前的 attach 失败 的路径。
 
 - [ ] **步骤 4：运行窄范围静态检查**
 
@@ -1182,17 +1184,17 @@ git grep -n "detach ptdev restore failed\|pkvm_restore_ptdev_bars_locked" -- arc
 
 ```text
 # git diff --check 无输出
-# grep 显示 restore 辅助函数 和 detach failure log
+# grep 显示 恢复（restore）辅助函数和 detach 失败日志
 ```
 
-- [ ] **步骤 5：提交 restore-aware detach**
+- [ ] **步骤 5：提交感知恢复状态（restore-aware）的 detach**
 
 运行：
 
 ```bash
 cd /home/mrgeek/pkvm-x86/pKVM-IA
 git add arch/x86/kvm/vmx/pkvm/hyp/ptdev.c arch/x86/kvm/vmx/pkvm/hyp/pkvm.c
-git commit -m '通过统一 helper 恢复 ptdev BAR' -m '让 detach/teardown 复用 BAR restore 约定，按 guest contract、DMA view、Host BAR visibility 和 bookkeeping 四平面收口。'
+git commit -m '通过统一 helper 恢复 ptdev BAR' -m '让 detach/teardown 复用 BAR 恢复（restore）约定，按 guest 约定、DMA 视图、Host BAR 可见性和内部记录（bookkeeping） 四平面收口。'
 git log -1 --format=%s
 ```
 
@@ -1202,13 +1204,13 @@ git log -1 --format=%s
 通过统一 helper 恢复 ptdev BAR
 ```
 
-### 任务 7：增加 bring-up 诊断点和 guard rail
+### 任务 7：增加启动调试诊断点和保护栏（guard rail）
 
 **文件：**
 - 修改 `pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/ptdev.c`
 - 修改 `pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/ept.c`
 
-- [ ] **步骤 1：增加 attach/revoke bring-up 日志**
+- [ ] **步骤 1：增加 attach/revoke 启动调试日志**
 
 在 `pkvm_revoke_ptdev_bars_locked()` 每个 BAR annotation 成功后增加：
 
@@ -1217,7 +1219,7 @@ pkvm_dbg("pkvm: ptdev BAR revoked bdf=0x%x bar=%d hpa=0x%llx size=0x%llx\n",
 	 ptdev->bdf, idx, bar->hpa, bar->size);
 ```
 
-- [ ] **步骤 2：增加 restore bring-up 日志**
+- [ ] **步骤 2：增加 restore 启动调试日志**
 
 在 `pkvm_restore_ptdev_bars_locked()` 每个 BAR idmap restore 成功后增加：
 
@@ -1228,7 +1230,7 @@ pkvm_dbg("pkvm: ptdev BAR restored bdf=0x%x bar=%d hpa=0x%llx size=0x%llx\n",
 
 - [ ] **步骤 3：保持 deny-remap 日志最小化**
 
-`handle_host_ept_violation()` 的 annotated Host fault deny 分支只保留一处 `pkvm_err()`；不要为每次普通 MMIO fault 增加噪声日志。
+`handle_host_ept_violation()` 的 annotated Host 缺页 deny 分支只保留一处 `pkvm_err()`；不要为每次普通 MMIO fault 增加噪声日志。
 
 - [ ] **步骤 4：运行日志 grep 检查**
 
@@ -1253,7 +1255,7 @@ git grep -n "ptdev BAR revoked\|ptdev BAR restored\|deny host BAR remap" -- arch
 ```bash
 cd /home/mrgeek/pkvm-x86/pKVM-IA
 git add arch/x86/kvm/vmx/pkvm/hyp/ptdev.c arch/x86/kvm/vmx/pkvm/hyp/ept.c
-git commit -m '补充 ptdev BAR donate 诊断日志' -m '为第一阶段 bring-up 提供 BAR revoke、restore 和 Host deny-remap 的最小证据点。'
+git commit -m '补充 ptdev BAR donate 诊断日志' -m '为第一阶段启动调试提供 BAR revoke、restore 和 Host deny-remap 的最小证据点。'
 git log -1 --format=%s
 ```
 
@@ -1284,7 +1286,7 @@ git grep -n "dma_view_ready = true" -- arch/x86/kvm/vmx/pkvm/hyp/ptdev.c
 期望：
 
 ```text
-# diff check 无输出
+# `git diff --check` 无输出
 # OWNER_ID_PTDEV_MMIO 有定义和 ept/ptdev 使用点
 # 直接 metadata allowlist grep 无输出
 # dma_view_ready = true 只出现在 pkvm_iommu_sync() 成功后的路径
@@ -1312,7 +1314,7 @@ scripts/checkpatch.pl --no-tree --strict --file \
 # 若出现既有风格 warning，只记录，不在本 PR 中顺手修无关问题
 ```
 
-- [ ] **步骤 3：给出最小 object build 目标，默认不运行**
+- [ ] **步骤 3：给出最小对象文件级编译目标，默认不运行**
 
 除非用户确认，否则不要执行内核编译。若用户确认，使用 object targets，而不是全量构建：
 
@@ -1343,7 +1345,7 @@ make O=/home/mrgeek/pkvm-x86/build-host arch/x86/kvm/vmx/pkvm/hyp/mem_protect.o
 
 ```text
 Case A: protected pVM attach with VFIO device
-  expected: 每个 managed BAR 出现 ptdev BAR revoked 日志
+  expected: 每个 受管理 BAR 出现 ptdev BAR revoked 日志
   expected: A/C/B 后 guest DIRECT_BAR metadata query 仍返回 direct ranges
   expected: guest 继续到达现有 passthrough 正向里程碑
 
@@ -1406,7 +1408,7 @@ Case E: attach failure before C commit
 ## 后续问题
 
 - 是否需要新建 Bug 类型 issue：是/否
-- 是否需要新建 Task 类型 issue：是/否
+- 是否需要新建 `Task` 类型 issue：是/否
 ```
 
 ### 任务 9：文档、GitHub 与 PR 交接
@@ -1422,7 +1424,7 @@ Case E: attach failure before C commit
 
 ```markdown
   - `T12` 第一阶段实现规划已完成：[`实施跟踪/01E-T12-B5-3-device-MMIO-donate-第一阶段实现规划.md`](实施跟踪/01E-T12-B5-3-device-MMIO-donate-第一阶段实现规划.md)
-  - 下一步进入 `pKVM-IA` 短生命周期分支的最小补丁序列：Host EPT 标注辅助函数 -> Host fault 拒绝重映射 -> `ptdev` BAR 状态 -> metadata 缓存与 guest 约定发布拆分 -> A/C/B attach -> restore 辅助函数
+  - 下一步进入 `pKVM-IA` 短生命周期分支的最小补丁序列：Host EPT 标注辅助函数 -> Host 缺页拒绝重映射 -> `ptdev` BAR 状态 -> 元数据（metadata）缓存与 guest 约定发布拆分 -> A/C/B attach -> 恢复（restore）辅助函数
 ```
 
 - [ ] **步骤 2：更新实施跟踪 README**
@@ -1431,7 +1433,7 @@ Case E: attach failure before C commit
 
 ```markdown
 - [`01E-T12-B5-3-device-MMIO-donate-第一阶段实现规划.md`](01E-T12-B5-3-device-MMIO-donate-第一阶段实现规划.md)
-  - 作为 `T12` 第一阶段实现规划，拆分 Host EPT annotation、`ptdev` BAR 状态、metadata 发布、A/C/B attach、restore 辅助函数和验证矩阵。
+  - 作为 `T12` 第一阶段实现规划，拆分 Host EPT 标注（annotation）、`ptdev` BAR 状态、metadata 发布、A/C/B attach、恢复（restore）辅助函数和验证矩阵。
 ```
 
 - [ ] **步骤 3：同步 GitHub issue #34**
@@ -1440,7 +1442,7 @@ Case E: attach failure before C commit
 
 ```bash
 cd /home/mrgeek/pkvm-x86
-gh issue comment 34 --repo MrGeek-zrh/pkvm-x86 --body '2026-04-24 同步：T12 设备 MMIO donate 第一阶段实现规划已落到本地文档 `DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/实施跟踪/01E-T12-B5-3-device-MMIO-donate-第一阶段实现规划.md`。计划拆分为 Host EPT 标注辅助函数、Host fault 拒绝重映射、`ptdev` BAR 权威状态、metadata 缓存与发布拆分、A/C/B attach、restore 辅助函数、最小验证和 PR 交接。下一步进入 pKVM-IA 短生命周期分支实现。'
+gh issue comment 34 --repo MrGeek-zrh/pkvm-x86 --body '2026-04-24 同步：T12 设备 MMIO donate 第一阶段实现规划已落到本地文档 `DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/实施跟踪/01E-T12-B5-3-device-MMIO-donate-第一阶段实现规划.md`。计划拆分为 Host EPT 标注辅助函数、Host 缺页拒绝重映射、`ptdev` BAR 权威状态、元数据（metadata）缓存与发布拆分、A/C/B attach、恢复（restore）辅助函数、最小验证和 PR 交接。下一步进入 pKVM-IA 短生命周期分支实现。'
 ```
 
 期望：
@@ -1449,7 +1451,7 @@ gh issue comment 34 --repo MrGeek-zrh/pkvm-x86 --body '2026-04-24 同步：T12 �
 https://github.com/MrGeek-zrh/pkvm-x86/issues/34#issuecomment-...
 ```
 
-- [ ] **步骤 4：提交 superproject 规划文档**
+- [ ] **步骤 4：提交总控仓库（superproject）规划文档**
 
 运行：
 
@@ -1458,7 +1460,7 @@ cd /home/mrgeek/pkvm-x86
 git add DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/实施跟踪/01E-T12-B5-3-device-MMIO-donate-第一阶段实现规划.md \
         DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/实施跟踪/README.md \
         DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/当前进度.md
-git commit -m '补充 T12 donate 第一阶段实现规划' -m '拆分 Host EPT annotation、ptdev BAR 状态、metadata 发布、A/C/B attach 和 restore 验证路径。'
+git commit -m '补充 T12 donate 第一阶段实现规划' -m '拆分 Host EPT 标注（annotation）、ptdev BAR 状态、metadata 发布、A/C/B attach 和 restore 验证路径。'
 git log -1 --format=%s
 ```
 
@@ -1472,8 +1474,8 @@ git log -1 --format=%s
 
 - [ ] 总设计 D0-D9 的每个决策都能映射到本规划任务。
 - [ ] 默认不要求全量内核构建。
-- [ ] Host EPT annotation 使用非 0 的 `OWNER_ID_PTDEV_MMIO`，而不是 `OWNER_ID_HYP`。
-- [ ] guest allowlist publish 受 `owner=HYP` 和 `dma_view_ready=1` 约束。
-- [ ] restore 资源范围是 `touched_bar_mask`，完整 rollback 覆盖四个平面。
-- [ ] `T6` remove-path 作为后续任务引用，不作为第一阶段完成条件。
-- [ ] 未来发到 GitHub 的调用链/状态机继续使用 fenced code block。
+- [ ] Host EPT 标注（annotation）使用非 0 的 `OWNER_ID_PTDEV_MMIO`，而不是 `OWNER_ID_HYP`。
+- [ ] guest 访问名单（allowlist）发布 受 `owner=HYP` 和 `dma_view_ready=1` 约束。
+- [ ] 恢复（restore）资源范围是 `touched_bar_mask`，完整回滚（rollback） 覆盖四个平面。
+- [ ] `T6` 移除路径作为后续任务引用，不作为第一阶段完成条件。
+- [ ] 未来发到 GitHub 的调用链/状态机继续使用 围栏代码块（fenced code block）。
