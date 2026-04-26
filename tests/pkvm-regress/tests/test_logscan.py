@@ -18,12 +18,12 @@ class LogScanTests(unittest.TestCase):
         self.assertEqual([finding.line_no for finding in findings], [2, 3])
 
     def test_required_patterns_report_missing_entries(self):
-        log = "pkvm: ptdev BAR revoked bdf=0x100 bar=0 hpa=0x1 size=0x1000\n"
+        log = "pkvm: ptdev MMIO range revoked bdf=0x100 bar=0 hpa=0x1 size=0x1000\n"
 
-        result = scan_required_patterns(log, ["ptdev BAR revoked", "ptdev BAR restored"])
+        result = scan_required_patterns(log, ["ptdev MMIO range revoked", "ptdev MMIO range restored"])
 
-        self.assertEqual(result.present, ["ptdev BAR revoked"])
-        self.assertEqual(result.missing, ["ptdev BAR restored"])
+        self.assertEqual(result.present, ["ptdev MMIO range revoked"])
+        self.assertEqual(result.missing, ["ptdev MMIO range restored"])
 
 
 if __name__ == "__main__":

@@ -25,6 +25,15 @@
 4. Host EPT deny-remap 语义仍保留在被 revoke 的 guest 数据面子范围上，不能退回到整 BAR lazy remap。
 5. restore / rollback 范围从 `touched_bar_mask` 细化到实际 touched ranges，避免只按 BAR 粗粒度恢复。
 
+## 当前实现进展（2026-04-26）
+
+- `pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/ptdev.h` 已新增 `touched_mmio_ranges[]` 和 `touched_mmio_range_count`，用于记录实际完成 Host EPT annotation 的 DIRECT_BAR range。
+- `pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/ptdev.c` 已将 `pkvm_revoke_ptdev_bars_locked()` 从整 BAR 遍历改为遍历 `ptdev->mmio_metadata.ranges[]`。
+- `pkvm_restore_ptdev_bars_locked()` 通过 range restore helper 只恢复实际 touched DIRECT_BAR range，不再按整 BAR restore。
+- `pkvm_publish_ptdev_mmio_contract_locked()` 在发布 guest allowlist 前确保 DIRECT_BAR range 已 revoke；metadata 尚未到达时 attach 可保持 `PKVM_PTDEV_ATTACHING`，待 metadata sync 后再执行 range revoke 和 contract publish。
+- `pkvm_vm_hpa_hits_attached_boot_ptdev_bar()` 已收紧为只命中 metadata 声明的 DIRECT_BAR range，避免 guest 通过整 BAR 判定拿到 MSI-X table / PBA 等 host 控制面子区间。
+- `tests/pkvm-regress` 已增加源码契约测试，检查 revoke / restore 不再使用整 BAR `bar->hpa, bar->size` 路径。
+
 ## 实现范围
 
 - `pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/ptdev.c`

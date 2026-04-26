@@ -56,7 +56,7 @@ python3 tests/pkvm-regress/pkvm-regress.py run-shell T12-A1 --no-host-collectors
 扫描日志：
 
 ```bash
-python3 tests/pkvm-regress/pkvm-regress.py scan-log /path/to/host-dmesg.log --require 'ptdev BAR revoked'
+python3 tests/pkvm-regress/pkvm-regress.py scan-log /path/to/host-dmesg.log --require 'ptdev MMIO range revoked'
 ```
 
 生成验证记录骨架：

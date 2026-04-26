@@ -17,7 +17,7 @@ class CommandPlanTests(unittest.TestCase):
         self.assertIn("SETUP_NET=0", joined)
         self.assertIn("VFIO_DEV=0000:01:00.0", joined)
         self.assertIn("./scripts/run-crosvm.sh", joined)
-        self.assertIn("ptdev BAR revoked", "\n".join(plan.required_patterns))
+        self.assertIn("ptdev MMIO range revoked", "\n".join(plan.required_patterns))
 
     def test_a2b_requires_explicit_host_bar_touch_guard(self):
         with self.assertRaisesRegex(PermissionError, "--allow-host-bar-touch"):

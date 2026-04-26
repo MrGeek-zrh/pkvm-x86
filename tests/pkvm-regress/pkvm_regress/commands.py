@@ -45,10 +45,10 @@ def build_case_plan(
             commands=(
                 "date -u '+%F %T'",
                 _run_crosvm_cmd(repo_root=repo, protected=True, vfio_dev=None),
-                "sudo -n dmesg -T | grep -E 'ptdev BAR revoked|ptdev BAR restored|deny host BAR remap|pkvm: exception|DMAR|IOMMU|soft lockup|RCU stall|BUG:' || true",
+                "sudo -n dmesg -T | grep -E 'ptdev MMIO range revoked|ptdev MMIO range restored|deny host BAR remap|pkvm: exception|DMAR|IOMMU|soft lockup|RCU stall|BUG:' || true",
             ),
             required_patterns=("login:",),
-            notes=("无 VFIO baseline 不应出现 ptdev BAR revoked/restored/deny 日志。",),
+            notes=("无 VFIO baseline 不应出现 ptdev MMIO range revoked/restored/deny 日志。",),
         )
 
     if case_id == "T12-G1":
@@ -57,7 +57,7 @@ def build_case_plan(
             commands=(
                 "date -u '+%F %T'",
                 _run_crosvm_cmd(repo_root=repo, protected=False, vfio_dev=vfio_dev),
-                "sudo -n dmesg -T | grep -E 'reject bdf|ptdev BAR revoked|deny host BAR remap|pkvm: exception|DMAR|IOMMU|soft lockup|RCU stall|BUG:' || true",
+                "sudo -n dmesg -T | grep -E 'reject bdf|ptdev MMIO range revoked|deny host BAR remap|pkvm: exception|DMAR|IOMMU|soft lockup|RCU stall|BUG:' || true",
             ),
             required_patterns=("login:",),
             notes=("普通 VM + VFIO 不应被 protected-only BAR owner 逻辑误伤。",),
@@ -69,9 +69,9 @@ def build_case_plan(
             commands=(
                 "date -u '+%F %T'",
                 _run_crosvm_cmd(repo_root=repo, protected=True, vfio_dev=vfio_dev),
-                "sudo -n dmesg -T | grep -E 'ptdev BAR revoked|pkvm: exception|DMAR|IOMMU|soft lockup|RCU stall|BUG:'",
+                "sudo -n dmesg -T | grep -E 'ptdev MMIO range revoked|pkvm: exception|DMAR|IOMMU|soft lockup|RCU stall|BUG:'",
             ),
-            required_patterns=("ptdev BAR revoked", "login:"),
+            required_patterns=("ptdev MMIO range revoked", "login:"),
         )
 
     if case_id == "T12-B1":
@@ -92,9 +92,9 @@ def build_case_plan(
             case_id=case_id,
             commands=(
                 "# Guest: printf '\\n' | sudo -S poweroff -f",
-                "sudo -n dmesg -T | grep -E 'ptdev BAR restored|detach ptdev restore failed|pkvm: exception|DMAR|IOMMU|soft lockup|RCU stall|BUG:'",
+                "sudo -n dmesg -T | grep -E 'ptdev MMIO range restored|detach ptdev restore failed|pkvm: exception|DMAR|IOMMU|soft lockup|RCU stall|BUG:'",
             ),
-            required_patterns=("ptdev BAR restored",),
+            required_patterns=("ptdev MMIO range restored",),
         )
 
     if case_id == "T12-G3":
@@ -104,10 +104,10 @@ def build_case_plan(
                 "for i in 1 2 3; do",
                 f"  echo T12-G3 round=$i",
                 f"  cd {repo} && sudo -n env PROTECTED=1 SETUP_NET=0 VFIO_DEV={vfio_dev} ./scripts/run-crosvm.sh",
-                "  sudo -n dmesg -T | grep -E 'ptdev BAR revoked|ptdev BAR restored|pkvm: exception|DMAR|IOMMU|soft lockup|RCU stall|BUG:' || true",
+                "  sudo -n dmesg -T | grep -E 'ptdev MMIO range revoked|ptdev MMIO range restored|pkvm: exception|DMAR|IOMMU|soft lockup|RCU stall|BUG:' || true",
                 "done",
             ),
-            required_patterns=("ptdev BAR revoked", "ptdev BAR restored"),
+            required_patterns=("ptdev MMIO range revoked", "ptdev MMIO range restored"),
             notes=("每轮应单独保存日志；这个 plan 只给出执行骨架。",),
         )
 
@@ -115,7 +115,7 @@ def build_case_plan(
         return CasePlan(
             case_id=case_id,
             commands=(
-                "sudo -n dmesg -T | grep -E 'deny host BAR remap|ptdev BAR revoked|ptdev BAR restored|pkvm: exception|DMAR|IOMMU|soft lockup|RCU stall|BUG:' || true",
+                "sudo -n dmesg -T | grep -E 'deny host BAR remap|ptdev MMIO range revoked|ptdev MMIO range restored|pkvm: exception|DMAR|IOMMU|soft lockup|RCU stall|BUG:' || true",
             ),
             required_patterns=("deny host BAR remap",),
             notes=("未自然触发 deny host BAR remap 时记录为 INCONCLUSIVE，不判 FAIL。",),
@@ -141,10 +141,10 @@ def build_case_plan(
         return CasePlan(
             case_id=case_id,
             commands=(
-                "# agent-runbook: 启动 host trace / guest trace，按源码锚点核对 A/C/B 或 withdraw/restore 顺序。",
-                "sudo -n dmesg -T | grep -E 'ptdev BAR revoked|ptdev BAR restored|deny host BAR remap|pkvm: exception|DMAR|IOMMU|soft lockup|RCU stall|BUG:' || true",
+                "# agent-runbook: 启动 host trace / guest trace，按源码锚点核对 Host BAR revoke / DMA view commit / guest contract publish 或 withdraw/restore 顺序。",
+                "sudo -n dmesg -T | grep -E 'ptdev MMIO range revoked|ptdev MMIO range restored|deny host BAR remap|pkvm: exception|DMAR|IOMMU|soft lockup|RCU stall|BUG:' || true",
             ),
-            required_patterns=("ptdev BAR revoked",),
+            required_patterns=("ptdev MMIO range revoked",),
             notes=("需要 Codex 结合 trace、日志和源码进行判断。",),
         )
 
