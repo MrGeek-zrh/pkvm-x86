@@ -26,3 +26,11 @@ output/
 /output.txt
 /.codex
 /DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/TODOs/任务.txt
+
+# Python cache / test artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
