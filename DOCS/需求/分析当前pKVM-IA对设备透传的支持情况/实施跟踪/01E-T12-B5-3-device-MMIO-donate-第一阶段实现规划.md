@@ -115,14 +115,14 @@ git status --short
 ```bash
 cd /home/mrgeek/pkvm-x86/pKVM-IA
 git branch --show-current
-git switch -c codex/t12-mmio-donate-phase1
+git switch -c t12-mmio-donate-phase1
 git branch --show-current
 ```
 
 期望：
 
 ```text
-codex/t12-mmio-donate-phase1
+t12-mmio-donate-phase1
 ```
 
 - [ ] **步骤 3：在总控进度文档记录实现分支**
@@ -136,7 +136,7 @@ codex/t12-mmio-donate-phase1
 在 `B5-3 / T12` 下一步条目中增加：
 
 ```markdown
-  - `T12` 第一阶段实现分支：`pKVM-IA` / `codex/t12-mmio-donate-phase1`，实现计划入口为 [`实施跟踪/01E-T12-B5-3-device-MMIO-donate-第一阶段实现规划.md`](实施跟踪/01E-T12-B5-3-device-MMIO-donate-第一阶段实现规划.md)
+  - `T12` 第一阶段实现分支：`pKVM-IA` / `t12-mmio-donate-phase1`，实现计划入口为 [`实施跟踪/01E-T12-B5-3-device-MMIO-donate-第一阶段实现规划.md`](实施跟踪/01E-T12-B5-3-device-MMIO-donate-第一阶段实现规划.md)
 ```
 
 - [ ] **步骤 4：如有进度文档变更，则提交到 `pkvm-x86`**
@@ -1382,7 +1382,7 @@ Case E: attach failure before C commit
 
 ## 内核仓库
 
-- `pKVM-IA` 分支： `codex/t12-mmio-donate-phase1`
+- `pKVM-IA` 分支： `t12-mmio-donate-phase1`
 - `pKVM-IA` 提交： 运行 `git -C /home/mrgeek/pkvm-x86/pKVM-IA rev-parse --short HEAD`，并粘贴输出的 commit id
 
 ## 执行命令

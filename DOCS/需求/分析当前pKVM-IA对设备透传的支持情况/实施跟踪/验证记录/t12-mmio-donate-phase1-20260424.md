@@ -3,7 +3,7 @@
 ## 范围
 
 - 内核仓库：`/home/mrgeek/pkvm-x86/pKVM-IA`
-- 分支：`codex/t12-mmio-donate-phase1`
+- 分支：`t12-mmio-donate-phase1`
 - 基线提交：`1cfdacc20432`
 - 当前提交：`9f9531b5e36a`
 - 本记录只覆盖源码级检查和静态风格检查；未执行对象文件级编译（object build）、未执行完整 Linux 内核编译、未执行 protected pVM 运行验证。
