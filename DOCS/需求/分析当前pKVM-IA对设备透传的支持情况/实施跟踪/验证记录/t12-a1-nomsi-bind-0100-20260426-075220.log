@@ -1,0 +1,20 @@
+# bind 0000:01:00.0 to vfio-pci
+2026-04-26 07:52:20
+# before
+01:00.0 Non-Volatile memory controller: Red Hat, Inc. QEMU NVM Express Controller (rev 02)
+	Subsystem: Red Hat, Inc. QEMU NVM Express Controller
+	Kernel driver in use: nvme
+	Kernel modules: nvme
+0000:01:00.0
+vfio-pci
+0000:01:00.0
+# after
+01:00.0 Non-Volatile memory controller: Red Hat, Inc. QEMU NVM Express Controller (rev 02)
+	Subsystem: Red Hat, Inc. QEMU NVM Express Controller
+	Kernel driver in use: vfio-pci
+	Kernel modules: nvme
+/sys/kernel/iommu_groups/8
+total 0
+crw------- 1 root root 239,   0 Apr 26 07:52 8
+drwxr-xr-x 2 root root       60 Apr 26 07:52 devices
+crw-rw-rw- 1 root root  10, 196 Apr 26 07:52 vfio

@@ -1,0 +1,19 @@
+{
+  "command": [
+    "sudo",
+    "-n",
+    "timeout",
+    "-k",
+    "10s",
+    "180s",
+    "env",
+    "PROTECTED=1",
+    "SETUP_NET=0",
+    "VFIO_DEV=0000:01:00.0",
+    "GUEST_KERNEL_EXTRA=pci=nomsi",
+    "./scripts/run-crosvm.sh"
+  ],
+  "finished_at_utc": "2026-04-26T07:55:52Z",
+  "returncode": -9,
+  "status": "FAILED"
+}

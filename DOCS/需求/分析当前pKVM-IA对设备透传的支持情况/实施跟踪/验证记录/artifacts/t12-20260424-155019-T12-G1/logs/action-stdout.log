@@ -1,0 +1,14 @@
+HOST_CMD sudo -n env SETUP_NET=0 PROTECTED=0 VFIO_DEV=0000:01:00.0 ./scripts/run-crosvm.sh
+run-crosvm: SETUP_NET=0: skipping tap/iptables/sysctl network setup; guest will have no network device
+run-crosvm: enabling VFIO passthrough: 0000:01:00.0 (no virtual iommu, mapping all guest ram)
+[2026-04-24T15:50:19.999547780+00:00 DEBUG crosvm::crosvm::sys::linux] creating hypervisor: Kvm { device: Some("/dev/kvm") }
+[2026-04-24T15:50:19.999813266+00:00 DEBUG x86_64] 0x0000000000000000-0x000000000009ffff GuestMemoryRegion
+[2026-04-24T15:50:19.999852655+00:00 DEBUG x86_64] 0x00000000000a0000-0x00000000000fffff ReservedMemory
+[2026-04-24T15:50:19.999880771+00:00 DEBUG x86_64] 0x0000000000100000-0x00000000cfffffff GuestMemoryRegion
+[2026-04-24T15:50:19.999899140+00:00 DEBUG x86_64] 0x0000000100000000-0x000000012fffffff GuestMemoryRegion
+[2026-04-24T15:50:20.022403242+00:00 ERROR crosvm] exiting with error 1: failed to create vfio device
+
+Caused by:
+    failed to open /dev/vfio/8 group: Device or resource busy (os error 16)
+
+GUEST_RUN_ERROR=RuntimeError('guest did not reach login')

@@ -1,0 +1,22 @@
+run-crosvm: SETUP_NET=0: skipping tap/iptables/sysctl network setup; guest will have no network device
+run-crosvm: enabling VFIO passthrough: 0000:01:00.0 (no virtual iommu, mapping all guest ram)
+[2026-04-26T07:52:39.803437731+00:00 DEBUG crosvm::crosvm::sys::linux] creating hypervisor: Kvm { device: Some("/dev/kvm") }
+[2026-04-26T07:52:39.805270905+00:00 DEBUG x86_64] 0x0000000000000000-0x000000000009ffff GuestMemoryRegion
+[2026-04-26T07:52:39.805512701+00:00 DEBUG x86_64] 0x00000000000a0000-0x00000000000fffff ReservedMemory
+[2026-04-26T07:52:39.805534415+00:00 DEBUG x86_64] 0x0000000000100000-0x00000000cfffffff GuestMemoryRegion
+[2026-04-26T07:52:39.805550882+00:00 DEBUG x86_64] 0x0000000100000000-0x000000012fffffff GuestMemoryRegion
+[2026-04-26T07:53:04.390107148+00:00 DEBUG devices::pci::vfio_pci] parsed device PCI address 0000:01:00.0
+[2026-04-26T07:53:04.393277725+00:00 INFO  crosvm::crosvm::sys::linux::device_helpers] Trying to attach block device: /home/mrgeek/pkvm-x86/images/guest/ubuntuguest.qcow2
+[2026-04-26T07:53:04.393642102+00:00 INFO  disk] disk size 8669888512
+[2026-04-26T07:53:04.698025267+00:00 DEBUG devices::pci::vfio_pci] set_gpe: gpe-nr 0 addr Some(PciAddress { bus: 1, dev: 0, func: 0 })
+[2026-04-26T07:53:04.701701325+00:00 DEBUG x86_64] 0x0000000000000000-0x000000000009ffff GuestMemoryRegion
+[2026-04-26T07:53:04.701798824+00:00 DEBUG x86_64] 0x00000000000a0000-0x00000000000fffff ReservedMemory
+[2026-04-26T07:53:04.701844182+00:00 DEBUG x86_64] 0x0000000000100000-0x00000000cfffffff GuestMemoryRegion
+[2026-04-26T07:53:04.701905706+00:00 DEBUG x86_64] 0x0000000100000000-0x000000012fffffff GuestMemoryRegion
+[2026-04-26T07:53:04.704324802+00:00 DEBUG x86_64::bzimage] setup_header file offset range: 0x01f1..0x026c
+[2026-04-26T07:53:04.705087433+00:00 INFO  devices::sys::linux::acpi] Listening on acpi_mc_group of acpi_event family
+[2026-04-26T07:53:04.726333689+00:00 INFO  x86_64] Loaded bzImage kernel
+[2026-04-26T07:53:04.726522334+00:00 DEBUG x86_64] kernel_max_cmdline_len=2047
+[2026-04-26T07:53:30.983316475+00:00 ERROR devices::pci::vfio_pci] vfio 0000:01:00.0 device: failed to enable ACPI notifications
+[2026-04-26T07:53:35.433676170+00:00 DEBUG devices::virtio::block::asynchronous] failed executing disk request: unsupported (8)
+[2026-04-26T07:53:36.013390586+00:00 DEBUG devices::virtio::block::asynchronous] failed executing disk request: unsupported (8)

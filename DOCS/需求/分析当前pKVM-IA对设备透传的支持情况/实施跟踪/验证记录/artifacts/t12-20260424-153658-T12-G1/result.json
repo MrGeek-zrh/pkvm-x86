@@ -1,0 +1,14 @@
+{
+  "command": [
+    "/tmp/codex-pkvm-runner.py",
+    "--protected",
+    "0",
+    "--vfio-dev",
+    "0000:01:00.0",
+    "--tag",
+    "codex-t12-g1b-20260424"
+  ],
+  "finished_at_utc": "2026-04-24T15:37:29Z",
+  "returncode": 0,
+  "status": "COMPLETE"
+}

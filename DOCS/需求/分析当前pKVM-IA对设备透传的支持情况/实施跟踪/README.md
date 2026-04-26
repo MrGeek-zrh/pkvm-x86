@@ -46,6 +46,12 @@ GitHub Issue / PR 现在作为状态真相来源；本目录主要保存较长�
   - 作为 `B5-3 / T12` 的总入口，汇总已锁定的 device MMIO donate contract、状态机和 restore 约定。
 - [`01E-T12-B5-3-device-MMIO-donate-第一阶段实现规划.md`](01E-T12-B5-3-device-MMIO-donate-第一阶段实现规划.md)
   - 作为 `T12` 第一阶段实现规划，拆分 Host EPT annotation、`ptdev` BAR 状态、metadata 发布、A/C/B attach、restore 辅助函数和验证矩阵。
+- [`10-T12-第一阶段测试用例设计.md`](10-T12-第一阶段测试用例设计.md)
+  - 作为 `T12` 第一阶段测试设计，按 `scripted`、`agent-runbook`、`fault-injection-required` 三种执行模式细化 P0/P1/P2 测例、判据和验证记录模板。
+- [`11-T12-MSI-X-table-host-control-range修复计划.md`](11-T12-MSI-X-table-host-control-range修复计划.md)
+  - 作为 `BOOT-015` / MrGeek-zrh/pkvm-x86#35 的修复计划，记录 MSI-X table / PBA Host 控制面保留、BAR revoke 子范围细化和 T12 验收标准。
+- [`12-T12-DIRECT_BAR-metadata-reserved-range-语义校验.md`](12-T12-DIRECT_BAR-metadata-reserved-range-语义校验.md)
+  - 作为 MrGeek-zrh/pkvm-x86#38 的后续 hardening 任务，记录 pKVM 对 DIRECT_BAR metadata 的独立语义校验，避免完全信任 userspace/crosvm 提交的 BAR 子范围。
 - [`01E-T12-B5-3-Host-BAR隔离-ARM对齐设计草案.md`](01E-T12-B5-3-Host-BAR隔离-ARM对齐设计草案.md)
   - 作为 `B5-3 / T12` 的分文档，保留 ARM 对齐背景、BAR ownership 差距分析和细节推导。
 - `02-P0-pgstate_pgt语义收敛为DMA-mirror.md`

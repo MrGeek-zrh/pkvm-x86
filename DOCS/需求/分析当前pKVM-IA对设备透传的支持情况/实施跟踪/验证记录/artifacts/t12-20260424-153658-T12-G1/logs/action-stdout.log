@@ -1,0 +1,503 @@
+HOST_DRIVER_BEFORE=nvme
+HOST_UNBIND=nvme
+HOST_DRIVER_AFTER_BIND=vfio-pci
+CROSVM_CMD=cd /home/mrgeek/pkvm-x86 && sudo -n env -u DEBUG PROTECTED=0 SETUP_NET=0 VFIO_DEV=0000:01:00.0 ./scripts/run-crosvm.sh
+run-crosvm: SETUP_NET=0: skipping tap/iptables/sysctl network setup; guest will have no network device
+run-crosvm: enabling VFIO passthrough: 0000:01:00.0 (no virtual iommu, mapping all guest ram)
+[2026-04-24T15:36:58.548446549+00:00 DEBUG crosvm::crosvm::sys::linux] creating hypervisor: Kvm { device: Some("/dev/kvm") }
+[2026-04-24T15:36:58.548724263+00:00 DEBUG x86_64] 0x0000000000000000-0x000000000009ffff GuestMemoryRegion
+[2026-04-24T15:36:58.548770922+00:00 DEBUG x86_64] 0x00000000000a0000-0x00000000000fffff ReservedMemory
+[2026-04-24T15:36:58.548803580+00:00 DEBUG x86_64] 0x0000000000100000-0x00000000cfffffff GuestMemoryRegion
+[2026-04-24T15:36:58.548844243+00:00 DEBUG x86_64] 0x0000000100000000-0x000000012fffffff GuestMemoryRegion
+[2026-04-24T15:37:10.606670867+00:00 DEBUG devices::pci::vfio_pci] parsed device PCI address 0000:01:00.0
+[2026-04-24T15:37:10.607279247+00:00 INFO  crosvm::crosvm::sys::linux::device_helpers] Trying to attach block device: /home/mrgeek/pkvm-x86/images/guest/ubuntuguest.qcow2
+[2026-04-24T15:37:10.607350872+00:00 INFO  disk] disk size 8669888512
+[2026-04-24T15:37:10.666095588+00:00 DEBUG devices::pci::vfio_pci] set_gpe: gpe-nr 0 addr Some(PciAddress { bus: 1, dev: 0, func: 0 })
+[2026-04-24T15:37:10.670010180+00:00 DEBUG x86_64] 0x0000000000000000-0x000000000009ffff GuestMemoryRegion
+[2026-04-24T15:37:10.670072690+00:00 DEBUG x86_64] 0x00000000000a0000-0x00000000000fffff ReservedMemory
+[2026-04-24T15:37:10.670092012+00:00 DEBUG x86_64] 0x0000000000100000-0x00000000cfffffff GuestMemoryRegion
+[2026-04-24T15:37:10.670115891+00:00 DEBUG x86_64] 0x0000000100000000-0x000000012fffffff GuestMemoryRegion
+[2026-04-24T15:37:10.670837087+00:00 INFO  devices::sys::linux::acpi] Listening on acpi_mc_group of acpi_event family
+[2026-04-24T15:37:10.671309407+00:00 DEBUG x86_64::bzimage] setup_header file offset range: 0x01f1..0x026c
+[2026-04-24T15:37:10.684215466+00:00 INFO  x86_64] Loaded bzImage kernel
+[2026-04-24T15:37:10.684289417+00:00 DEBUG x86_64] kernel_max_cmdline_len=2047
+[2026-04-24T15:37:15.787527552+00:00 ERROR devices::pci::vfio_pci] vfio 0000:01:00.0 device: failed to enable ACPI notifications
+[2026-04-24T15:37:15.831178684+00:00 ERROR devices::pci::vfio_pci] failed to call DSM: failed to call vfio device's ACPI _DSM: Invalid argument (os error 22)
+[2026-04-24T15:37:15.831753091+00:00 ERROR devices::pci::vfio_pci] failed to call DSM: failed to call vfio device's ACPI _DSM: Invalid argument (os error 22)
+[2026-04-24T15:37:15.832247278+00:00 ERROR devices::pci::vfio_pci] failed to call DSM: failed to call vfio device's ACPI _DSM: Invalid argument (os error 22)
+[2026-04-24T15:37:15.832743233+00:00 ERROR devices::pci::vfio_pci] failed to call DSM: failed to call vfio device's ACPI _DSM: Invalid argument (os error 22)
+[2026-04-24T15:37:15.833120578+00:00 ERROR devices::pci::vfio_pci] failed to call DSM: failed to call vfio device's ACPI _DSM: Invalid argument (os error 22)
+[2026-04-24T15:37:15.833493754+00:00 ERROR devices::pci::vfio_pci] failed to call DSM: failed to call vfio device's ACPI _DSM: Invalid argument (os error 22)
+[2026-04-24T15:37:16.458863847+00:00 DEBUG devices::usb::xhci] xhci_controller: halt device
+[2026-04-24T15:37:16.459020770+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: false
+[2026-04-24T15:37:16.601672461+00:00 DEBUG devices::virtio::balloon] inflateq index 0
+[2026-04-24T15:37:16.601735856+00:00 DEBUG devices::virtio::balloon] deflateq index 1
+[2026-04-24T15:37:16.601762136+00:00 DEBUG devices::virtio::balloon] statsq index 2
+[    4.141055] Linux agpgart interface v0.103
+[    4.142547] ACPI: bus type drm_connector registered
+[    4.172945] loop: module loaded
+[    4.175440] virtio_blk virtio1: 2/0/0 default/read/poll queues
+[    4.197087] virtio_blk virtio1: [vda] 20971520 512-byte logical blocks (10.7 GB/10.0 GiB)
+[    4.210928]  vda: vda1
+[    4.214245] tun: Universal TUN/TAP device driver, 1.6
+[    4.216254] PPP generic driver version 2.4.2
+[    4.219847] xhci_hcd 0000:00:05.0: xHCI Host Controller
+[    4.220534] xhci_hcd 0000:00:05.0: new USB bus registered, assigned bus number 1
+[2026-04-24T15:37:17.003204706+00:00 DEBUG devices::usb::xhci] xhci_controller: halt device
+[2026-04-24T15:37:17.003321781+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: false
+[2026-04-24T15:37:17.003810400+00:00 DEBUG devices::usb::xhci] xhci_controller: reset controller
+[2026-04-24T15:37:17.003838985+00:00 INFO  devices::usb::xhci::device_slot] xhci: stopping all device slots and resetting host hub
+[2026-04-24T15:37:17.003903806+00:00 DEBUG devices::usb::xhci::device_slot] resetting device slot 1!
+[2026-04-24T15:37:17.003930497+00:00 DEBUG devices::usb::xhci::device_slot] resetting device slot 2!
+[2026-04-24T15:37:17.003945437+00:00 DEBUG devices::usb::xhci::device_slot] resetting device slot 3!
+[2026-04-24T15:37:17.003956123+00:00 DEBUG devices::usb::xhci::device_slot] resetting device slot 4!
+[2026-04-24T15:37:17.003966883+00:00 DEBUG devices::usb::xhci::device_slot] resetting device slot 5!
+[2026-04-24T15:37:17.003987896+00:00 DEBUG devices::usb::xhci::device_slot] resetting device slot 6!
+[2026-04-24T15:37:17.004009640+00:00 DEBUG devices::usb::xhci::device_slot] resetting device slot 7!
+[2026-04-24T15:37:17.004023028+00:00 DEBUG devices::usb::xhci::device_slot] resetting device slot 8!
+[2026-04-24T15:37:17.004041575+00:00 DEBUG devices::usb::xhci::device_slot] resetting device slot 9!
+[2026-04-24T15:37:17.004054513+00:00 DEBUG devices::usb::xhci::device_slot] resetting device slot 10!
+[2026-04-24T15:37:17.004072292+00:00 DEBUG devices::usb::xhci::device_slot] resetting device slot 11!
+[2026-04-24T15:37:17.004086016+00:00 DEBUG devices::usb::xhci::device_slot] resetting device slot 12!
+[2026-04-24T15:37:17.004097054+00:00 DEBUG devices::usb::xhci::device_slot] resetting device slot 13!
+[2026-04-24T15:37:17.004109668+00:00 DEBUG devices::usb::xhci::device_slot] resetting device slot 14!
+[2026-04-24T15:37:17.004122145+00:00 DEBUG devices::usb::xhci::device_slot] resetting device slot 15!
+[2026-04-24T15:37:17.004135468+00:00 DEBUG devices::usb::xhci::device_slot] resetting device slot 16!
+[    4.228940] xhci_hcd 0000:00:05.0: hcc params 0x30003501 hci version 0x110 quirks 0x0000000000000050
+[    4.236554] xhci_hcd 0000:00:05.0: xHCI Host Controller
+[    4.236958] xhci_hcd 0000:00:05.0: new USB bus registered, assigned bus number 2
+[    4.237649] xhci_hcd 0000:00:05.0: Host supports USB 3.0 SuperSpeed
+[2026-04-24T15:37:17.018882216+00:00 DEBUG devices::usb::xhci] xhci_controller: halt device
+[2026-04-24T15:37:17.018963481+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: false
+[2026-04-24T15:37:17.019477268+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.019514814+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: true
+[    4.239584] usb usb1: New USB device found, idVendor=1d6b, idProduct=0002, bcdDevice= 6.12
+[    4.240226] usb usb1: New USB device strings: Mfr=3, Product=2, SerialNumber=1
+[    4.240979] usb usb1: Product: xHCI Host Controller
+[    4.241562] usb usb1: Manufacturer: Linux 6.12.0+ xhci-hcd
+[    4.241966] usb usb1: SerialNumber: 0000:00:05.0
+[    4.243650] hub 1-0:1.0: USB hub found
+[    4.245171] hub 1-0:1.0: 8 ports detected
+[    4.252006] usb usb2: We don't know the algorithms for LPM for this host, disabling LPM.
+[    4.252731] usb usb2: New USB device found, idVendor=1d6b, idProduct=0003, bcdDevice= 6.12
+[    4.253461] usb usb2: New USB device strings: Mfr=3, Product=2, SerialNumber=1
+[    4.254069] usb usb2: Product: xHCI Host Controller
+[    4.254560] usb usb2: Manufacturer: Linux 6.12.0+ xhci-hcd
+[    4.254966] usb usb2: SerialNumber: 0000:00:05.0
+[    4.256532] hub 2-0:1.0: USB hub found
+[    4.257962] hub 2-0:1.0: 8 ports detected
+[    4.264604] i8042: PNP: No PS/2 controller found.
+[    4.266635] mousedev: PS/2 mouse device common for all mice
+[    4.281681] rtc_cmos rtc_cmos: registered as rtc0
+[    4.284528] rtc_cmos rtc_cmos: setting system clock to 2026-0[2026-04-24T15:37:17.065469629+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.065551311+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: false
+4-24T15:37:17 UTC (1777045037)
+[    4.286150] rtc_cmos rtc_cmos: alarms up to one year, y3k, 114 bytes nvram
+[    4.286868] i2c_dev: i2c /dev entries driver
+[    4.287559] device-mapper: core: CONFIG_IMA_DISABLE_HTABLE is[2026-04-24T15:37:17.068455168+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.068497475+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: true
+ disabled. Duplicate IMA measurements will not be recorded in the IMA log.
+[    4.288680] device-mapper: uevent: version 1.0.3
+[    4.289828] device-mapper: ioctl: 4.48.0-ioctl (2023-03-01) initialised: dm-devel@lists.linux.dev
+[    4.290807] intel_pstate: CPU model not supported
+[    4.291473] drop_monitor: Initializing network drop monitor service
+[    4.292761] NET: Registered PF_INET6 protocol family
+[2026-04-24T15:37:17.080371880+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.080448363+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: false
+[2026-04-24T15:37:17.083975439+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.084018389+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: true
+[    4.304023] Segment Routing with IPv6
+[    4.304488] In-situ OAM (IOAM) with IPv6
+[    4.305522] NET: Registered PF_PACKET protocol family
+[    4.306776] Key type dns_resolver registered
+[    4.312116] IPI shorthand broadcast: enabled
+[2026-04-24T15:37:17.097372255+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.097432395+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: false
+[2026-04-24T15:37:17.100136690+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.100178411+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: true
+[    4.329623] registered taskstats version 1
+[    4.331138] Loading compiled-in X.509 certificates
+[    4.332845] Loaded X.509 cert 'Build time autogenerated kernel key: 2e3f11a08f3b09c14f3903d5fa0f8314d65788fe'
+[2026-04-24T15:37:17.114872580+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.114932639+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: false
+[2026-04-24T15:37:17.118187537+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.118238148+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: true
+[2026-04-24T15:37:17.131569661+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.131631540+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: false
+[2026-04-24T15:37:17.135633475+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.135685326+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: true
+[2026-04-24T15:37:17.149778433+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.149853686+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: false
+[2026-04-24T15:37:17.153562558+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.153618568+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: true
+[    4.376791] Demotion targets for Node 0: null
+[    4.377873] Key type .fscrypt registered
+[    4.378489] Key type fscrypt-provisioning registered
+[    4.384937] Key type encrypted registered
+[    4.385475] AppArmor: AppArmor sha256 policy hashing enabled
+[    4.386005] ima: No TPM chip found, activating TPM-bypass!
+[    4.386576] Loading compiled-in module X.509 certificates
+[    4.387739] Loaded X.509 cert 'Build time autogenerated kernel key: 2e3f11a08f3b09c14f3903d5fa0f8314d65788fe'
+[    4.388823] ima: Allocated hash algorithm: sha256
+[    4.389587] ima: No architecture policies found
+[    4.390507] evm: Initialising EVM extended attributes:
+[    4.390942] evm: security.selinux
+[    4.391472] evm: security.SMACK64
+[    4.391803] evm: security.SMACK64EXEC
+[    4.392136] evm: security.SMACK64TRANSMUTE
+[    4.392691] evm: security.SMACK64MMAP
+[    4.393011] evm: security.apparmor
+[    4.393545] evm: security.ima[2026-04-24T15:37:17.174296191+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.174339448+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: false
+
+[    4.393880] evm: security.capability
+[    4.394224] evm: HMAC attrs: 0x1
+[    4.396619] PM:   Magic number: 6:962:639
+[2026-04-24T15:37:17.177517747+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.177561906+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: true
+[2026-04-24T15:37:17.178228314+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.178271407+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: false
+[    4.397689] RAS: Correctable Errors collector initialized.
+[    4.398190] Unstable clock detected, switching default tracing clock to "global"
+[    4.398190] If you want to keep using the local clock, then add:
+[    4.398190]   "trace_clock=local"
+[    4.398190] on the kernel command line
+[2026-04-24T15:37:17.181185602+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.181228469+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: true
+[    4.401115] clk: Disabling unused clocks
+[    4.401575] PM: genpd: Disabling unused power domains
+[    4.402487] md: Waiting for all devices to be available before autodetect
+[    4.403029] md: If you don't use raid, use raid=noautodetect
+[    4.404521] md: Autodetecting RAID arrays.
+[    4.404854] md: autorun ...
+[    4.405078] md: ... autorun DONE.
+[2026-04-24T15:37:17.195553112+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.195624391+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: false
+[2026-04-24T15:37:17.198980336+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.199027464+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: true
+[2026-04-24T15:37:17.211405497+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.211456766+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: false
+[2026-04-24T15:37:17.214979823+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.215032810+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: true
+[2026-04-24T15:37:17.229805561+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.229859070+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: false
+[2026-04-24T15:37:17.233557615+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.233608422+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: true
+[2026-04-24T15:37:17.235423754+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.235476081+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: false
+[2026-04-24T15:37:17.239415571+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.239469493+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: true
+[2026-04-24T15:37:17.252549262+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.252597168+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: false
+[2026-04-24T15:37:17.256104209+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.256147402+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: true
+[2026-04-24T15:37:17.272869683+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.272912798+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: false
+[    4.493527] EXT4-fs (vda1): recovery complete
+[2026-04-24T15:37:17.275971818+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.276008189+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: true
+[    4.495975] EXT4-fs (vda1): mounted filesystem c043fa0e-74fd-4e17-bafc-941991a3c660 r/w with ordered data mode. Quota mode: none.
+[    4.497443] VFS: Mounted root (ext4 filesystem) on device 253:1.
+[2026-04-24T15:37:17.282372384+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.282415696+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: false
+[    4.502499] devtmpfs: mounted
+[2026-04-24T15:37:17.285132398+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.285174118+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: true
+[2026-04-24T15:37:17.288398240+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.288442900+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: false
+[2026-04-24T15:37:17.291274681+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.291316040+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: true
+[    4.517187] Freeing unused decrypted memory: 2028K
+[    4.519211] Freeing unused kernel image (initmem) memory: 5124K
+[    4.519984] Write protecting the kernel read-only data: 32768k
+[2026-04-24T15:37:17.302254454+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.302300027+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: false
+[    4.521823] Freeing unused kernel image (rodata/data gap) memory: 1468K
+[2026-04-24T15:37:17.305003802+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.305047281+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: true
+[    4.533960] x86/mm: Checked W+X mappings: passed, no W+X pages found.
+[    4.534686] Run /sbin/init as init process
+[2026-04-24T15:37:17.317562046+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.317613639+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: false
+[2026-04-24T15:37:17.320738756+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.320803323+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: true
+[2026-04-24T15:37:17.332013326+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.332063380+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: false
+[2026-04-24T15:37:17.336181899+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.336231777+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: true
+[2026-04-24T15:37:17.337438860+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.337488506+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: false
+[2026-04-24T15:37:17.341410326+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.341459181+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: true
+[2026-04-24T15:37:17.353306769+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.353353775+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: false
+[2026-04-24T15:37:17.356908458+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.356953164+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: true
+[2026-04-24T15:37:17.378611403+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.378671623+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: false
+[2026-04-24T15:37:17.382283620+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.382334519+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: true
+[2026-04-24T15:37:17.382989388+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.383031281+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: false
+[2026-04-24T15:37:17.386882691+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.386931356+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: true
+[2026-04-24T15:37:17.400267885+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.400321642+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: false
+[2026-04-24T15:37:17.404388469+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.404431672+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: true
+[2026-04-24T15:37:17.428579959+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.428641524+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: false
+[2026-04-24T15:37:17.431993754+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.432037267+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: true
+[2026-04-24T15:37:17.432810211+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.432862321+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: false
+[2026-04-24T15:37:17.436355649+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.436400140+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: true
+[2026-04-24T15:37:17.449372714+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.449427164+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: false
+[2026-04-24T15:37:17.452897309+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.452940281+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: true
+[    4.689377] workqueue: pm_runtime_work hogged CPU for >10000us 4 times, consider switching to WQ_UNBOUND
+[2026-04-24T15:37:17.479964516+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.480017986+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: false
+[2026-04-24T15:37:17.484383314+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.484427890+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: true
+[2026-04-24T15:37:17.485438183+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.485488206+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: false
+[2026-04-24T15:37:17.489404821+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.489448363+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: true
+[2026-04-24T15:37:17.502636862+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.502696797+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: false
+[2026-04-24T15:37:17.506592079+00:00 DEBUG devices::usb::xhci] xhci_controller: clear halt bits
+[2026-04-24T15:37:17.506650155+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: true
+[    4.743062] workqueue: pm_runtime_work hogged CPU for >10000us 5 times, consider switching to WQ_UNBOUND
+[    4.985714] autofs4: module verification failed: signature and/or required key missing - tainting kernel
+[    4.990999] systemd[1]: Inserted module 'autofs4'
+[    5.097985] systemd[1]: systemd 255.4-1ubuntu8.12 running in system mode (+PAM +AUDIT +SELINUX +APPARMOR +IMA +SMACK +SECCOMP +GCRYPT -GNUTLS +OPENSSL +ACL +BLKID +CURL +ELFUTILS +FIDO2 +IDN2 -IDN +IPTC +KMOD +LIBCRYPTSETUP +LIBFDISK +PCRE2 -PWQUALITY +P11KIT +QRENCODE +TPM2 +BZIP2 +LZ4 +XZ +ZLIB +ZSTD -BPF_FRAMEWORK -XKBCOMMON +UTMP +SYSVINIT default-hierarchy=unified)
+[    5.101889] systemd[1]: Detected virtualization kvm.
+[    5.102639] systemd[1]: Detected architecture x86-64.
+
+Welcome to [1mUbuntu 24.04.3 LTS[0m!
+
+[    5.109759] systemd[1]: Hostname set to <localhost.localdomain>.
+[    5.482067] systemd[1]: Queued start job for default target graphical.target.
+[    5.500146] systemd[1]: Created slice system-getty.slice - Slice /system/getty.
+[[0;32m  OK  [0m] Created slice [0;1;39msystem-getty.slice[0m - Slice /system/getty.
+[    5.503079] systemd[1]: Created slice system-modprobe.slice - Slice /system/modprobe.
+[[0;32m  OK  [0m] Created slice [0;1;39msystem-modprobe.slice[0m - Slice /system/modprobe.
+[    5.504769] systemd[1]: Created slice system-serial\x2dgetty.slice - Slice /system/serial-getty.
+[[0;32m  OK  [0m] Created slice [0;1;39msystem-serial\x2dget…slice[0m - Slice /system/serial-getty.
+[    5.506999] systemd[1]: Created slice user.slice - User and Session Slice.
+[[0;32m  OK  [0m] Created slice [0;1;39muser.slice[0m - User and Session Slice.
+[    5.508150] systemd[1]: Started systemd-ask-password-console.path - Dispatch Password Requests to Console Directory Watch.
+[[0;32m  OK  [0m] Started [0;1;39msystemd-ask-password-conso…[0mequests to Console Directory Watch.
+[    5.509691] systemd[1]: Started systemd-ask-password-wall.path - Forward Password Requests to Wall Directory Watch.
+[[0;32m  OK  [0m] Started [0;1;39msystemd-ask-password-wall.…[0md Requests to Wall Directory Watch.
+[    5.511316] systemd[1]: Set up automount proc-sys-fs-binfmt_misc.automount - Arbitrary Executable File Formats File System Automount Point.
+[[0;32m  OK  [0m] Set up automount [0;1;39mproc-sys-fs-binfm…[0mormats File System Automount Point.
+[    5.512898] systemd[1]: Expecting device dev-hvc0.device - /dev/hvc0...
+         Expecting device [0;1;39mdev-hvc0.device[0m - /dev/hvc0...
+[    5.513938] systemd[1]: Reached target cryptsetup.target - Local Encrypted Volumes.
+[[0;32m  OK  [0m] Reached target [0;1;39mcryptsetup.target[0m - Local Encrypted Volumes.
+[    5.515133] systemd[1]: Reached target integritysetup.target - Local Integrity Protected Volumes.
+[[0;32m  OK  [0m] Reached target [0;1;39mintegritysetup.targ…[0m Local Integrity Protected Volumes.
+[    5.516574] systemd[1]: Reached target paths.target - Path Units.
+[[0;32m  OK  [0m] Reached target [0;1;39mpaths.target[0m - Path Units.
+[    5.517612] systemd[1]: Reached target remote-fs.target - Remote File Systems.
+[[0;32m  OK  [0m] Reached target [0;1;39mremote-fs.target[0m - Remote File Systems.
+[    5.518858] systemd[1]: Reached target slices.target - Slice Units.
+[[0;32m  OK  [0m] Reached target [0;1;39mslices.target[0m - Slice Units.
+[    5.519946] systemd[1]: Reached target swap.target - Swaps.
+[[0;32m  OK  [0m] Reached target [0;1;39mswap.target[0m - Swaps.
+[    5.520860] systemd[1]: Reached target veritysetup.target - Local Verity Protected Volumes.
+[[0;32m  OK  [0m] Reached target [0;1;39mveritysetup.target[0m - Local Verity Protected Volumes.
+[    5.522132] systemd[1]: Listening on systemd-initctl.socket - initctl Compatibility Named Pipe.
+[[0;32m  OK  [0m] Listening on [0;1;39msystemd-initctl.socke…[0m- initctl Compatibility Named Pipe.
+[    5.524155] systemd[1]: Listening on systemd-journald-dev-log.socket - Journal Socket (/dev/log).
+[[0;32m  OK  [0m] Listening on [0;1;39msystemd-journald-dev-…socket[0m - Journal Socket (/dev/log).
+[    5.525630] systemd[1]: Listening on systemd-journald.socket - Journal Socket.
+[[0;32m  OK  [0m] Listening on [0;1;39msystemd-journald.socket[0m - Journal Socket.
+[    5.526948] systemd[1]: Listening on systemd-networkd.socket - Network Service Netlink Socket.
+[[0;32m  OK  [0m] Listening on [0;1;39msystemd-networkd.socket[0m - Network Service Netlink Socket.
+[    5.528246] systemd[1]: systemd-pcrextend.socket - TPM2 PCR Extension (Varlink) was skipped because of an unmet condition check (ConditionSecurity=measured-uki).
+[    5.531648] systemd[1]: Listening on systemd-udevd-control.socket - udev Control Socket.
+[[0;32m  OK  [0m] Listening on [0;1;39msystemd-udevd-control.socket[0m - udev Control Socket.
+[    5.532911] systemd[1]: Listening on systemd-udevd-kernel.socket - udev Kernel Socket.
+[[0;32m  OK  [0m] Listening on [0;1;39msystemd-udevd-kernel.socket[0m - udev Kernel Socket.
+[    5.541651] systemd[1]: Mounting dev-hugepages.mount - Huge Pages File System...
+         Mounting [0;1;39mdev-hugepages.mount[0m - Huge Pages File System...
+[    5.544214] systemd[1]: Mounting dev-mqueue.mount - POSIX Message Queue File System...
+         Mounting [0;1;39mdev-mqueue.mount[0m - POSIX Message Queue File System...
+[    5.549013] systemd[1]: Mounting sys-kernel-debug.mount - Kernel Debug File System...
+         Mounting [0;1;39msys-kernel-debug.mount[0m - Kernel Debug File System...
+[    5.560713] systemd[1]: Mounting sys-kernel-tracing.mount - Kernel Trace File System...
+         Mounting [0;1;39msys-kernel-tracing.mount[0m - Kernel Trace File System...
+[    5.570510] systemd[1]: Starting systemd-journald.service - Journal Service...
+         Starting [0;1;39msystemd-journald.service[0m - Journal Service...
+[    5.573637] systemd[1]: Starting kmod-static-nodes.service - Create List of Static Device Nodes...
+         Starting [0;1;39mkmod-static-nodes.service[0m…eate List of Static Device Nodes...
+[    5.581940] systemd[1]: Starting modprobe@configfs.service - Load Kernel Module configfs...
+         Starting [0;1;39mmodprobe@configfs.service[0m - Load Kernel Module configfs...
+[    5.593706] systemd[1]: Starting modprobe@dm_mod.service - Load Kernel Module dm_mod...
+         Starting [0;1;39mmodprobe@dm_mod.service[0m - Load Kernel Module dm_mod...
+[    5.602664] systemd[1]: Starting modprobe@drm.service - Load Kernel Module drm...
+         Starting [0;1;39mmodprobe@drm.service[0m - Load Kernel Module drm...
+[    5.604804] systemd-journald[110]: Collecting audit messages is disabled.
+[    5.614649] systemd[1]: Starting modprobe@efi_pstore.service - Load Kernel Module efi_pstore...
+         Starting [0;1;39mmodprobe@efi_pstore.servi…[0m - Load Kernel Module efi_pstore...
+[    5.628642] systemd[1]: Starting modprobe@fuse.service - Load Kernel Module fuse...
+         Starting [0;1;39mmodprobe@fuse.service[0m - Load Kernel Module fuse...
+[    5.643641] systemd[1]: Starting modprobe@loop.service - Load Kernel Module loop...
+         Starting [0;1;39mmodprobe@loop.service[0m - Load Kernel Module loop...
+[    5.664175] systemd[1]: Starting systemd-modules-load.service - Load Kernel Modules...
+         Starting [0;1;39msystemd-modules-load.service[0m - Load Kernel Modules...
+[    5.672593] systemd[1]: Starting systemd-network-generator.service - Generate network units from Kernel command line...
+         Starting [0;1;39msystemd-network-generator…[0mk units from Kernel command line...
+[    5.677882] systemd[1]: systemd-pcrmachine.service - TPM2 PCR Machine ID Measurement was skipped because of an unmet condition check (ConditionSecurity=measured-uki).
+[    5.691784] systemd[1]: Starting systemd-remount-fs.service - Remount Root and Kernel File Systems...
+         Starting [0;1;39msystemd-remount-fs.servic…[0munt Root and Kernel File Systems...
+[    5.693213] systemd[1]: systemd-tpm2-setup-early.service - TPM2 SRK Setup (Early) was skipped because of an unmet condition check (ConditionSecurity=measured-uki).
+[    5.721096] systemd[1]: Starting systemd-udev-trigger.service - Coldplug All udev Devices...
+         Starting [0;1;39msystemd-udev-trigger.service[0m - Coldplug All udev Devices...
+[    5.726063] systemd[1]: Mounted dev-hugepages.mount - Huge Pages File System.
+[[0;32m  OK  [0m] Mounted [0;1;39mdev-hugepages.mount[0m - Huge Pages File System.
+[    5.730497] systemd[1]: Mounted dev-mqueue.mount - POSIX Message Queue File System.
+[[0;32m  OK  [0m] Mounted [0;1;39mdev-mqueue.mount[0m - POSIX Message Queue File System.
+[    5.733845] systemd[1]: Mounted sys-kernel-debug.mount - Kernel Debug File System.
+[[0;32m  OK  [0m] Mounted [0;1;39msys-kernel-debug.mount[0m - Kernel Debug File System.
+[    5.736891] systemd[1]: Mounted sys-kernel-tracing.mount - Kernel Trace File System.
+[[0;32m  OK  [0m] Mounted [0;1;39msys-kernel-tracing.mount[0m - Kernel Trace File System.
+[    5.740529] systemd[1]: kmod-static-nodes.service: Main process exited, code=exited, status=203/EXEC
+[    5.743010] systemd[1]: kmod-static-nodes.service: Failed with result 'exit-code'.
+[    5.744077] systemd[1]: Failed to start kmod-static-nodes.service - Create List of Static Device Nodes.
+[[0;1;31mFAILED[0m] Failed to start [0;1;39mkmod-static-nodes.…[0mCreate List of Static Device Nodes.
+See 'systemctl status kmod-static-nodes.service' for details.
+[    5.750307] systemd[1]: Started systemd-journald.service - Journal Service.
+[[0;32m  OK  [0m] Started [0;1;39msystemd-journald.service[0m - Journal Service.
+[[0;32m  OK  [0m] Finished [0;1;39mmodprobe@configfs.service[0m - Load Kernel Module configfs.
+[[0;32m  OK  [0m] Finished [0;1;39mmodprobe@dm_mod.service[0m - Load Kernel Module dm_mod.
+[[0;32m  OK  [0m] Finished [0;1;39mmodprobe@drm.service[0m - Load Kernel Module drm.
+[[0;32m  OK  [0m] Finished [0;1;39mmodprobe@efi_pstore.service[0m - Load Kernel Module efi_pstore.
+[[0;32m  OK  [0m] Finished [0;1;39mmodprobe@fuse.service[0m - Load Kernel Module fuse.
+[[0;32m  OK  [0m] Finished [0;1;39mmodprobe@loop.service[0m - Load Kernel Module loop.
+[[0;32m  OK  [0m] Finished [0;1;39msystemd-modules-load.service[0m - Load Kernel Modules.
+[[0;32m  OK  [0m] Finished [0;1;39msystemd-network-generator…[0mork units from Kernel command line.
+[[0;32m  OK  [0m] Finished [0;1;39msystemd-remount-fs.servic…[0mmount Root and Kernel File Systems.
+[[0;32m  OK  [0m] Reached target [0;1;39mnetwork-pre.target[0m - Preparation for Network.
+         Mounting [0;1;39msys-fs-fuse-connections.mount[0m - FUSE Control File System...
+         Mounting [0;1;39msys-kernel-config.mount[0m - Kernel Configuration File System...
+         Starting [0;1;39msystemd-journal-flush.ser…[0msh Journal to Persistent Storage...
+         Starting [0;1;39msystemd-random-seed.service[0m - Load/Save OS Random Seed...
+         Starting [0;1;39msystemd-sysctl.service[0m - Apply Kernel Variables...
+         Starting [0;1;39msystemd-tmpfiles-setup-de…[0m Device Nodes in /dev gracefully...
+[[0;32m  OK  [0m] Finished [0;1;39msystemd-udev-trigger.service[0m - Coldplug All udev Devices.
+[[0;32m  OK  [0m] Mounted [0;1;39msys-fs-fuse-connections.mount[0m - FUSE Control File System.
+[[0;32m  OK  [0m] Mounted [0;1;39msys-kernel-config.mount[0m - Kernel Configuration File System.
+[    5.958968] systemd-journald[110]: Received client request to flush runtime journal.
+[[0;32m  OK  [0m] Finished [0;1;39msystemd-random-seed.service[0m - Load/Save OS Random Seed.
+[[0;32m  OK  [0m] Finished [0;1;39msystemd-sysctl.service[0m - Apply Kernel Variables.
+[[0;32m  OK  [0m] Finished [0;1;39msystemd-tmpfiles-setup-de…[0mic Device Nodes in /dev gracefully.
+         Starting [0;1;39msystemd-tmpfiles-setup-de…[0meate Static Device Nodes in /dev...
+[[0;32m  OK  [0m] Finished [0;1;39msystemd-tmpfiles-setup-de…[0mCreate Static Device Nodes in /dev.
+[[0;32m  OK  [0m] Reached target [0;1;39mlocal-fs-pre.target[0m…Preparation for Local File Systems.
+[[0;32m  OK  [0m] Reached target [0;1;39mlocal-fs.target[0m - Local File Systems.
+[[0;32m  OK  [0m] Listening on [0;1;39msystemd-sysext.socket[0m…tension Image Management (Varlink).
+         Starting [0;1;39msystemd-binfmt.service[0m - Set Up Additional Binary Formats...
+         Starting [0;1;39msystemd-udevd.service[0m - R…ager for Device Events and Files...
+         Mounting [0;1;39mproc-sys-fs-binfmt_misc.m…[0mcutable File Formats File System...
+[[0;1;31mFAILED[0m] Failed to mount [0;1;39mproc-sys-fs-binfmt…[0mxecutable File Formats File System.
+See 'systemctl status proc-sys-fs-binfmt_misc.mount' for details.
+[[0;1;31mFAILED[0m] Failed to start [0;1;39msystemd-binfmt.ser…[0m- Set Up Additional Binary Formats.
+See 'systemctl status systemd-binfmt.service' for details.
+[[0;32m  OK  [0m] Started [0;1;39msystemd-udevd.service[0m - Ru…anager for Device Events and Files.
+         Starting [0;1;39msystemd-networkd.service[0m - Network Configuration...
+[[0;32m  OK  [0m] Finished [0;1;39msystemd-journal-flush.ser…[0mlush Journal to Persistent Storage.
+[[0;32m  OK  [0m] Started [0;1;39msystemd-networkd.service[0m - Network Configuration.
+         Starting [0;1;39msystemd-tmpfiles-setup.se…[0me Volatile Files and Directories...
+[[0;32m  OK  [0m] Found device [0;1;39mdev-hvc0.device[0m - /dev/hvc0.
+[[0;32m  OK  [0m] Finished [0;1;39msystemd-tmpfiles-setup.se…[0mate Volatile Files and Directories.
+[2026-04-24T15:37:19.134741103+00:00 DEBUG devices::virtio::block::asynchronous] failed executing disk request: unsupported (8)
+         Starting [0;1;39msystemd-resolved.service[0m - Network Name Resolution...
+         Starting [0;1;39msystemd-timesyncd.service[0m - Network Time Synchronization...
+         Starting [0;1;39msystemd-update-utmp.servi…[0mord System Boot/Shutdown in UTMP...
+[[0;32m  OK  [0m] Finished [0;1;39msystemd-update-utmp.servi…[0mecord System Boot/Shutdown in UTMP.
+[[0;32m  OK  [0m] Started [0;1;39msystemd-timesyncd.service[0m - Network Time Synchronization.
+[[0;32m  OK  [0m] Reached target [0;1;39mtime-set.target[0m - System Time Set.
+[[0;32m  OK  [0m] Listening on [0;1;39msystemd-rfkill.socket[0m…ll Switch Status /dev/rfkill Watch.
+[[0;32m  OK  [0m] Started [0;1;39msystemd-resolved.service[0m - Network Name Resolution.
+[[0;32m  OK  [0m] Reached target [0;1;39mnetwork.target[0m - Network.
+[[0;32m  OK  [0m] Reached target [0;1;39mnss-lookup.target[0m - Host and Network Name Lookups.
+[[0;32m  OK  [0m] Reached target [0;1;39msysinit.target[0m - System Initialization.
+[[0;32m  OK  [0m] Started [0;1;39mapt-daily.timer[0m - Daily apt download activities.
+[[0;32m  OK  [0m] Started [0;1;39mapt-daily-upgrade.timer[0m - …y apt upgrade and clean activities.
+[[0;32m  OK  [0m] Started [0;1;39mdpkg-db-backup.timer[0m - Daily dpkg database backup timer.
+[[0;32m  OK  [0m] Started [0;1;39me2scrub_all.timer[0m - Period…Metadata Check for All Filesystems.
+[[0;32m  OK  [0m] Started [0;1;39mfstrim.timer[0m - Discard unused filesystem blocks once a week.
+[[0;32m  OK  [0m] Started [0;1;39mman-db.timer[0m - Daily man-db regeneration.
+[[0;32m  OK  [0m] Started [0;1;39mmotd-news.timer[0m - Message of the Day.
+[[0;32m  OK  [0m] Started [0;1;39msystemd-tmpfiles-clean.tim…[0my Cleanup of Temporary Directories.
+[[0;32m  OK  [0m] Reached target [0;1;39mtimers.target[0m - Timer Units.
+[[0;32m  OK  [0m] Listening on [0;1;39mdbus.socket[0m - D-Bus System Message Bus Socket.
+[[0;32m  OK  [0m] Listening on [0;1;39mssh.socket[0m - OpenBSD Secure Shell server socket.
+[2026-04-24T15:37:19.520825311+00:00 DEBUG devices::virtio::block::asynchronous] failed executing disk request: unsupported (8)
+[[0;32m  OK  [0m] Reached target [0;1;39msockets.target[0m - Socket Units.
+[[0;32m  OK  [0m] Reached target [0;1;39mbasic.target[0m - Basic System.
+         Starting [0;1;39mdbus.service[0m - D-Bus System Message Bus...
+         Starting [0;1;39me2scrub_reap.service[0m - Re…ne ext4 Metadata Check Snapshots...
+         Starting [0;1;39msystemd-logind.service[0m - User Login Management...
+         Starting [0;1;39msystemd-user-sessions.service[0m - Permit User Sessions...
+         Starting [0;1;39mudisks2.service[0m - Disk Manager...
+[[0;32m  OK  [0m] Started [0;1;39mdbus.service[0m - D-Bus System Message Bus.
+[[0;32m  OK  [0m] Finished [0;1;39me2scrub_reap.service[0m - Re…line ext4 Metadata Check Snapshots.
+[[0;32m  OK  [0m] Finished [0;1;39msystemd-user-sessions.service[0m - Permit User Sessions.
+[[0;32m  OK  [0m] Started [0;1;39mgetty@tty1.service[0m - Getty on tty1.
+[[0;32m  OK  [0m] Started [0;1;39mserial-getty@hvc0.service[0m - Serial Getty on hvc0.
+[[0;32m  OK  [0m] Reached target [0;1;39mgetty.target[0m - Login Prompts.
+[[0;32m  OK  [0m] Started [0;1;39msystemd-logind.service[0m - User Login Management.
+[[0;32m  OK  [0m] Reached target [0;1;39mmulti-user.target[0m - Multi-User System.
+[    7.167500] Error: Driver 'pcspkr' is already registered, aborting...
+         Starting [0;1;39mpolkit.service[0m - Authorization Manager...
+[[0;32m  OK  [0m] Started [0;1;39mpolkit.service[0m - Authorization Manager.
+[[0;32m  OK  [0m] Started [0;1;39mudisks2.service[0m - Disk Manager.
+[[0;32m  OK  [0m] Reached target [0;1;39mgraphical.target[0m - Graphical Interface.
+         Starting [0;1;39msystemd-update-utmp-runle…[0m- Record Runlevel Change in UTMP...
+[[0;32m  OK  [0m] Finished [0;1;39msystemd-update-utmp-runle…e[0m - Record Runlevel Change in UTMP.
+
+Ubuntu 24.04.3 LTS localhost.localdomain hvc0
+
+localhost login: 
+=== LOGIN_REACHED ===
+ubuntu
+Welcome to Ubuntu 24.04.3 LTS (GNU/Linux 6.12.0+ x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+This system has been minimized by removing packages and content that are
+not required on a system that users do not log into.
+
+To restore this content, you can run the 'unminimize' command.
+[?2004hubuntu@localhost:~$ stty -echo
+[?2004l[?2004hubuntu@localhost:~$ [?2004l
+[?2004hPROMPT# [?2004l
+Linux localhost.localdomain 6.12.0+ #1 SMP PREEMPT_DYNAMIC Tue Mar 24 16:33:09 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux
+GUEST_UNAME_DONE
+[?2004hPROMPT# [?2004l
+brw-rw---- 1 root disk 259, 0 Apr 24 15:37 /dev/nvme0n1
+/sys/devices/pci0000:00/0000:00:07.0/0000:01:00.0/nvme/nvme0
+GUEST_NVME_DONE
+[?2004hPROMPT# [?2004l
+Powering off.
+[2026-04-24T15:37:22.428280976+00:00 DEBUG devices::usb::xhci] xhci_controller: halt device
+[2026-04-24T15:37:22.428381668+00:00 DEBUG devices::usb::xhci] xhci_controller: interrupter enable?: false
+[    9.653182] reboot: Power down
+[2026-04-24T15:37:22.476548728+00:00 INFO  crosvm::crosvm::sys::linux] vcpu requested shutdown
+[2026-04-24T15:37:22.966325588+00:00 INFO  crosvm] exiting with success
+
+=== GUEST_POWEROFF_DONE ===
+=== HOST_DMESG_MATCHES ===
+[Fri Apr 24 15:36:59 2026] pkvm-debug: first-owner table full; suppressing further overflow logs
+=== HOST_DMESG_END ===
+HOST_DRIVER_BEFORE_RESTORE=vfio-pci
+HOST_DRIVER_AFTER_RESTORE=nvme

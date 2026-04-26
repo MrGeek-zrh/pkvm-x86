@@ -1,0 +1,15 @@
+{
+  "command": [
+    "/tmp/pkvm_guest_run.py",
+    "--protected",
+    "1",
+    "--vfio-dev",
+    "0000:01:00.0",
+    "--io",
+    "--timeout",
+    "360"
+  ],
+  "finished_at_utc": "2026-04-24T16:03:42Z",
+  "returncode": 1,
+  "status": "FAILED"
+}

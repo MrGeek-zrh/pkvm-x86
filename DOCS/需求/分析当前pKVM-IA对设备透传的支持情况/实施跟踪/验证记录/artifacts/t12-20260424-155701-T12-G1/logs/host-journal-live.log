@@ -1,0 +1,22 @@
+Apr 24 15:55:28 ubuntu-vm kernel: cfg80211: failed to load regulatory.db
+Apr 24 15:55:28 ubuntu-vm kernel: e1000: enp0s2 NIC Link is Up 1000 Mbps Full Duplex, Flow Control: RX
+Apr 24 15:55:28 ubuntu-vm kernel: loop0: detected capacity change from 0 to 8
+Apr 24 15:55:28 ubuntu-vm kernel: NET: Registered PF_QIPCRTR protocol family
+Apr 24 15:55:29 ubuntu-vm systemd-journald[613]: /var/log/journal/9dce3dfe526f4a8cb553b21502da7d2a/user-1000.journal: Journal file uses a different sequence number ID, rotating.
+Apr 24 15:55:29 ubuntu-vm kernel: kauditd_printk_skb: 114 callbacks suppressed
+Apr 24 15:55:29 ubuntu-vm kernel: audit: type=1400 audit(1777046129.728:125): apparmor="STATUS" operation="profile_load" profile="unconfined" name="docker-default" pid=1256 comm="apparmor_parser"
+Apr 24 15:55:30 ubuntu-vm kernel: Initializing XFRM netlink socket
+Apr 24 15:55:30 ubuntu-vm kernel: bridge: filtering via arp/ip/ip6tables is no longer available by default. Update your scripts to load br_netfilter if you need this.
+Apr 24 15:56:08 ubuntu-vm kernel: VFIO - User Level meta-driver version: 0.3
+Apr 24 15:57:02 ubuntu-vm kernel: pkvm-debug: first-owner table full; suppressing further overflow logs
+Apr 24 15:57:29 ubuntu-vm kernel: e1000 0000:00:03.0 enp0s2: Detected Tx Unit Hang
+                                    Tx Queue             <0>
+                                    TDH                  <1d>
+                                    TDT                  <1d>
+                                    next_to_use          <1e>
+                                    next_to_clean        <1d>
+                                  buffer_info[next_to_clean]
+                                    time_stamp           <fffd49a3>
+                                    next_to_watch        <1d>
+                                    jiffies              <fffd5442>
+                                    next_to_watch.status <0>
