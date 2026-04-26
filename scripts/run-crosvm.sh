@@ -2,6 +2,8 @@
 
 # 可直接执行: ./scripts/run-crosvm.sh
 # 如需覆盖默认路径，可设置环境变量: CROSVM=... IMAGE=... KERNEL=... SETUP_NET=1 ...
+# 临时追加 guest kernel cmdline 参数: GUEST_KERNEL_EXTRA='pci=nomsi' ./scripts/run-crosvm.sh
+# 默认不设置 GUEST_KERNEL_EXTRA 时，guest cmdline 保持为: root=/dev/vda1 rw
 #
 # VFIO 设备透传:
 #   VFIO_DEV=0000:01:00.0 ./scripts/run-crosvm.sh
@@ -48,6 +50,7 @@ export HOST_DEV="${HOST_DEV:-}"
 export IPTABLES_BIN="${IPTABLES_BIN:-iptables}"
 export VFIO_DEV="${VFIO_DEV:-}"              # e.g. 0000:01:00.0 ; empty means no vfio passthrough
 export VFIO_IOMMU="${VFIO_IOMMU:-}"          # iommu type for vfio device: viommu, coiommu, or empty (no virtual iommu, maps all guest ram)
+export GUEST_KERNEL_EXTRA="${GUEST_KERNEL_EXTRA:-}"  # optional extra guest kernel cmdline; empty keeps default behavior
 
 [ ! -d /var/empty ] && mkdir /var/empty
 [ "x$DEBUG" = "x" ] || {
@@ -195,7 +198,9 @@ set -- "$@" "$KERNEL" --cpus "num-cores=$CORECOUNT" --mem "size=$RAM" --block "p
 set -- "$@" --disable-sandbox
 [ -z "$VFIO_PATH" ] || set -- "$@" --vfio "$VFIO_PATH"
 set -- "$@" --serial "type=stdout,hardware=virtio-console,console,stdin"
-set -- "$@" --core-scheduling false -p "root=/dev/vda1 rw"
+GUEST_CMDLINE="root=/dev/vda1 rw"
+[ -z "$GUEST_KERNEL_EXTRA" ] || GUEST_CMDLINE="$GUEST_CMDLINE $GUEST_KERNEL_EXTRA"
+set -- "$@" --core-scheduling false -p "$GUEST_CMDLINE"
 [ "x$PROTECTED" = "x0" ] || set -- "$@" --protected-vm-without-firmware
 
 "$@"
