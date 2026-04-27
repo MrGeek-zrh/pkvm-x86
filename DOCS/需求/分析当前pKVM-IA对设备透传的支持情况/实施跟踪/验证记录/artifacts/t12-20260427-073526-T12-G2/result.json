@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/tmp/pkvm_guest_run.py",
+    "--protected",
+    "1",
+    "--timeout",
+    "360"
+  ],
+  "finished_at_utc": "2026-04-27T07:35:56Z",
+  "returncode": 0,
+  "status": "COMPLETE"
+}

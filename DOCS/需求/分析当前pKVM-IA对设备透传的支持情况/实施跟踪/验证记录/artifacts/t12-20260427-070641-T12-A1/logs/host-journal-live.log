@@ -1,0 +1,92 @@
+Apr 26 07:58:18 ubuntu-vm kernel: cfg80211: failed to load regulatory.db
+Apr 26 07:58:18 ubuntu-vm kernel: e1000: enp0s2 NIC Link is Up 1000 Mbps Full Duplex, Flow Control: RX
+Apr 26 07:58:18 ubuntu-vm kernel: loop0: detected capacity change from 0 to 8
+Apr 26 07:58:18 ubuntu-vm kernel: NET: Registered PF_QIPCRTR protocol family
+Apr 26 07:58:19 ubuntu-vm systemd-journald[613]: /var/log/journal/9dce3dfe526f4a8cb553b21502da7d2a/user-1000.journal: Journal file uses a different sequence number ID, rotating.
+Apr 26 07:58:19 ubuntu-vm kernel: kauditd_printk_skb: 114 callbacks suppressed
+Apr 26 07:58:19 ubuntu-vm kernel: audit: type=1400 audit(1777190299.647:125): apparmor="STATUS" operation="profile_load" profile="unconfined" name="docker-default" pid=1248 comm="apparmor_parser"
+Apr 26 07:58:20 ubuntu-vm kernel: Initializing XFRM netlink socket
+Apr 26 07:58:20 ubuntu-vm kernel: bridge: filtering via arp/ip/ip6tables is no longer available by default. Update your scripts to load br_netfilter if you need this.
+Apr 27 07:06:19 ubuntu-vm kernel: VFIO - User Level meta-driver version: 0.3
+Apr 27 07:06:41 ubuntu-vm kernel: pkvm-debug: first-owner table full; suppressing further overflow logs
+Apr 27 07:07:07 ubuntu-vm kernel: clocksource: Long readout interval, skipping watchdog check: cs_nsec: 2101367100 wd_nsec: 2101367170
+Apr 27 07:08:37 ubuntu-vm kernel: pkvm: deny host BAR remap gpa=0xfe80200c owner_id=1048575 raw_pte=0xfffff000
+Apr 27 07:08:37 ubuntu-vm kernel: pkvm: handle host ept violation failed
+Apr 27 07:08:37 ubuntu-vm kernel: Oops: general protection fault, maybe for address 0xff5d6ffd4031b00c: 0000 [#1] PREEMPT SMP NOPTI
+Apr 27 07:08:37 ubuntu-vm kernel: CPU: 11 UID: 0 PID: 420075 Comm: crosvm_vcpu0 Tainted: G S                 6.12.0-pkvm-ia #12
+Apr 27 07:08:37 ubuntu-vm kernel: Tainted: [S]=CPU_OUT_OF_SPEC
+Apr 27 07:08:37 ubuntu-vm kernel: Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2 04/01/2014
+Apr 27 07:08:37 ubuntu-vm kernel: RIP: 0010:raw_readl+0x0/0x10
+Apr 27 07:08:37 ubuntu-vm kernel: Code: 90 90 90 90 90 90 90 90 90 90 66 8b 07 31 ff e9 c6 95 1b 01 66 0f 1f 44 00 00 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 <8b> 07 31 ff c3 cc cc cc cc 0f 1f 80 00 00 00 00 90 90 90 90 90 90
+Apr 27 07:08:37 ubuntu-vm kernel: RSP: 0018:ff5d6ffd43593868 EFLAGS: 00010286
+Apr 27 07:08:37 ubuntu-vm kernel: RAX: 000000000000000c RBX: ff5d6ffd435938a8 RCX: 0000000000000041
+Apr 27 07:08:37 ubuntu-vm kernel: RDX: 0000000000000001 RSI: ff5d6ffd435938a8 RDI: ff5d6ffd4031b00c
+Apr 27 07:08:37 ubuntu-vm kernel: RBP: ff5d6ffd43593878 R08: 0000000000000000 R09: 0000000000000000
+Apr 27 07:08:37 ubuntu-vm kernel: R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000000
+Apr 27 07:08:37 ubuntu-vm kernel: R13: 0000000000000000 R14: 0000000000000000 R15: 0000000000000000
+Apr 27 07:08:37 ubuntu-vm kernel: FS:  00007b13c3dfe6c0(0000) GS:ff4092915a780000(0000) knlGS:0000000000000000
+Apr 27 07:08:37 ubuntu-vm kernel: CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+Apr 27 07:08:37 ubuntu-vm kernel: CR2: 000057bbca5eb550 CR3: 0000000103bd0006 CR4: 0000000000771ef0
+Apr 27 07:08:37 ubuntu-vm kernel: PKRU: 55555554
+Apr 27 07:08:37 ubuntu-vm kernel: Call Trace:
+Apr 27 07:08:37 ubuntu-vm kernel:  <TASK>
+Apr 27 07:08:37 ubuntu-vm kernel:  ? show_regs+0x6c/0x80
+Apr 27 07:08:37 ubuntu-vm kernel:  ? die_addr+0x37/0xa0
+Apr 27 07:08:37 ubuntu-vm kernel:  ? exc_general_protection+0x1d2/0x400
+Apr 27 07:08:37 ubuntu-vm kernel:  ? asm_exc_general_protection+0x27/0x30
+Apr 27 07:08:37 ubuntu-vm kernel:  ? __pfx_raw_readl+0x10/0x10
+Apr 27 07:08:37 ubuntu-vm kernel:  ? pci_msix_vec_count+0x37/0x70
+Apr 27 07:08:37 ubuntu-vm kernel:  ? msix_prepare_msi_desc+0x6b/0xa0
+Apr 27 07:08:37 ubuntu-vm kernel:  msix_setup_msi_descs+0xea/0x140
+Apr 27 07:08:37 ubuntu-vm kernel:  __pci_enable_msix_range+0x37c/0x580
+Apr 27 07:08:37 ubuntu-vm kernel:  pci_alloc_irq_vectors_affinity+0xbe/0x120
+Apr 27 07:08:37 ubuntu-vm kernel:  pci_alloc_irq_vectors+0x11/0x30
+Apr 27 07:08:37 ubuntu-vm kernel:  vfio_pci_set_msi_trigger+0x84/0x260 [vfio_pci_core]
+Apr 27 07:08:37 ubuntu-vm kernel:  vfio_pci_set_irqs_ioctl+0x46/0x140 [vfio_pci_core]
+Apr 27 07:08:37 ubuntu-vm kernel:  vfio_pci_core_ioctl+0x68b/0xfd0 [vfio_pci_core]
+Apr 27 07:08:37 ubuntu-vm kernel:  ? xas_load+0x17/0x100
+Apr 27 07:08:37 ubuntu-vm kernel:  ? blk_finish_plug+0x30/0x50
+Apr 27 07:08:37 ubuntu-vm kernel:  vfio_device_fops_unl_ioctl+0xa5/0x840 [vfio]
+Apr 27 07:08:37 ubuntu-vm kernel:  ? __mod_memcg_lruvec_state+0xec/0x210
+Apr 27 07:08:37 ubuntu-vm kernel:  __x64_sys_ioctl+0x9d/0xe0
+Apr 27 07:08:37 ubuntu-vm kernel:  x64_sys_call+0x11ad/0x25f0
+Apr 27 07:08:37 ubuntu-vm kernel:  do_syscall_64+0x7e/0x170
+Apr 27 07:08:37 ubuntu-vm kernel:  ? bio_free+0x4a/0x60
+Apr 27 07:08:37 ubuntu-vm kernel:  ? bio_put+0x87/0x120
+Apr 27 07:08:37 ubuntu-vm kernel:  ? __read_end_io+0xfd/0x150
+Apr 27 07:08:37 ubuntu-vm kernel:  ? xas_load+0x17/0x100
+Apr 27 07:08:37 ubuntu-vm kernel:  ? xas_find+0x74/0x1e0
+Apr 27 07:08:37 ubuntu-vm kernel:  ? xa_find_after+0xe7/0x150
+Apr 27 07:08:37 ubuntu-vm kernel:  ? blk_mq_start_stopped_hw_queues+0x83/0xc0
+Apr 27 07:08:37 ubuntu-vm kernel:  ? virtblk_done+0xb5/0x100
+Apr 27 07:08:37 ubuntu-vm kernel:  ? vring_interrupt+0x94/0x110
+Apr 27 07:08:37 ubuntu-vm kernel:  ? handle_irq_event+0x52/0x80
+Apr 27 07:08:37 ubuntu-vm kernel:  ? irqentry_exit_to_user_mode+0x43/0x250
+Apr 27 07:08:37 ubuntu-vm kernel:  ? irqentry_exit+0x43/0x50
+Apr 27 07:08:37 ubuntu-vm kernel:  ? clear_bhb_loop+0x30/0x80
+Apr 27 07:08:37 ubuntu-vm kernel:  ? clear_bhb_loop+0x30/0x80
+Apr 27 07:08:37 ubuntu-vm kernel:  ? clear_bhb_loop+0x30/0x80
+Apr 27 07:08:37 ubuntu-vm kernel:  entry_SYSCALL_64_after_hwframe+0x76/0x7e
+Apr 27 07:08:37 ubuntu-vm kernel: RIP: 0033:0x7b14c8924e1d
+Apr 27 07:08:37 ubuntu-vm kernel: Code: 04 25 28 00 00 00 48 89 45 c8 31 c0 48 8d 45 10 c7 45 b0 10 00 00 00 48 89 45 b8 48 8d 45 d0 48 89 45 c0 b8 10 00 00 00 0f 05 <89> c2 3d 00 f0 ff ff 77 1a 48 8b 45 c8 64 48 2b 04 25 28 00 00 00
+Apr 27 07:08:37 ubuntu-vm kernel: RSP: 002b:00007b13c3df6140 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+Apr 27 07:08:37 ubuntu-vm kernel: RAX: ffffffffffffffda RBX: 000057bc083c0960 RCX: 00007b14c8924e1d
+Apr 27 07:08:37 ubuntu-vm kernel: RDX: 00007b13ac0022c0 RSI: 0000000000003b6e RDI: 0000000000000018
+Apr 27 07:08:37 ubuntu-vm kernel: RBP: 00007b13c3df6190 R08: 000057bbcb1d7628 R09: 0000000000000120
+Apr 27 07:08:37 ubuntu-vm kernel: R10: 0000000000000001 R11: 0000000000000246 R12: 000057bbcb1920e8
+Apr 27 07:08:37 ubuntu-vm kernel: R13: fffffffffffffdb8 R14: 000057bc083bd980 R15: 000057bc083c0ed0
+Apr 27 07:08:37 ubuntu-vm kernel:  </TASK>
+Apr 27 07:08:37 ubuntu-vm kernel: Modules linked in: vfio_pci vfio_pci_core vfio_iommu_type1 vfio iommufd tls udp_diag tcp_diag inet_diag nft_nat nft_redir xt_conntrack xt_MASQUERADE bridge stp llc xfrm_user xfrm_algo xt_set ip_set nft_chain_nat nf_nat nf_conntrack nf_defrag_ipv6 nf_defrag_ipv4 xt_addrtype nft_compat nf_tables qrtr overlay cfg80211 intel_rapl_msr intel_rapl_common intel_uncore_frequency_common binfmt_misc ppdev nls_iso8859_1 skx_edac_common nfit rapl parport_pc parport i2c_i801 i2c_mux i2c_smbus lpc_ich input_leds joydev mac_hid serio_raw sch_fq_codel dm_multipath msr efi_pstore nfnetlink dmi_sysfs qemu_fw_cfg ip_tables x_tables autofs4 btrfs blake2b_generic raid10 raid456 async_raid6_recov async_memcpy async_pq async_xor async_tx xor raid6_pq libcrc32c raid1 raid0 crct10dif_pclmul crc32_pclmul polyval_clmulni bochs polyval_generic nvme drm_vram_helper ghash_clmulni_intel sha256_ssse3 drm_ttm_helper sha1_ssse3 nvme_core ahci psmouse e1000 virtio_rng ttm nvme_auth libahci aesni_intel crypto_simd cryptd
+Apr 27 07:08:37 ubuntu-vm kernel: ---[ end trace 0000000000000000 ]---
+Apr 27 07:08:37 ubuntu-vm kernel: RIP: 0010:raw_readl+0x0/0x10
+Apr 27 07:08:37 ubuntu-vm kernel: Code: 90 90 90 90 90 90 90 90 90 90 66 8b 07 31 ff e9 c6 95 1b 01 66 0f 1f 44 00 00 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 <8b> 07 31 ff c3 cc cc cc cc 0f 1f 80 00 00 00 00 90 90 90 90 90 90
+Apr 27 07:08:37 ubuntu-vm kernel: RSP: 0018:ff5d6ffd43593868 EFLAGS: 00010286
+Apr 27 07:08:37 ubuntu-vm kernel: RAX: 000000000000000c RBX: ff5d6ffd435938a8 RCX: 0000000000000041
+Apr 27 07:08:37 ubuntu-vm kernel: RDX: 0000000000000001 RSI: ff5d6ffd435938a8 RDI: ff5d6ffd4031b00c
+Apr 27 07:08:37 ubuntu-vm kernel: RBP: ff5d6ffd43593878 R08: 0000000000000000 R09: 0000000000000000
+Apr 27 07:08:37 ubuntu-vm kernel: R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000000
+Apr 27 07:08:37 ubuntu-vm kernel: R13: 0000000000000000 R14: 0000000000000000 R15: 0000000000000000
+Apr 27 07:08:37 ubuntu-vm kernel: FS:  00007b13c3dfe6c0(0000) GS:ff4092915a780000(0000) knlGS:0000000000000000
+Apr 27 07:08:37 ubuntu-vm kernel: CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+Apr 27 07:08:37 ubuntu-vm kernel: CR2: 000057bbca5eb550 CR3: 0000000103bd0006 CR4: 0000000000771ef0
+Apr 27 07:08:37 ubuntu-vm kernel: PKRU: 55555554

@@ -11,6 +11,13 @@
 关联当前修复 Task：#36
 上层 T12 Task：#34
 
+## 设计记录（2026-04-27）
+
+- MSI-X table / PBA 是 PCI 标准能力描述的子区间，Host 启动枚举阶段理论上可以从 `pdev->msix_cap` 读取 `PCI_MSIX_TABLE`、`PCI_MSIX_PBA` 和 `PCI_MSIX_FLAGS`，计算 table/PBA 所在 BAR、offset 和 size。
+- 当前 pKVM boot manifest 只记录 BAR `base/size`，还没有冻结 MSI-X table / PBA reserved ranges；因此 hyp 侧暂时无法独立判断某个 `DIRECT_BAR` metadata 是否覆盖 MSI-X 控制面页。
+- 第一阶段仍按 #36 的边界先修复“整 BAR revoke”问题：只 revoke 已声明的 guest DIRECT_BAR 数据面范围，默认保留未声明的 MSI-X table / PBA 给 Host/VMM 控制面。
+- 本 Task 后续再决定是否把 MSI-X table / PBA 写入 boot manifest，并在 metadata sync 阶段拒绝覆盖这些 reserved 页的 `DIRECT_BAR` range。
+
 ## 修复方案摘要
 
 在 #36 完成“整 BAR revoke -> DIRECT_BAR 数据面子范围 revoke”之后，补齐 pKVM 对 `DIRECT_BAR` metadata 的独立语义校验：
