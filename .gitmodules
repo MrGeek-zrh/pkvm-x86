@@ -26,3 +26,7 @@
 	path = pKVM-IA
 	url = https://github.com/MrGeek-zrh/pKVM-IA.git
 	ignore = none
+[submodule "handoff-docs"]
+	path = handoff-docs
+	url = git@github.com:pKVM-DEV/DOCs.git
+	ignore = none

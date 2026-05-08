@@ -18,6 +18,25 @@
 - trust boundary 放在哪里
 - 实现顺序应该怎么排
 
+## 图形化总览
+
+下面这次改成了更接近架构框图的画法：方框表示参与层级和关键部分，箭头表示数据流/控制流。图里只保留第一阶段最关键的闭环，不把第二阶段之后的生命周期问题塞进去。
+
+![B3-1 第一阶段分层框图](artifacts/01C-1-B3-1-protected-pVM-设备透传第一阶段上层方案-框图.png)
+
+- 实线箭头：初始化阶段的控制流 / metadata 安装与发布
+- 虚线箭头：运行期 fallback / emulation 往返路径
+- SVG 源文件：`artifacts/01C-1-B3-1-protected-pVM-设备透传第一阶段上层方案-框图.svg`
+
+- 第一阶段最小闭环：单 `VFIO PCI`、静态 attach、`NoIommu`、基础 `PCI` 枚举、普通 `BAR MMIO`
+- 明确非目标：`vIOMMU`、`hotplug/remove-path`、`migration`、`MSI-X` 直达、完整 `teardown`、`DMA mirror` 生命周期
+- 后续衔接：先推进 `B3-2 metadata contract`，再回到 `T2 / T3 / T4 DMA mirror` 主线
+
+这里要区分两种不同的“分层”口径：
+
+- 执行层级：`userspace -> Host kernel / KVM -> pKVM/hyp -> protected pVM`
+- trust domain：`userspace` 和 `Host kernel / KVM` 虽然执行层级不同，但在这份方案里都仍属于 host side；真正的 authoritative metadata 不能停在这两层，而要停在 `pKVM/hyp`
+
 ## 为什么先做这一层
 
 - 当前更深的 blocker 已经不是单纯的 crosvm fallback，而是 protected pVM 自身还没有成立的 passthrough MMIO 语义：
@@ -79,9 +98,14 @@
 推荐边界是：
 
 ```text
-userspace / host KVM
+userspace (VMM / crosvm)
     发现设备
-    导出候选 BAR/MMIO 信息
+    组织 ioctl 参数 / 用户态 metadata
+        |
+        v
+Host kernel / KVM
+    pkvm_vm_ioctl_set_ptdev_mmio_metadata()
+    copy_from_user + 本地校验 + pkvm_hypercall(sync_ptdev_mmio_metadata)
         |
         v
 pKVM/hyp
@@ -92,6 +116,41 @@ pKVM/hyp
 guest
     只信任 pKVM/hyp 暴露的 metadata
 ```
+
+以 `KVM_CAP_X86_PROTECTED_VM_FLAGS_SET_PTDEV_MMIO_METADATA` 为例，当前源码里的实际调用层级更接近：
+
+```text
+userspace (crosvm, boot-time PCI / VFIO path)
+    VfioPciDevice::build_protected_vm_ptdev_mmio_metadata()   (crosvm/devices/src/pci/vfio_pci.rs)
+        枚举 VFIO sparse mmap BAR 子区间
+        remove_bar_mmap_msix()
+        生成 ProtectedVmPtdevMmioMetadata { generation = 1, flags = 0, ranges = [...] }
+    generate_pci_root()                                       (crosvm/arch/src/lib.rs)
+        submit_protected_vm_ptdev_mmio_metadata()
+            device.get_protected_vm_ptdev_mmio_metadata()     (crosvm/devices/src/pci/pci_device.rs)
+                VfioPciDevice::get_protected_vm_ptdev_mmio_metadata()
+            vm.set_protected_vm_ptdev_mmio_metadata()
+                KvmVm::set_protected_vm_ptdev_mmio_metadata() (crosvm/hypervisor/src/kvm/x86_64.rs)
+                    ioctl(vm_fd, KVM_ENABLE_CAP, &cap)
+                        cap.cap   = KVM_CAP_X86_PROTECTED_VM
+                        cap.flags = KVM_CAP_X86_PROTECTED_VM_FLAGS_SET_PTDEV_MMIO_METADATA
+                        cap.args[0] = userspace metadata pointer
+                        |
+                        v
+Host kernel / KVM
+    pkvm_vm_ioctl_set_ptdev_mmio_metadata()
+        pkvm_copy_ptdev_mmio_metadata_from_user()
+        pkvm_sync_ptdev_mmio_metadata()
+            pkvm_hypercall(sync_ptdev_mmio_metadata, ...)
+                |
+                v
+pKVM/hyp
+    pkvm_sync_ptdev_mmio_metadata()
+        pkvm_set_ptdev_mmio_metadata()
+```
+
+- 对当前 boot-time 设备启动主路径，`submit_protected_vm_ptdev_mmio_metadata()` 的直接调用者应写成 `generate_pci_root()`，不是 `configure_pci_device()`。
+- `configure_pci_device()` 也复用了同一个 helper，但更适合描述另一条 add-device / hotplug 风格路径，而不是当时 boot-time VFIO attach 的主线。
 
 这样设计的依据是：
 

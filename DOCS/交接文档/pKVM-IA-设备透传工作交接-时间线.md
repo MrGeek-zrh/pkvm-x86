@@ -161,7 +161,7 @@ pkvm_init_iommu
 ```
 
 - pKVM 启用后，IOMMU 初始化时序被改道到 `vmx_pkvm_init()` 中：先 deprivilege host CPUs，再由 pKVM 驱动 Intel IOMMU 初始化。
-- Host 写 `RTADDR` 并通过 `GCMD.SRTP` 请求设置 root table 后，pKVM 在 VM exit/hypercall 路径里进入 `handle_gcmd_srtp()` -> `activate_iommu()`。
+- Host 写 `RTADDR` ,并通过 `GCMD.SRTP` 请求IOMMU硬件设置 root table。pKVM 在 VM exit/hypercall 路径里进入 `handle_gcmd_srtp()` -> `activate_iommu()`。
 - `activate_iommu()` 需要初始化 Queued Invalidation，并为 `qi->desc` 分配 8KB（order=1）。
 - 在 `CONFIG_PKVM_INTEL_PVIOMMU=y` 下，`iommu_pool` 没有按 shadow IOMMU 路线预留/初始化，但 `initialize_qi()` 仍然从该 pool 分配，导致 `iommu_zalloc_pages()` 返回 `-ENOMEM`。
 - pKVM 没有成功置位虚拟 `GSTS.RTPS`，Host 侧 `IOMMU_WAIT_OP()` 一直等不到 RTPS，最终按 `DMAR hardware is malfunctioning` panic。
@@ -318,36 +318,55 @@ BOOT-004：host -> hyp donation 失败
                             WARN_ON(ret)
                                 exception 6
 
-BOOT-006：host -> guest donation 失败
-    sync_shadow_pgt(...)
-        shadow_pgt_map_leaf(...)
-            hyp_page_ref_inc(data_page)
+BOOT-006：
+[crosvm 用户态]
+ioctl(iommu_fd, VFIO_IOMMU_MAP_DMA)
+  iova=0, vaddr=Guest内存HVA, size=${RAM}MB
 
-    pkvm_page_fault(...)
-        pkvm_hypercall(vm_mmu_map, gpa=0x9000, hpa=...)
+[内核 drivers/vfio/vfio_iommu_type1.c]
+vfio_iommu_type1_map_dma()                            [vfio_iommu_type1.c:2808]
+  → vfio_dma_do_map()                                 [vfio_iommu_type1.c:1541]
+    → vfio_pin_map_dma(iommu, dma, ${RAM}MB)          [vfio_iommu_type1.c:1441]
+      loop 逐批:
+        → vfio_pin_pages_remote()                     [vfio_iommu_type1.c:1456]
+            get_user_pages(HVA+0x9000) → PFN 0x1e2888
+        → vfio_iommu_map(iova=0x9000, pfn=0x1e2888)  [vfio_iommu_type1.c:1466]
 
-    pkvm_vm_mmu_map(...)
-        guest_mmu_map_leaf(...)
-            __pkvm_host_donate_guest(hpa, gpa=0x9000, ...)
-                do_donate(...)
-                    host_initiate_donation(...)
-                        hyp_page_count(__hyp_va(hpa)) != 0
-                            return -EBUSY
-                return -EBUSY
-        return -EBUSY
+[内核 drivers/iommu/intel/iommu.c]
+intel_iommu_map()
+  → __domain_mapping()
+    → iommu_flush_iotlb_psi()
+      → qi_flush_iec()
+        → 写 DMAR_IQT_REG                             ← pKVM 拦截点
+
+[Hyp 侧 hyp/shadow_iommu.c]
+pkvm_access_iommu(DMAR_IQT_REG, write)
+  → handle_qi_invalidation()
+    → handle_descriptor(QI_CC_TYPE)
+      → context_cache_invalidate()
+        → sync_shadow_id()
+          → sync_shadow_context_entry()
+            → sync_shadow_pgt()                       [shadow_iommu.c:422]
+              → pkvm_pgtable_sync_map_range()
+                → pgtable_walk(pgtable_sync_map_cb)
+                  → pgtable_sync_map_cb()
+                    → pkvm_pgtable_map(shadow_pgt_map_leaf)
+                      → pgtable_walk(pgtable_map_cb)
+                        → pgtable_map_cb()            ← 日志中的 caller
+                          → pgtable_map_try_leaf()
+                            → shadow_pgt_map_leaf()   [shadow_iommu.c:330]
+                              → hyp_page_ref_inc(0x1e2888000)  [shadow_iommu.c:380]
 ```
 
 - 这两个问题的共同点是：pKVM 做 donation 前要求目标页 `refcnt=0`；只要 `refcnt` 不是 0，就认为这个页还被别的路径占着，直接返回 `-EBUSY`。
-- `BOOT-004` 是早期证据：非 protected VM 也会踩到这个限制，因为 pKVM 处理页表/缓存页时也需要 `host -> hyp` donation。它证明问题不只存在于 protected guest 私有内存路径。
-- `BOOT-006` 找到了更具体的来源：VFIO 会让 crosvm 先把 guest RAM 映射进 IOMMU；pKVM 同步 shadow IOMMU 页表时，`shadow_pgt_map_leaf()` 先把数据页 `refcnt` 加到 1。
+- `BOOT-006`可确定问题根源：VFIO 会让 crosvm 先把 guest RAM 映射进 HOST的IOMMU页表；pKVM 同步 shadow IOMMU 页表时，`shadow_pgt_map_leaf()` 先把数据页 `refcnt` 加到 1。
 - 后面 guest 真正访问 `GPA=0x9000` 时，pKVM 再想把同一个 HPA donate 给 guest，就被前面留下的 `refcnt=1` 拦住。
 - 真正需要修的是旧 shadow spgt 销毁路径：它只释放页表页，没有回收 leaf 对数据页加过的 refcount。
 
 #### 解决方法
 
 - 旧 shadow spgt 销毁时必须把 leaf 持有的数据页 refcount 退掉。
-- 在 `pkvm_put_host_iommu_spgt()` 的最终销毁路径接入 destroy 专用 leaf free callback。
-- 新增 `pkvm_host_iommu_spgt_free_leaf()`，只在 destroy 场景下做数据页 `hyp_page_ref_dec()` 和 leaf 页表资源释放，避免复用普通 unmap 路径触发 `pgtable_unmap_leaf` assertion。
+- 在 `pkvm_put_host_iommu_spgt()` 的最终销毁路径接入 destroy 专用 leaf free callback：pkvm_host_iommu_spgt_free_leaf。
 
 ```C
 T1 修复后：旧 host shadow spgt 销毁路径
@@ -403,17 +422,58 @@ T1 修复后：旧 host shadow spgt 销毁路径
 
 ### 2026-03-24：B3，建立 protected pVM ptdev MMIO metadata / allowlist 骨架
 
-#### 问题 / 现象
+#### 当前表现 / 当前阻塞
 
-- T1 解除 donation blocker 后，新的核心问题不再只是 DMA mirror：protected pVM 没有成熟的 passthrough BAR/MMIO contract。
-- host -> pKVM 的显式 attach 接口只传 `BDF/PASID`，没有 BAR/resource 元数据。
-- guest 侧已有 `pkvm_virt_mmio()` 分流入口，但缺少 hyp 提供的 authoritative allowlist，无法决定哪些 BAR GPA 可以 direct raw MMIO，哪些必须 fallback 到 `PKVM_GHC_IOREAD/IOWRITE`。
+- 当时 protected pVM 的 guest MMIO 还没有 direct path。`pKVM-IA/arch/x86/coco/pkvm/pkvm.c` 中 `pkvm_guest_init_coco()` 把 `pv_ops.mmio.raw_*` 和 `pv_ops.mmio.pci_mmcfg_*` 都挂到 `pkvm_mmio_read*/write*`，相关访问最终统一进入 `pkvm_virt_mmio()`，guest 侧还不能对 passthrough BAR 走 direct raw MMIO。
 
-#### 解决方法
+#### 本轮方案 / 落地路径
 
-- 先定第一阶段范围：单 VFIO PCI 设备、静态 attach、`NoIommu`、普通 BAR MMIO；config 继续走 emulated 路径，MSI-X table / PBA 暂不直达。
-- 增加 host 提交 `ptdev MMIO metadata`、host -> hyp 同步、hyp 绑定到 `ptdev`、guest 拉取 allowlist、guest `pkvm_virt_mmio()` 命中 allowlist 后走 direct raw read/write 的第一轮骨架。
-- metadata 分成两层：hyp 内部富 metadata 与 guest 可见的精简 allowlist。
+- 当前准备先实现“普通 BAR区域的 MMIO直通访问”。大体思路如下所示：
+
+```text
+Host userspace (crosvm, boot-time PCI / VFIO path)
+    VfioPciDevice::build_protected_vm_ptdev_mmio_metadata()   (crosvm/devices/src/pci/vfio_pci.rs)
+        枚举 VFIO sparse mmap BAR 子区间
+        remove_bar_mmap_msix()
+        生成 ProtectedVmPtdevMmioMetadata { generation = 1, flags = 0, ranges = [...] }
+    generate_pci_root()                                       (crosvm/arch/src/lib.rs)
+        submit_protected_vm_ptdev_mmio_metadata()
+            device.get_protected_vm_ptdev_mmio_metadata()     (crosvm/devices/src/pci/pci_device.rs)
+                VfioPciDevice::get_protected_vm_ptdev_mmio_metadata()
+            vm.set_protected_vm_ptdev_mmio_metadata()
+                KvmVm::set_protected_vm_ptdev_mmio_metadata() (crosvm/hypervisor/src/kvm/x86_64.rs)
+                    ioctl(KVM_ENABLE_CAP, ...)
+                        cap.cap   = KVM_CAP_X86_PROTECTED_VM
+                        cap.flags = KVM_CAP_X86_PROTECTED_VM_FLAGS_SET_PTDEV_MMIO_METADATA
+                        cap.args[0] = userspace metadata pointer
+
+Host kernel
+    pkvm_vm_ioctl_set_ptdev_mmio_metadata()                 (pKVM-IA/arch/x86/kvm/vmx/pkvm/pkvm_host.c)
+        pkvm_copy_ptdev_mmio_metadata_from_user()
+        pkvm_sync_ptdev_mmio_metadata()
+            sync_ptdev_mmio_metadata hypercall
+
+pKVM (hyp)
+    pkvm_set_ptdev_mmio_metadata()                              (pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/ptdev.c)
+        pkvm_update_vm_mmio_allowlist()
+            DIRECT_BAR ranges -> vm->mmio_allow_ranges[]
+
+guest boot
+    pkvm_init_mmio_allowlist()                                 (pKVM-IA/arch/x86/coco/pkvm/pkvm.c)
+        PKVM_GHC_PTDEV_MMIO_INFO
+        PKVM_GHC_PTDEV_MMIO_READ
+
+guest runtime MMIO
+    pkvm_virt_mmio()
+        pkvm_mmio_allow_hit()
+            hit  -> pkvm_direct_mmio_read/write()
+            miss -> mmio_read/write()
+                PKVM_GHC_IOREAD / PKVM_GHC_IOWRITE
+```
+
+- host 侧的作用是把 userspace 已知的 BAR 子区间显式提交给 pKVM，不再只停留在 `BDF/PASID` attach。对应实现是 `pkvm_vm_ioctl_set_ptdev_mmio_metadata()` 先做用户态结构拷贝和基本校验，再通过 `sync_ptdev_mmio_metadata` hypercall 下发到 hyp。
+- hyp 侧的作用是把这份 ptdev metadata 收敛成 VM 级 allowlist，而不是把原始 userspace 结构直接透给 guest。对应实现是 `pkvm_set_ptdev_mmio_metadata()` 先确认目标设备已 attach 到当前 VM，再由 `pkvm_update_vm_mmio_allowlist()` 只提取 `DIRECT_BAR` 区间，写入 `vm->mmio_allow_ranges[]`。
+- guest 侧，`pkvm_init_mmio_allowlist()` 在pVM启动早期拉取 allowlist，运行期 `pkvm_virt_mmio()` 只有命中 `pkvm_mmio_allow_hit()` 时才走 `raw_read*` / `raw_write*`；未命中的访问仍保留原来的 `PKVM_GHC_IOREAD` / `PKVM_GHC_IOWRITE` fallback。
 
 **关键提交 / PR / issue**
 
@@ -433,14 +493,13 @@ T1 修复后：旧 host shadow spgt 销毁路径
 
 - `DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/实施跟踪/01C-1-B3-1-protected-pVM-设备透传第一阶段上层方案.md`
 - `DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/实施跟踪/01C-2-B3-2-x86-ptdev-metadata-最小结构草案.md`
-- `DOCS/tmp/pKVM-IA-allowlist-代码实现讲解-dd91422.md`
 - `DOCS/需求/分析当前pKVM-IA对设备透传的支持情况/参考实现/ARM-pKVM-到-x86-设计映射表.md`
 
 ### 2026-03-24 ~ 2026-03-27：BOOT-007 / B1 / B2，收敛 protected VM 的 config/MMIO fallback 路径
 
 #### 问题 / 现象
 
-T1 后 BOOT-006 protected pVM 路径上的旧 donation/refcount 签名消失，但 protected pVM + VFIO(`NoIommu`) 运行期出现：
+- protected pVM + 透传NVME(`NoIommu`) 运行时crossvm报错：
 
 ```text
 Failed to map mmio page; failed to create vm mapping
@@ -449,15 +508,54 @@ vcpu hit unknown error: Bad address (os error 14)
 
 #### 根因
 
-- crosvm 的 `ReadOnlyMemoryRegion` 能力判断本意是在 pKVM 下关闭只读 memslot，但 x86_64 `KvmVm::is_pkvm()` 当时硬编码 `false`，导致 crosvm 误以为 protected VM 可创建只读 PCIe config memslot。
-- 只读 memslot 建立失败后退回 vm-exit / MMIO emulation，而 `pKVM-IA/arch/x86/kvm/mmu/mmu.c` 的 protected vCPU 缺页路径明确拒绝传统 `RET_PF_EMULATE`，返回 `-EFAULT`。
-- PCI virtual config / ACPI `VCFG` / device-level virtual config AML 在 protected VM 下继续暴露，会把 guest 带回 pKVM 不支持的 host-mediated MMIO emulation 路径。
+```C
+crosvm x86_64 VM 构建只读 PCI config memslot 失败
+    X8664arch::build_vm(...)
+        arch::generate_pci_root(...)
+            PciRoot::add_device(...)
+                PciRootMmioState::setup_mapping(...)
+                    mapper.supports_readonly_mapping()
+                        Vm::check_capability(VmCap::ReadOnlyMemoryRegion)
+                            KvmVm::check_capability(...)
+                                VmCap::ReadOnlyMemoryRegion => !self.is_pkvm()
+                                    KvmVm::is_pkvm()
+                                        当时 x86_64 硬编码 return false
+                    mapper.add_mapping(mmio_address, shmem)
+                        KvmVm::add_memory_region(..., read_only = true, ...)
+                            set_user_memory_region(...)
+                                ioctl(KVM_SET_USER_MEMORY_REGION, KVM_MEM_READONLY)
+                                    -> EINVAL
+                    Err => "Failed to map mmio page; failed to create vm mapping"
+                    fallback 到普通 vm-exit / MMIO emulation
+
+随后guest 运行期触发 Bad address
+guest 访问 PCI config
+    VMX EPT violation
+        handle_ept_violation(...)
+            kvm_mmu_page_fault(...)
+                kvm_mmu_do_page_fault(...)
+                    kvm_tdp_page_fault(...)
+                        pkvm_page_fault(...)
+                            kvm_faultin_pfn(...)
+                                kvm_handle_noslot_fault(...) / kvm_handle_error_pfn(...)
+                                    -> RET_PF_EMULATE
+                            if pkvm_is_protected_vcpu(vcpu) && r == RET_PF_EMULATE
+                                return -EFAULT
+    KVM_RUN ioctl 返回 -EFAULT
+        crosvm KvmVcpu::run()
+            Err(EFAULT)
+        run_vcpu(...)
+            "vcpu hit unknown error: Bad address (os error 14)"
+```
+- crossvm设计
+- crossvm对PCI space的只读优化（借助只读memslot）只允许在非pKVM下开启
+- 但 x86_64 `KvmVm::is_pkvm()` 当时硬编码 `false`，导致 crosvm 任务当前是非pKVM环境，进而尝试进行只读memslot创建。但是在pKVM环境下，只读memslot会创建失败，也即此时PCI config space对应的内存是没有memslot结构的。在KVM中，没有memslot意味着这种内存访问需要被模拟。
+- 但`pKVM-IA/arch/x86/kvm/mmu/mmu.c` 的 protected vCPU 缺页路径明确拒绝传统 `RET_PF_EMULATE`，返回 `-EFAULT`。最终导致报错。
 
 #### 解决方法
 
 - 修正 crosvm x86_64 的 protected VM 识别。
 - protected VM 下停止创建 `PciVirtualConfigMmio`、停止公开 ACPI `VCFG`、停止注册设备级 virtual-config AML / shared-memory 入口。
-- 把 `BOOT-007` 定位为独立 bug / blocker，而不是把它混入 T2/T3 DMA mirror。
 
 **关键提交 / issue**
 
@@ -662,8 +760,8 @@ NMIs are not reaching exc_nmi() handler
 
 #### 根因
 
-- boot 阶段 PCI/VFIO 设备走的是 `generate_pci_root()` 路径，而 `SET_PTDEV_MMIO_METADATA` 只存在于另一条 `configure_pci_device()` 路径。
-- 因此 boot-time VFIO 设备注册时根本没有机会提交 ptdev MMIO metadata。
+- 在 2026-04-15 这次修复之前，boot 阶段 PCI/VFIO 设备走的是 `generate_pci_root()` 路径，而 `SET_PTDEV_MMIO_METADATA` 只存在于另一条 `configure_pci_device()` 路径。
+- 因此在当时的 boot-time VFIO 设备注册流程里，根本没有机会提交 ptdev MMIO metadata。
 
 #### 解决方法
 

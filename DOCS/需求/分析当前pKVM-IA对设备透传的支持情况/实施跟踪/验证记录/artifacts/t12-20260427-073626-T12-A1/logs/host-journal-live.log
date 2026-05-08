@@ -78,3 +78,42 @@ Apr 27 07:39:39 ubuntu-vm kernel: e1000 0000:00:03.0 enp0s2: Detected Tx Unit Ha
 Apr 27 07:40:50 ubuntu-vm kernel: nvme nvme0: pci function 0000:01:00.0
 Apr 27 07:40:50 ubuntu-vm kernel: nvme nvme0: 32/0/0 default/read/poll queues
 Apr 27 07:40:50 ubuntu-vm kernel: nvme nvme0: Ignoring bogus Namespace Identifiers
+May 01 06:18:58 ubuntu-vm systemd[1]: systemd 255.4-1ubuntu8.14 running in system mode (+PAM +AUDIT +SELINUX +APPARMOR +IMA +SMACK +SECCOMP +GCRYPT -GNUTLS +OPENSSL +ACL +BLKID +CURL +ELFUTILS +FIDO2 +IDN2 -IDN +IPTC +KMOD +LIBCRYPTSETUP +LIBFDISK +PCRE2 -PWQUALITY +P11KIT +QRENCODE +TPM2 +BZIP2 +LZ4 +XZ +ZLIB +ZSTD -BPF_FRAMEWORK -XKBCOMMON +UTMP +SYSVINIT default-hierarchy=unified)
+May 01 06:18:58 ubuntu-vm systemd[1]: Detected virtualization kvm.
+May 01 06:18:58 ubuntu-vm systemd[1]: Detected architecture x86-64.
+May 01 06:18:59 ubuntu-vm systemd-journald[616]: Received SIGTERM from PID 1 (systemd).
+May 01 06:18:59 ubuntu-vm systemd[1]: Stopping systemd-journald.service - Journal Service...
+May 01 06:18:59 ubuntu-vm systemd[1]: netplan-ovs-cleanup.service - OpenVSwitch configuration for cleanup was skipped because of an unmet condition check (ConditionFileIsExecutable=/usr/bin/ovs-vsctl).
+May 01 06:18:59 ubuntu-vm systemd[1]: systemd-networkd-wait-online.service: Deactivated successfully.
+May 01 06:18:59 ubuntu-vm systemd[1]: Stopped systemd-networkd-wait-online.service - Wait for Network to be Configured.
+May 01 06:18:59 ubuntu-vm systemd[1]: Stopping systemd-networkd-wait-online.service - Wait for Network to be Configured...
+May 01 06:18:59 ubuntu-vm systemd[1]: Stopping systemd-networkd.service - Network Configuration...
+May 01 06:18:59 ubuntu-vm systemd[1]: Stopping systemd-resolved.service - Network Name Resolution...
+May 01 06:18:59 ubuntu-vm systemd[1]: Stopping systemd-timesyncd.service - Network Time Synchronization...
+May 01 06:18:59 ubuntu-vm systemd[1]: Stopping udisks2.service - Disk Manager...
+May 01 06:18:59 ubuntu-vm systemd[1]: udisks2.service: Deactivated successfully.
+May 01 06:18:59 ubuntu-vm systemd[1]: Stopped udisks2.service - Disk Manager.
+May 01 06:18:59 ubuntu-vm systemd[1]: udisks2.service: Consumed 8.333s CPU time, 10.5M memory peak, 0B memory swap peak.
+May 01 06:18:59 ubuntu-vm systemd[1]: Starting udisks2.service - Disk Manager...
+May 01 06:18:59 ubuntu-vm systemd[1]: systemd-journald.service: Deactivated successfully.
+May 01 06:18:59 ubuntu-vm systemd[1]: Stopped systemd-journald.service - Journal Service.
+May 01 06:18:59 ubuntu-vm systemd[1]: systemd-journald.service: Consumed 29.275s CPU time, 43.5M memory peak, 0B memory swap peak.
+May 01 06:18:59 ubuntu-vm systemd[1]: systemd-resolved.service: Deactivated successfully.
+May 01 06:18:59 ubuntu-vm systemd[1]: Stopped systemd-resolved.service - Network Name Resolution.
+May 01 06:18:59 ubuntu-vm systemd[1]: systemd-resolved.service: Consumed 2.172s CPU time, 8.5M memory peak, 0B memory swap peak.
+May 01 06:18:59 ubuntu-vm systemd[1]: systemd-timesyncd.service: Deactivated successfully.
+May 01 06:18:59 ubuntu-vm systemd[1]: Stopped systemd-timesyncd.service - Network Time Synchronization.
+May 01 06:18:59 ubuntu-vm systemd[1]: systemd-timesyncd.service: Consumed 1.914s CPU time, 2.2M memory peak, 0B memory swap peak.
+May 01 06:18:59 ubuntu-vm systemd[1]: codex-im-feishu-bot.service: Deactivated successfully.
+May 01 06:18:59 ubuntu-vm systemd[1]: Stopped codex-im-feishu-bot.service - codex-im feishu bot.
+May 01 06:18:59 ubuntu-vm systemd[1]: codex-im-feishu-bot.service: Consumed 1min 11.148s CPU time, 322.9M memory peak, 0B memory swap peak.
+May 01 06:18:59 ubuntu-vm systemd[1]: Starting systemd-journald.service - Journal Service...
+May 01 06:18:59 ubuntu-vm systemd[1]: Started codex-im-feishu-bot.service - codex-im feishu bot.
+May 01 06:18:59 ubuntu-vm systemd[1]: Starting systemd-resolved.service - Network Name Resolution...
+May 01 06:18:59 ubuntu-vm systemd[1]: Starting systemd-timesyncd.service - Network Time Synchronization...
+May 01 06:18:59 ubuntu-vm systemd[1]: systemd-networkd.service: Deactivated successfully.
+May 01 06:18:59 ubuntu-vm systemd[1]: Stopped systemd-networkd.service - Network Configuration.
+May 01 06:18:59 ubuntu-vm systemd[1]: systemd-networkd.service: Consumed 1.597s CPU time, 4.0M memory peak, 0B memory swap peak.
+May 01 06:18:59 ubuntu-vm systemd[1]: Stopping systemd-udevd.service - Rule-based Manager for Device Events and Files...
+May 01 06:18:59 ubuntu-vm systemd-journald[1802560]: Collecting audit messages is disabled.
+May 01 06:18:59 ubuntu-vm systemd[1]: Started systemd-journald.service - Journal Service.
