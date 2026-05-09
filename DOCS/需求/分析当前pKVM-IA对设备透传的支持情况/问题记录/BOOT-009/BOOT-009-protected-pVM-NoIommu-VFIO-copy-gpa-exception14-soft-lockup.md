@@ -83,6 +83,38 @@
   - host VM 继续保留现有 identity copy 语义，不把 non-protected 路径一起改坏
   - 这轮不修改 guest allowlist ABI，也不把 `BOOT-009` 和 T2/T3/T4 的 DMA 生命周期问题混在同一个 patch 里
 
+## 修复后调用栈
+
+```text
+guest early init
+    pkvm_guest_init_coco()                               (arch/x86/coco/pkvm/pkvm.c)
+        pkvm_init_mmio_allowlist()                       (arch/x86/coco/pkvm/pkvm.c)
+            kvm_hypercall2(PKVM_GHC_PTDEV_MMIO_INFO, __pa(&pkvm_mmio_info), ...)
+              or kvm_hypercall3(PKVM_GHC_PTDEV_MMIO_READ, __pa(pkvm_mmio_allow_ranges), ...)
+                kvm_pkvm_hypercall()                     (arch/x86/kvm/pkvm/vmx/vmx.c)
+                    pkvm_handle_ptdev_mmio_info()/pkvm_handle_ptdev_mmio_read()
+                        write_gpa(vcpu, guest_gpa, ...)
+                            copy_gpa(...)
+                                __copy_gpa(...)          (arch/x86/kvm/vmx/pkvm/hyp/memory.c)
+                                    pkvm_is_protected_vcpu(vcpu)
+                                    guest_mmu_lock(pkvm_vm)
+                                    pkvm_pgtable_lookup(&pkvm_vm->mmu, gpa, &hpa, ...)
+                                    if (hpa == INVALID_ADDR)
+                                        guest_mmu_unlock(pkvm_vm)
+                                        return -EFAULT
+                                    if (!is_mem_range(hpa, len))
+                                        guest_mmu_unlock(pkvm_vm)
+                                        return -EFAULT
+                                    hva = pkvm_phys_to_virt(hpa)
+                                    memcpy(hva, addr, len)
+                                    guest_mmu_unlock(pkvm_vm)
+
+non-protected path
+    __copy_gpa(...)
+        host_gpa2hva(gpa)
+        memcpy(hva, addr, len)
+```
+
 ## 验证要点
 
 - 继续使用同样的 `NoIommu` 命令重复启动时：

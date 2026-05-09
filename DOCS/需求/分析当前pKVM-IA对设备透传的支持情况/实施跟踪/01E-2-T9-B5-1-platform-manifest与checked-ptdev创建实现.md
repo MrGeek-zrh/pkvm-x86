@@ -73,6 +73,74 @@
 - 改为走同一把锁下的 `pkvm_get_or_create_ptdev()`
 - 这条路径只负责共享的 ptdev bookkeeping / shadow sync 所需对象物化，不承载 manifest enforcement
 
+## 对应函数调用栈
+
+### 1. 启动期 manifest 构造与冻结
+
+```text
+Host boot
+    -> __vmx_pkvm_init()                                   (pKVM-IA/arch/x86/kvm/vmx/pkvm/pkvm_host.c)
+        -> check_and_init_iommu(pkvm)
+            -> check_pci_device_count()
+                -> for_each_pci_dev()
+            -> scan_devices_in_satc()
+            -> build_boot_ptdev_manifest(pkvm)
+                -> for_each_pci_dev()
+                -> dmar_find_matched_drhd_unit()
+                -> sm_supported()
+                -> write pkvm->boot_ptdev_manifest[] / boot_ptdev_cnt
+```
+
+### 2. pVM 显式 attach 边界
+
+```text
+userspace / crosvm
+    -> KVM_DEV_VFIO_FILE_ADD                              (pKVM-IA/virt/kvm/vfio.c)
+        -> kvm_vfio_set_file()
+            -> kvm_vfio_file_add()
+                -> kvm_arch_add_device_to_pkvm()          (pKVM-IA/arch/x86/kvm/vmx/pkvm/pkvm_host.c)
+                    -> iommu_group_for_each_dev()
+                        -> add_device_to_pkvm()
+                            -> pkvm_hypercall(add_ptdev, vm_handle, bdf, 0)
+                                -> handle_pkvm_hypercall() (pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/vmexit.c)
+                                    -> pkvm_add_ptdev()    (pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/pkvm.c)
+                                        -> shadow_vm_is_protected()
+                                        -> pkvm_attach_ptdev()          (pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/ptdev.c)
+                                            -> pkvm_get_or_create_ptdev_checked()
+                                                -> __pkvm_get_or_create_ptdev(check_boot_manifest=true)
+                                                    -> pkvm_check_boot_ptdev_manifest()
+                                                    -> __pkvm_get_ptdev_locked()
+                                                    -> __pkvm_alloc_ptdev_locked()   [仅 miss 时创建]
+```
+
+### 3. legacy shadow IOMMU / 普通 VM 共享路径
+
+```text
+Host IOMMU context / pasid shadow sync
+    -> iommu_id_sync_entry()                              (pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/shadow_iommu.c)
+        -> sync_shadow_context_entry()
+            -> iommu_add_ptdev()
+                -> pkvm_get_or_create_ptdev()             (pKVM-IA/arch/x86/kvm/vmx/pkvm/hyp/ptdev.c)
+                    -> __pkvm_get_or_create_ptdev(check_boot_manifest=false)
+                        -> __pkvm_get_ptdev_locked()
+                        -> __pkvm_alloc_ptdev_locked()     [仅 miss 时创建]
+```
+
+### 4. 普通 VM 先物化 `ptdev` 也不能绕过 manifest check
+
+```text
+普通 VM / shared shadow-IOMMU 路径
+    -> pkvm_get_or_create_ptdev()
+        -> __pkvm_alloc_ptdev_locked()                    [先物化 ptdev]
+
+后续 protected pVM 显式 attach
+    -> pkvm_attach_ptdev()
+        -> pkvm_get_or_create_ptdev_checked()
+            -> __pkvm_get_or_create_ptdev(check_boot_manifest=true)
+                -> pkvm_check_boot_ptdev_manifest()       [始终先执行]
+                -> __pkvm_get_ptdev_locked()              [校验通过后才允许复用已有 ptdev]
+```
+
 ## 当前实现范围
 
 - Host IOMMU = legacy mode

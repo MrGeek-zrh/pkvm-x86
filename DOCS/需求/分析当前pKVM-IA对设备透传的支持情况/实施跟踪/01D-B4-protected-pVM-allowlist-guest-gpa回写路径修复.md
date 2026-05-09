@@ -28,6 +28,37 @@
   - 翻译成功后，还要再明确校验该 `HPA` 落在 normal RAM 范围内；direct-BAR / MMIO GPA 即使 lookup 成功，也必须按非法 buffer 拒绝。
   - 只有“已翻译且确认是 RAM buffer”时，才允许 `pkvm_phys_to_virt(hpa)` 执行 `memcpy()`。
   - 翻译失败时直接返回 `-EFAULT`，由 [vmx.c](/home/mrgeek/pkvm-x86/pKVM-IA/arch/x86/kvm/pkvm/vmx/vmx.c) 的 `pkvm_handle_ptdev_mmio_info()` / `pkvm_handle_ptdev_mmio_read()` 回给 guest，而不是让 hyp 在 `memcpy()` 里直接 fault。
+- 修复后这条 guest-GPA 回写主路径可以收敛为：
+
+```text
+guest early init
+    pkvm_guest_init_coco()                               (arch/x86/coco/pkvm/pkvm.c)
+        pkvm_init_mmio_allowlist()                       (arch/x86/coco/pkvm/pkvm.c)
+            kvm_hypercall2(PKVM_GHC_PTDEV_MMIO_INFO, __pa(&pkvm_mmio_info), ...)
+              or kvm_hypercall3(PKVM_GHC_PTDEV_MMIO_READ, __pa(pkvm_mmio_allow_ranges), ...)
+                kvm_pkvm_hypercall()                     (arch/x86/kvm/pkvm/vmx/vmx.c)
+                    pkvm_handle_ptdev_mmio_info()/pkvm_handle_ptdev_mmio_read()
+                        write_gpa(vcpu, guest_gpa, ...)
+                            copy_gpa(...)
+                                __copy_gpa(...)          (arch/x86/kvm/vmx/pkvm/hyp/memory.c)
+                                    pkvm_is_protected_vcpu(vcpu)
+                                    guest_mmu_lock(pkvm_vm)
+                                    pkvm_pgtable_lookup(&pkvm_vm->mmu, gpa, &hpa, ...)
+                                    if (hpa == INVALID_ADDR)
+                                        guest_mmu_unlock(pkvm_vm)
+                                        return -EFAULT
+                                    if (!is_mem_range(hpa, len))
+                                        guest_mmu_unlock(pkvm_vm)
+                                        return -EFAULT
+                                    hva = pkvm_phys_to_virt(hpa)
+                                    memcpy(hva, addr, len)
+                                    guest_mmu_unlock(pkvm_vm)
+
+non-protected path
+    __copy_gpa(...)
+        host_gpa2hva(gpa)
+        memcpy(hva, addr, len)
+```
 - 这样可以把当前问题收敛为“guest copy 语义修正”，而不是误把它继续并入 DMA mirror 生命周期 patch。
 
 ## 为什么单独拆分
